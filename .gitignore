@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.dsh-code-index/
 .env
 .env.*
 !.env.example
