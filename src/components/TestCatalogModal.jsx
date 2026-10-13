@@ -24,18 +24,18 @@ const staticColumns = [
     title: 'TEST',
     dataIndex: 'display',
     render: (display, test) => (
-      <div>
+      <div className="catalog-test-cell">
         <Text strong>{display}</Text>
         <div><Text type="secondary" className="phase-id">{test.resultPath}</Text></div>
       </div>
     ),
   },
-  { title: 'SUITE', dataIndex: 'defaultSuiteName', width: 140, render: (value) => (value ? <Tag>{value}</Tag> : <Text type="secondary">—</Text>) },
-  { title: 'OWNER', dataIndex: 'defaultOwner', width: 120, render: (value) => (value ? <Text type="secondary">{value}</Text> : <Text type="secondary">—</Text>) },
+  { title: 'SUITE', dataIndex: 'defaultSuiteName', width: 120, ellipsis: true, render: (value) => (value ? <Tag>{value}</Tag> : <Text type="secondary">—</Text>) },
+  { title: 'OWNER', dataIndex: 'defaultOwner', width: 110, ellipsis: true, render: (value) => (value ? <Text type="secondary">{value}</Text> : <Text type="secondary">—</Text>) },
   {
     title: 'TAGS',
     dataIndex: 'tags',
-    width: 160,
+    width: 140,
     render: (tags) => (Array.isArray(tags) && tags.length
       ? <Space size={4} wrap>{tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}</Space>
       : <Text type="secondary">—</Text>),
@@ -43,7 +43,7 @@ const staticColumns = [
   {
     title: 'SOURCE',
     dataIndex: 'source',
-    width: 100,
+    width: 90,
     render: (value) => <Tag color={sourceColors[value] ?? 'default'}>{value}</Tag>,
   },
 ]
@@ -172,9 +172,9 @@ export default function TestCatalogModal({ open, onClose }) {
   const columns = [
     ...staticColumns,
     {
-      title: <Tooltip title="Off — the test is hidden from reports"><span>SHOW IN REPORT</span></Tooltip>,
+      title: <Tooltip title="Off — the test is hidden from reports"><span>SHOW</span></Tooltip>,
       dataIndex: 'visible',
-      width: 120,
+      width: 70,
       align: 'center',
       render: (visible, test) => (
         <Switch
@@ -212,7 +212,7 @@ export default function TestCatalogModal({ open, onClose }) {
       open={open}
       onCancel={onClose}
       footer={<Button onClick={onClose}>Close</Button>}
-      width={860}
+      width="min(1100px, calc(100vw - 32px))"
       destroyOnHidden
     >
       <Paragraph type="secondary">
