@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { App, Button, Empty, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag, Tooltip, Typography, Upload } from 'antd'
 import { DeleteOutlined, FileAddOutlined, ImportOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
 import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests } from '../services/dataService'
@@ -30,7 +30,6 @@ const staticColumns = [
       </div>
     ),
   },
-  { title: 'SUITE', dataIndex: 'defaultSuiteName', width: 120, ellipsis: true, render: (value) => (value ? <Tag>{value}</Tag> : <Text type="secondary">—</Text>) },
   { title: 'OWNER', dataIndex: 'defaultOwner', width: 110, ellipsis: true, render: (value) => (value ? <Text type="secondary">{value}</Text> : <Text type="secondary">—</Text>) },
   {
     title: 'TAGS',
@@ -49,6 +48,7 @@ const staticColumns = [
 ]
 
 const paginationConfig = { pageSize: 10, size: 'small' }
+const emptyText = <Empty description="No tests in this suite" />
 const emptyCatalog = <Empty description="Catalog is empty — add tests manually, import a JSON file, or harvest from stored runs" />
 
 export default function TestCatalogModal({ open, onClose }) {
@@ -60,6 +60,8 @@ export default function TestCatalogModal({ open, onClose }) {
   const [harvesting, setHarvesting] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
+  const [bulkUpdating, setBulkUpdating] = useState(false)
+  const [selectedRowKeys, setSelectedRowKeys] = useState([])
   const [preview, setPreview] = useState(null) // { tests, skipped, filename }
   const { message } = App.useApp()
 
@@ -77,6 +79,11 @@ export default function TestCatalogModal({ open, onClose }) {
   useEffect(() => {
     if (open) refresh()
   }, [open, refresh])
+
+  useEffect(() => {
+    const catalogIds = new Set(catalog.map((test) => test.id))
+    setSelectedRowKeys((keys) => keys.filter((key) => catalogIds.has(key)))
+  }, [catalog])
 
   const addManual = async () => {
     let values
@@ -161,7 +168,7 @@ export default function TestCatalogModal({ open, onClose }) {
     try {
       await createAutomatedTest({ ...toDtoPayload(test), visible })
       message.success(visible ? `"${(test.defaultCaseName || test.resultPath)}" shows in reports` : `"${(test.defaultCaseName || test.resultPath)}" hidden from reports`)
-      refresh()
+      await refresh()
     } catch (error) {
       message.error(error.message || 'Failed to update visibility')
     } finally {
@@ -169,7 +176,49 @@ export default function TestCatalogModal({ open, onClose }) {
     }
   }
 
-  const columns = [
+  const toggleSelectedVisibility = async (visible) => {
+    const selectedTests = catalog.filter((test) => selectedRowKeys.includes(test.id))
+    if (!selectedTests.length) return
+    setBulkUpdating(true)
+    try {
+      const results = await Promise.allSettled(selectedTests.map((test) => createAutomatedTest({ ...toDtoPayload(test), visible })))
+      const failed = results.filter((result) => result.status === 'rejected').length
+      if (failed) message.error(`Failed to update ${failed} test${failed === 1 ? '' : 's'}`)
+      else message.success(`${selectedTests.length} tests ${visible ? 'enabled' : 'hidden'} in reports`)
+      setSelectedRowKeys([])
+      await refresh()
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const groupedCatalog = useMemo(() => {
+    const groups = new Map()
+    for (const test of catalog) {
+      const suiteName = test.defaultSuiteName || 'Unassigned suite'
+      if (!groups.has(suiteName)) groups.set(suiteName, [])
+      groups.get(suiteName).push(test)
+    }
+    return Array.from(groups, ([suiteName, tests], index) => ({ key: `suite-${index}`, suiteName, tests }))
+  }, [catalog])
+
+  const toggleSuiteVisibility = async (suite, visible) => {
+    setBulkUpdating(true)
+    try {
+      const results = await Promise.allSettled(suite.tests.map((test) => createAutomatedTest({ ...toDtoPayload(test), visible })))
+      const failed = results.filter((result) => result.status === 'rejected').length
+      if (failed) message.error(`Failed to update ${failed} test${failed === 1 ? '' : 's'} in ${suite.suiteName}`)
+      else message.success(`${suite.tests.length} tests in ${suite.suiteName} ${visible ? 'enabled' : 'hidden'} in reports`)
+      setSelectedRowKeys((keys) => keys.filter((key) => !suite.tests.some((test) => test.id === key)))
+      await refresh()
+    } finally {
+      setBulkUpdating(false)
+    }
+  }
+
+  const suiteIsVisible = (suite) => suite.tests.some((test) => test.visible !== false)
+
+  const caseColumns = [
     ...staticColumns,
     {
       title: <Tooltip title="Off — the test is hidden from reports"><span>SHOW</span></Tooltip>,
@@ -205,6 +254,26 @@ export default function TestCatalogModal({ open, onClose }) {
       ),
     },
   ]
+
+  const suiteColumns = [{
+    title: 'SUITE',
+    dataIndex: 'suiteName',
+    render: (suiteName, suite) => (
+      <Space>
+        <Text strong>{suiteName} <Text type="secondary">({suite.tests.length})</Text></Text>
+        <Switch
+          size="small"
+          checked={suiteIsVisible(suite)}
+          checkedChildren="Y"
+          unCheckedChildren="N"
+          loading={bulkUpdating}
+          onClick={(_, event) => event.stopPropagation()}
+          onChange={(visible) => toggleSuiteVisibility(suite, visible)}
+          aria-label={`Show ${suiteName} suite in reports`}
+        />
+      </Space>
+    ),
+  }]
 
   return (
     <Modal
@@ -251,6 +320,13 @@ export default function TestCatalogModal({ open, onClose }) {
         Tests with the <Text code>SHOW IN REPORT</Text> flag off are hidden from report views.
       </div>
 
+      <Space style={{ marginBottom: 12 }} wrap>
+        <Text type="secondary">Selected: <strong>{selectedRowKeys.length}</strong></Text>
+        <Button size="small" danger disabled={!selectedRowKeys.length} loading={bulkUpdating} onClick={() => toggleSelectedVisibility(false)}>Hide selected</Button>
+        <Button size="small" disabled={!selectedRowKeys.length} loading={bulkUpdating} onClick={() => toggleSelectedVisibility(true)}>Show selected</Button>
+        {selectedRowKeys.length ? <Button size="small" type="link" onClick={() => setSelectedRowKeys([])}>Clear selection</Button> : null}
+      </Space>
+
       {preview ? (
         <Space style={{ marginBottom: 12 }} wrap>
           <Text>
@@ -263,12 +339,29 @@ export default function TestCatalogModal({ open, onClose }) {
       ) : null}
 
       <Table
-        rowKey="id"
+        rowKey="key"
         size="small"
         loading={loading}
-        columns={columns}
-        dataSource={catalog}
-        pagination={catalog.length > 10 ? paginationConfig : false}
+        columns={suiteColumns}
+        dataSource={groupedCatalog}
+        pagination={false}
+        expandable={{
+          expandedRowRender: (suite) => (
+            <Table
+              className="suite-cases-table"
+              rowKey="id"
+              size="small"
+              columns={caseColumns}
+              dataSource={suite.tests}
+              pagination={suite.tests.length > 10 ? paginationConfig : false}
+              rowSelection={{
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+              }}
+              locale={{ emptyText }}
+            />
+          ),
+        }}
         locale={{ emptyText: emptyCatalog }}
       />
     </Modal>
