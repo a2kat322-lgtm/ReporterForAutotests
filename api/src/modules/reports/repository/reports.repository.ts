@@ -6,7 +6,7 @@ import { CreateReportDto } from '../dto/create-report.dto'
 export class ReportsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findById(id: string) {
+  findById(id: number) {
     return this.prisma.report.findUnique({ where: { id }, include: { phase: true } })
   }
 
@@ -14,7 +14,7 @@ export class ReportsRepository {
     return this.prisma.report.findMany({ where: { phaseId }, orderBy: { createdAt: 'desc' } })
   }
 
-  findPhaseWithReports(id: string) {
+  findPhaseWithReports(id: number) {
     return this.prisma.report.findUnique({ where: { id }, include: { phase: true } })
   }
 
@@ -22,7 +22,7 @@ export class ReportsRepository {
     return this.prisma.report.create({ data: { ...dto, phaseId } })
   }
 
-  delete(id: string) {
+  delete(id: number) {
     return this.prisma.report.delete({ where: { id } })
   }
 }

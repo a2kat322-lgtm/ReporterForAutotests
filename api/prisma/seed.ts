@@ -32,12 +32,17 @@ async function main() {
   }
 
   const reports = [
-    { id: 'report-smoke-24', phaseId: ids[0], name: 'Smoke tests', createdAt: new Date('2025-04-21T10:42:00Z'), author: 'CI pipeline' },
-    { id: 'report-regression-24', phaseId: ids[0], name: 'Full regression', createdAt: new Date('2025-04-21T14:08:00Z'), author: 'QA team' },
-    { id: 'report-nightly', phaseId: ids[1], name: 'Nightly suite', createdAt: new Date('2025-04-17T06:24:00Z'), author: 'CI pipeline' },
-    { id: 'report-payments', phaseId: ids[2], name: 'Checkout verification', createdAt: new Date('2025-04-13T09:10:00Z'), author: 'Release bot' },
+    { phaseId: ids[0], name: 'Smoke tests', createdAt: new Date('2025-04-21T10:42:00Z'), author: 'CI pipeline' },
+    { phaseId: ids[0], name: 'Full regression', createdAt: new Date('2025-04-21T14:08:00Z'), author: 'QA team' },
+    { phaseId: ids[1], name: 'Nightly suite', createdAt: new Date('2025-04-17T06:24:00Z'), author: 'CI pipeline' },
+    { phaseId: ids[2], name: 'Checkout verification', createdAt: new Date('2025-04-13T09:10:00Z'), author: 'Release bot' },
   ]
-  for (const report of reports) await prisma.report.upsert({ where: { id: report.id }, create: report, update: report })
+  // Report ids are autoincrement integers now, so re-seeding matches on (phase, name).
+  for (const report of reports) {
+    const existing = await prisma.report.findFirst({ where: { phaseId: report.phaseId, name: report.name } })
+    if (existing) await prisma.report.update({ where: { id: existing.id }, data: report })
+    else await prisma.report.create({ data: report })
+  }
 
   // Catalog entries mirroring the JSON file contract; resultPath links runs to
   // definitions. By convention resultPath is the fully qualified Java test class.

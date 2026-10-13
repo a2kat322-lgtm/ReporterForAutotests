@@ -34,7 +34,7 @@ model Phase {
 }
 
 model Report {
-  id        String   @id @default(cuid()) @db.VarChar(30)
+  id        Int      @id @default(autoincrement())
   phaseId   Int
   name      String   @db.VarChar(200)
   createdAt DateTime @default(now()) @db.Timestamptz(3)

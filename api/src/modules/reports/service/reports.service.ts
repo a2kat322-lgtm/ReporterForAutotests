@@ -18,7 +18,7 @@ export class ReportsService {
     private readonly testsRepository: TestsRepository,
   ) {}
 
-  async findById(id: string) {
+  async findById(id: number) {
     const report = await this.reportsRepository.findById(id)
     if (!report) throw new NotFoundException('Report not found')
     return report
@@ -34,7 +34,7 @@ export class ReportsService {
     return this.reportsRepository.createForPhase(phaseId, dto)
   }
 
-  async delete(id: string) {
+  async delete(id: number) {
     try {
       await this.reportsRepository.delete(id)
     } catch (error) {
@@ -54,7 +54,7 @@ export class ReportsService {
    * by resultPath = path, otherwise shown as unregistered runs. Catalog tests
    * flagged visible = false are excluded along with their runs.
    */
-  async findResults(id: string): Promise<ReportResultRow[]> {
+  async findResults(id: number): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
     const [catalog, runs] = await Promise.all([
       this.testsRepository.findAll(),

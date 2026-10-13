@@ -58,7 +58,7 @@ export class ImportRepository {
         phaseIds.set(phase.id, saved.id)
       }
 
-      const reportIds = new Map<unknown, { id: string; createdAt: Date }>()
+      const reportIds = new Map<unknown, { id: number; createdAt: Date }>()
       for (const report of body.reports) {
         const phaseId = phaseIds.get(report.phaseId)
         if (!phaseId || !report.name) throw new BadRequestException('Legacy report references an unknown phase')

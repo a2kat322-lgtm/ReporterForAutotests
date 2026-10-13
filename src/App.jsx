@@ -5,10 +5,10 @@ import Dashboard from './pages/Dashboard'
 import './styles.css'
 
 function getRoute() {
-  const match = window.location.pathname.match(/^\/phase\/(\d+)(?:\/report\/([^/]+))?\/?$/)
+  const match = window.location.pathname.match(/^\/phase\/(\d+)(?:\/report\/(\d+))?\/?$/)
   if (!match) return { page: 'phases' }
   return match[2]
-    ? { page: 'report', phaseId: Number(match[1]), reportId: decodeURIComponent(match[2]) }
+    ? { page: 'report', phaseId: Number(match[1]), reportId: Number(match[2]) }
     : { page: 'reports', phaseId: Number(match[1]) }
 }
 
