@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "api:install": "npm --prefix api install",
+    "api:dev": "npm --prefix api run start:dev",
+    "api:build": "npm --prefix api run build",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
