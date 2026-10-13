@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, Descriptions, Empty, Input, Space, Table, Tag, Typography } from 'antd'
+import { Button, Card, Descriptions, Empty, Input, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import { ArrowLeftOutlined, DownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
 import StatusTag from '../components/StatusTag'
 import { envColors } from '../constants'
@@ -10,6 +10,42 @@ const { Title, Text } = Typography
 const cardBody = { padding: 0 }
 const emptyText = <Empty description="No matching tests" />
 const suiteFallback = 'Unassigned suite'
+
+const statusOrder = ['passed', 'failed', 'broken', 'skipped', 'no_run']
+
+const suiteStatusColors = {
+  passed: '#4ade80',
+  failed: '#fb7185',
+  broken: '#fbbf24',
+  skipped: '#818596',
+  no_run: '#3a3d4d',
+}
+
+function SuiteStatusBadges({ tests }) {
+  const counts = new Map()
+  for (const test of tests) counts.set(test.status, (counts.get(test.status) || 0) + 1)
+  return (
+    <Space size={6} wrap>
+      {statusOrder
+        .filter((status) => counts.has(status))
+        .map((status) => (
+          <Tooltip key={status} title={countLabel(counts.get(status), statusLabel(status))}>
+            <span className="suite-status-badge" style={{ backgroundColor: suiteStatusColors[status] }} data-status={status}>
+              {counts.get(status)}
+            </span>
+          </Tooltip>
+        ))}
+    </Space>
+  )
+}
+
+function statusLabel(status) {
+  return status.replace('_', ' ')
+}
+
+function countLabel(count, label) {
+  return `${count} ${label}${count === 1 ? '' : 's'}`
+}
 
 function RunDetails({ test }) {
   return (
@@ -61,7 +97,12 @@ const suiteColumns = [
   {
     title: 'SUITE',
     dataIndex: 'suiteName',
-    render: (suiteName, suite) => <Text strong>{suiteName || suiteFallback} <Text type="secondary">({suite.tests.length})</Text></Text>,
+    render: (suiteName, suite) => (
+      <Space size={12} wrap>
+        <Text strong>{suiteName || suiteFallback} <Text type="secondary">({suite.tests.length})</Text></Text>
+        <SuiteStatusBadges tests={suite.tests} />
+      </Space>
+    ),
   },
 ]
 
