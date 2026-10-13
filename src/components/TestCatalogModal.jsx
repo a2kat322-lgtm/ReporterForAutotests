@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { App, Button, Empty, Form, Input, Modal, Popconfirm, Space, Table, Tag, Tooltip, Typography, Upload } from 'antd'
+import { App, Button, Empty, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag, Tooltip, Typography, Upload } from 'antd'
 import { DeleteOutlined, FileAddOutlined, ImportOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
 import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests } from '../services/dataService'
 import { parseTestsFile } from '../utils/testFileParser'
@@ -7,6 +7,17 @@ import { parseTestsFile } from '../utils/testFileParser'
 const { Text, Paragraph } = Typography
 
 const sourceColors = { file: 'blue', harvested: 'green', manual: 'purple' }
+
+// The API upserts by resultPath and forbids non-whitelisted fields, so only
+// DTO fields are sent when toggling the display flag.
+function toDtoPayload(test) {
+  const payload = { resultPath: test.resultPath, display: test.display }
+  for (const field of ['fullResponsibility', 'defaultSuiteName', 'defaultCaseName', 'defaultOwner']) {
+    if (test[field] != null) payload[field] = test[field]
+  }
+  if (Array.isArray(test.tags)) payload.tags = test.tags
+  return payload
+}
 
 const staticColumns = [
   {
@@ -48,6 +59,7 @@ export default function TestCatalogModal({ open, onClose }) {
   const [importing, setImporting] = useState(false)
   const [harvesting, setHarvesting] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [togglingId, setTogglingId] = useState(null)
   const [preview, setPreview] = useState(null) // { tests, skipped, filename }
   const { message } = App.useApp()
 
@@ -144,8 +156,38 @@ export default function TestCatalogModal({ open, onClose }) {
     }
   }
 
+  const toggleVisible = async (test, visible) => {
+    setTogglingId(test.id)
+    try {
+      await createAutomatedTest({ ...toDtoPayload(test), visible })
+      message.success(visible ? `"${test.display}" shows in reports` : `"${test.display}" hidden from reports`)
+      refresh()
+    } catch (error) {
+      message.error(error.message || 'Failed to update visibility')
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
   const columns = [
     ...staticColumns,
+    {
+      title: <Tooltip title="Off — the test is hidden from reports"><span>SHOW IN REPORT</span></Tooltip>,
+      dataIndex: 'visible',
+      width: 120,
+      align: 'center',
+      render: (visible, test) => (
+        <Switch
+          size="small"
+          checked={visible !== false}
+          checkedChildren="Y"
+          unCheckedChildren="N"
+          loading={togglingId === test.id}
+          onChange={(checked) => toggleVisible(test, checked)}
+          aria-label={`Show ${test.display} in reports`}
+        />
+      ),
+    },
     {
       title: '',
       width: 52,
@@ -204,8 +246,9 @@ export default function TestCatalogModal({ open, onClose }) {
 
       <div className="form-hint" style={{ marginBottom: 12 }}>
         <Text code>.json</Text> file contract: an array of{' '}
-        <Text code>{'{ resultPath, display, fullResponsibility?, defaultSuiteName?, defaultCaseName?, defaultOwner?, tags? }'}</Text>.
+        <Text code>{'{ resultPath, display, fullResponsibility?, defaultSuiteName?, defaultCaseName?, defaultOwner?, tags?, visible? }'}</Text>.
         Entries whose <Text code>resultPath</Text> already exists are updated, not duplicated.
+        Tests with the <Text code>SHOW IN REPORT</Text> flag off are hidden from report views.
       </div>
 
       {preview ? (

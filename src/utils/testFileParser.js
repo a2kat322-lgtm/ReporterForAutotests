@@ -3,10 +3,11 @@
 //
 // File contract: a JSON array (or an object with a "tests" array) of entries
 //   { resultPath, display, fullResponsibility?, defaultSuiteName?,
-//     defaultCaseName?, defaultOwner?, tags? }
+//     defaultCaseName?, defaultOwner?, tags?, visible? }
 // `resultPath` is the key that links a stored run (TestResult.path) to its
 // catalog definition; `display` is required by the API and falls back to
-// resultPath when omitted in the file.
+// resultPath when omitted in the file. `visible` (default true) controls
+// whether the test shows up in reports.
 
 const MAX_LENGTHS = {
   resultPath: 300,
@@ -47,6 +48,10 @@ function normalizeEntry(item) {
   }
   const tags = cleanTags(item?.tags)
   if (tags) test.tags = tags
+  // Only emit `visible` when explicitly disabled; the API defaults it to true.
+  if (item?.visible === false || (typeof item?.visible === 'string' && /^(n|no|false|0)$/i.test(item.visible.trim()))) {
+    test.visible = false
+  }
   return test
 }
 

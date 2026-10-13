@@ -55,6 +55,7 @@ model AutomatedTest {
   defaultCaseName    String?  @db.VarChar(300)
   defaultOwner       String?  @db.VarChar(120)
   tags               Json     @default("[]") @db.JsonB
+  visible            Boolean  @default(true)
   source             String   @default("manual") @db.VarChar(30)
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)

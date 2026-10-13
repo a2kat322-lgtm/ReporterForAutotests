@@ -48,10 +48,11 @@ export class ReportsService {
   }
 
   /**
-   * The report view: every catalog test, plus runs whose [startDate, endDate]
-   * window covers the report date. Catalog tests without a covering run are
-   * returned with status `no_run`; runs are matched to catalog entries by
-   * resultPath = path, otherwise shown as unregistered runs.
+   * The report view: every visible catalog test, plus runs whose [startDate,
+   * endDate] window covers the report date. Catalog tests without a covering
+   * run are returned with status `no_run`; runs are matched to catalog entries
+   * by resultPath = path, otherwise shown as unregistered runs. Catalog tests
+   * flagged visible = false are excluded along with their runs.
    */
   async findResults(id: string): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
@@ -69,6 +70,8 @@ export class ReportsService {
     const catalogPaths = new Set<string>()
     for (const test of catalog) {
       catalogPaths.add(test.resultPath)
+      // Hidden catalog tests are excluded from the report, including their runs.
+      if (!test.visible) continue
       const run = latestRunByPath.get(test.resultPath)
       rows.push(toRow(test, run ?? null))
     }

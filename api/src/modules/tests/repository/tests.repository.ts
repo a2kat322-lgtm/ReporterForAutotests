@@ -31,6 +31,8 @@ export class TestsRepository {
         defaultCaseName: dto.defaultCaseName ?? null,
         defaultOwner: dto.defaultOwner ?? null,
         tags: (dto.tags ?? []) as unknown as Prisma.InputJsonValue,
+        // undefined keeps the current flag (file imports may omit it)
+        visible: dto.visible,
       },
     })
   }

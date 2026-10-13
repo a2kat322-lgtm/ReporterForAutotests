@@ -46,7 +46,7 @@ async function main() {
     { resultPath: 'com.acme.shop.auth.LoginValidCredentialsTest', display: 'User can log in with valid credentials', defaultSuiteName: 'Auth', defaultCaseName: 'loginWithValidCredentials', defaultOwner: 'maria.petrova', tags: ['auth', 'smoke'] },
     { resultPath: 'com.acme.shop.payments.RefundPermissionTest', display: 'Refund is restricted by role', defaultSuiteName: 'Payments', defaultCaseName: 'viewerCannotRefund', defaultOwner: 'alex.kim', tags: ['payments', 'rbac'] },
     { resultPath: 'com.acme.shop.search.GlobalSearchTest', display: 'Global search returns relevant records', defaultSuiteName: 'Search', tags: ['search'] },
-    { resultPath: 'com.acme.shop.export.CsvExportTest', display: 'Export results as CSV', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'] },
+    { resultPath: 'com.acme.shop.export.CsvExportTest', display: 'Export results as CSV', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'], visible: false },
   ]
   for (const test of catalog) {
     await prisma.automatedTest.upsert({

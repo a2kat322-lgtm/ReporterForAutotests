@@ -1,4 +1,5 @@
-import { ArrayMaxSize, IsArray, IsOptional, IsString, MaxLength } from 'class-validator'
+import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
+import { Transform } from 'class-transformer'
 
 export class CreateAutomatedTestDto {
   @IsString()
@@ -34,4 +35,10 @@ export class CreateAutomatedTestDto {
   @ArrayMaxSize(100)
   @IsString({ each: true })
   tags?: string[]
+
+  /** Display flag: when false the test is hidden from report views. */
+  @IsOptional()
+  @Transform(({ value }) => (typeof value === 'string' ? value.toLowerCase() !== 'false' && value !== '0' && value.toLowerCase() !== 'n' : value))
+  @IsBoolean()
+  visible?: boolean
 }
