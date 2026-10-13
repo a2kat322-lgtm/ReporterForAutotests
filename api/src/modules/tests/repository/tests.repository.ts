@@ -25,7 +25,6 @@ export class TestsRepository {
     return this.prisma.automatedTest.update({
       where: { resultPath },
       data: {
-        display: dto.display,
         fullResponsibility: dto.fullResponsibility ?? null,
         defaultSuiteName: dto.defaultSuiteName ?? null,
         defaultCaseName: dto.defaultCaseName ?? null,

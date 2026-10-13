@@ -97,7 +97,7 @@ function toRow(test: AutomatedTest | null, run: TestResult | null): ReportResult
   return {
     rowKey: run?.id ?? `catalog-${test?.id}`,
     path: run?.path ?? test?.resultPath ?? '',
-    name: run?.caseName || test?.display || test?.defaultCaseName || run?.path || 'Unknown test',
+    name: run?.caseName || test?.defaultCaseName || run?.path || 'Unknown test',
     suiteName: run?.suiteName ?? test?.defaultSuiteName ?? null,
     caseName: run?.caseName ?? test?.defaultCaseName ?? null,
     owner: run?.owner ?? test?.defaultOwner ?? null,

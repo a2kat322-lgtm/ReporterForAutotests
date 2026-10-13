@@ -49,7 +49,6 @@ model Report {
 model AutomatedTest {
   id                 String   @id @default(cuid()) @db.VarChar(30)
   resultPath         String   @unique @db.VarChar(300)
-  display            String   @db.VarChar(300)
   fullResponsibility String?  @db.VarChar(200)
   defaultSuiteName   String?  @db.VarChar(200)
   defaultCaseName    String?  @db.VarChar(300)

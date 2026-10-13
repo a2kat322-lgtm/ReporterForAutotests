@@ -2,16 +2,15 @@
 // objects for POST /api/tests/bulk.
 //
 // File contract: a JSON array (or an object with a "tests" array) of entries
-//   { resultPath, display, fullResponsibility?, defaultSuiteName?,
-//     defaultCaseName?, defaultOwner?, tags?, visible? }
+//   { resultPath, defaultCaseName, fullResponsibility?, defaultSuiteName?,
+//     defaultOwner?, tags?, visible? }
 // `resultPath` is the key that links a stored run (TestResult.path) to its
-// catalog definition; `display` is required by the API and falls back to
-// resultPath when omitted in the file. `visible` (default true) controls
+// catalog definition; `defaultCaseName` falls back to resultPath when omitted
+// in the file. `visible` (default true) controls
 // whether the test shows up in reports.
 
 const MAX_LENGTHS = {
   resultPath: 300,
-  display: 300,
   fullResponsibility: 200,
   defaultSuiteName: 200,
   defaultCaseName: 300,
@@ -40,7 +39,7 @@ function normalizeEntry(item) {
   if (!resultPath) return null
   const test = {
     resultPath,
-    display: cleanString(item?.display, MAX_LENGTHS.display) ?? resultPath,
+    defaultCaseName: cleanString(item?.defaultCaseName, MAX_LENGTHS.defaultCaseName) ?? resultPath,
   }
   for (const field of ['fullResponsibility', 'defaultSuiteName', 'defaultCaseName', 'defaultOwner']) {
     const value = cleanString(item?.[field], MAX_LENGTHS[field])

@@ -47,11 +47,11 @@ async function main() {
   // Catalog entries mirroring the JSON file contract; resultPath links runs to
   // definitions. By convention resultPath is the fully qualified Java test class.
   const catalog = [
-    { resultPath: 'com.acme.shop.checkout.PaymentFlowTest', display: 'Checkout payment flow', fullResponsibility: 'Payments squad', defaultSuiteName: 'Checkout IT', defaultCaseName: 'paymentSucceedsWithValidCard', defaultOwner: 'alex.kim', tags: ['checkout', 'smoke'] },
-    { resultPath: 'com.acme.shop.auth.LoginValidCredentialsTest', display: 'User can log in with valid credentials', defaultSuiteName: 'Auth', defaultCaseName: 'loginWithValidCredentials', defaultOwner: 'maria.petrova', tags: ['auth', 'smoke'] },
-    { resultPath: 'com.acme.shop.payments.RefundPermissionTest', display: 'Refund is restricted by role', defaultSuiteName: 'Payments', defaultCaseName: 'viewerCannotRefund', defaultOwner: 'alex.kim', tags: ['payments', 'rbac'] },
-    { resultPath: 'com.acme.shop.search.GlobalSearchTest', display: 'Global search returns relevant records', defaultSuiteName: 'Search', tags: ['search'] },
-    { resultPath: 'com.acme.shop.export.CsvExportTest', display: 'Export results as CSV', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'], visible: false },
+    { resultPath: 'com.acme.shop.checkout.PaymentFlowTest', fullResponsibility: 'Payments squad', defaultSuiteName: 'Checkout IT', defaultCaseName: 'paymentSucceedsWithValidCard', defaultOwner: 'alex.kim', tags: ['checkout', 'smoke'] },
+    { resultPath: 'com.acme.shop.auth.LoginValidCredentialsTest', defaultSuiteName: 'Auth', defaultCaseName: 'loginWithValidCredentials', defaultOwner: 'maria.petrova', tags: ['auth', 'smoke'] },
+    { resultPath: 'com.acme.shop.payments.RefundPermissionTest', defaultSuiteName: 'Payments', defaultCaseName: 'viewerCannotRefund', defaultOwner: 'alex.kim', tags: ['payments', 'rbac'] },
+    { resultPath: 'com.acme.shop.search.GlobalSearchTest', defaultSuiteName: 'Search', tags: ['search'] },
+    { resultPath: 'com.acme.shop.export.CsvExportTest', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'], visible: false },
   ]
   for (const test of catalog) {
     await prisma.automatedTest.upsert({

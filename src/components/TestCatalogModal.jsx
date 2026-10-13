@@ -9,9 +9,9 @@ const { Text, Paragraph } = Typography
 const sourceColors = { file: 'blue', harvested: 'green', manual: 'purple' }
 
 // The API upserts by resultPath and forbids non-whitelisted fields, so only
-// DTO fields are sent when toggling the display flag.
+// DTO fields are sent when toggling the visibility flag.
 function toDtoPayload(test) {
-  const payload = { resultPath: test.resultPath, display: test.display }
+  const payload = { resultPath: test.resultPath, defaultCaseName: test.defaultCaseName || test.resultPath }
   for (const field of ['fullResponsibility', 'defaultSuiteName', 'defaultCaseName', 'defaultOwner']) {
     if (test[field] != null) payload[field] = test[field]
   }
@@ -22,10 +22,10 @@ function toDtoPayload(test) {
 const staticColumns = [
   {
     title: 'TEST',
-    dataIndex: 'display',
-    render: (display, test) => (
+    dataIndex: 'defaultCaseName',
+    render: (caseName, test) => (
       <div className="catalog-test-cell">
-        <Text strong>{display}</Text>
+        <Text strong>{caseName || test.resultPath}</Text>
         <div><Text type="secondary" className="phase-id">{test.resultPath}</Text></div>
       </div>
     ),
@@ -147,7 +147,7 @@ export default function TestCatalogModal({ open, onClose }) {
     setDeletingId(test.id)
     try {
       await deleteAutomatedTest(test.id)
-      message.success(`Test "${test.display}" removed from catalog`)
+      message.success(`Test "${(test.defaultCaseName || test.resultPath)}" removed from catalog`)
       refresh()
     } catch (error) {
       message.error(error.message || 'Failed to delete test')
@@ -160,7 +160,7 @@ export default function TestCatalogModal({ open, onClose }) {
     setTogglingId(test.id)
     try {
       await createAutomatedTest({ ...toDtoPayload(test), visible })
-      message.success(visible ? `"${test.display}" shows in reports` : `"${test.display}" hidden from reports`)
+      message.success(visible ? `"${(test.defaultCaseName || test.resultPath)}" shows in reports` : `"${(test.defaultCaseName || test.resultPath)}" hidden from reports`)
       refresh()
     } catch (error) {
       message.error(error.message || 'Failed to update visibility')
@@ -184,7 +184,7 @@ export default function TestCatalogModal({ open, onClose }) {
           unCheckedChildren="N"
           loading={togglingId === test.id}
           onChange={(checked) => toggleVisible(test, checked)}
-          aria-label={`Show ${test.display} in reports`}
+          aria-label={`Show ${(test.defaultCaseName || test.resultPath)} in reports`}
         />
       ),
     },
@@ -200,7 +200,7 @@ export default function TestCatalogModal({ open, onClose }) {
           cancelText="Cancel"
           onConfirm={() => remove(test)}
         >
-          <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Remove ${test.display}`} />
+          <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Remove ${(test.defaultCaseName || test.resultPath)}`} />
         </Popconfirm>
       ),
     },
@@ -225,8 +225,8 @@ export default function TestCatalogModal({ open, onClose }) {
         <Form.Item name="resultPath" rules={[{ required: true, message: 'Enter the result path' }]} style={{ flex: 1.6 }}>
           <Input placeholder="resultPath — Java test class (e.g. com.acme.shop.checkout.PaymentFlowTest)" maxLength={300} />
         </Form.Item>
-        <Form.Item name="display" rules={[{ required: true, message: 'Enter a display name' }]} style={{ flex: 1.6 }}>
-          <Input placeholder="Display name (e.g. Checkout payment flow)" maxLength={300} />
+        <Form.Item name="defaultCaseName" rules={[{ required: true, message: 'Enter a case name' }]} style={{ flex: 1.6 }}>
+          <Input placeholder="Case name (e.g. paymentSucceedsWithValidCard)" maxLength={300} />
         </Form.Item>
         <Form.Item name="defaultSuiteName" style={{ flex: 1 }}>
           <Input placeholder="Suite (optional)" maxLength={200} />
@@ -246,7 +246,7 @@ export default function TestCatalogModal({ open, onClose }) {
 
       <div className="form-hint" style={{ marginBottom: 12 }}>
         <Text code>.json</Text> file contract: an array of{' '}
-        <Text code>{'{ resultPath, display, fullResponsibility?, defaultSuiteName?, defaultCaseName?, defaultOwner?, tags?, visible? }'}</Text>.
+        <Text code>{'{ resultPath, defaultCaseName, fullResponsibility?, defaultSuiteName?, defaultOwner?, tags?, visible? }'}</Text>.
         Entries whose <Text code>resultPath</Text> already exists are updated, not duplicated.
         Tests with the <Text code>SHOW IN REPORT</Text> flag off are hidden from report views.
       </div>

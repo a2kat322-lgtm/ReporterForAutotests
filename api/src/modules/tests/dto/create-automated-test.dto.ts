@@ -6,10 +6,6 @@ export class CreateAutomatedTestDto {
   @MaxLength(300)
   resultPath: string
 
-  @IsString()
-  @MaxLength(300)
-  display: string
-
   @IsOptional()
   @IsString()
   @MaxLength(200)

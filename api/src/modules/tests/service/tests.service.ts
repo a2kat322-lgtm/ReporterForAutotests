@@ -58,9 +58,8 @@ export class TestsService {
       await this.testsRepository.create(
         {
           resultPath: path,
-          display: run?.caseName || path,
+          defaultCaseName: run?.caseName || path,
           defaultSuiteName: run?.suiteName ?? undefined,
-          defaultCaseName: run?.caseName ?? undefined,
           defaultOwner: run?.owner ?? undefined,
           tags: Array.isArray(run?.tags) ? (run.tags as unknown[]).map(String) : [],
         },

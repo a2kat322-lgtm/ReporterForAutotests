@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, Col, Descriptions, Empty, Input, Row, Space, Statistic, Table, Tag, Typography } from 'antd'
-import { ArrowLeftOutlined, CheckCircleFilled, ClockCircleOutlined, DownOutlined, ExclamationCircleFilled, FileTextOutlined, ReloadOutlined, SearchOutlined, StopFilled, WarningFilled } from '@ant-design/icons'
+import { Button, Card, Descriptions, Empty, Input, Space, Table, Tag, Typography } from 'antd'
+import { ArrowLeftOutlined, DownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
 import StatusTag from '../components/StatusTag'
 import { envColors } from '../constants'
 import { formatDate, formatDuration } from '../utils/format'
@@ -9,7 +9,7 @@ const { Title, Text } = Typography
 
 const cardBody = { padding: 0 }
 const emptyText = <Empty description="No matching tests" />
-const expandIcon = () => null
+const suiteFallback = 'Unassigned suite'
 
 function RunDetails({ test }) {
   return (
@@ -35,16 +35,15 @@ const expandedRowRender = (test) => (test.status === 'no_run'
   ? <Text type="secondary">No run covers this report date yet.</Text>
   : <RunDetails test={test} />)
 
-const columns = [
+const caseColumns = [
   {
-    title: 'AUTOMATED TEST',
-    dataIndex: 'name',
-    render: (name, test) => (
+    title: 'CASE NAME',
+    dataIndex: 'caseName',
+    render: (caseName, test) => (
       <div className="test-name">
         <span className="test-status-dot" data-status={test.status}></span>
         <div>
-          <Text strong>{name}</Text>
-          {test.suiteName ? <Tag style={{ marginLeft: 8 }}>{test.suiteName}</Tag> : null}
+          <Text strong>{caseName || test.name}</Text>
           {!test.inCatalog ? <Tag color="orange" style={{ marginLeft: 8 }}>unregistered</Tag> : null}
           <div><Text type="secondary" className="phase-id">{test.path}</Text></div>
         </div>
@@ -58,12 +57,57 @@ const columns = [
   { title: '', width: 50, render: () => <DownOutlined className="expand-icon" /> },
 ]
 
-const statValueStyles = {
-  passed: { color: '#4ade80' },
-  failed: { color: '#fb7185' },
-  broken: { color: '#fbbf24' },
-  skipped: { color: '#9ca0af' },
-  no_run: { color: '#9ca0af' },
+const suiteColumns = [
+  {
+    title: 'SUITE',
+    dataIndex: 'suiteName',
+    render: (suiteName, suite) => <Text strong>{suiteName || suiteFallback} <Text type="secondary">({suite.tests.length})</Text></Text>,
+  },
+]
+
+const resultSegments = [
+  { key: 'passed', label: 'Passed', color: '#4ade80' },
+  { key: 'failed', label: 'Failed', color: '#fb7185' },
+  { key: 'broken', label: 'Broken', color: '#fbbf24' },
+  { key: 'skipped', label: 'Skipped', color: '#9ca0af' },
+  { key: 'no_run', label: 'No run', color: '#525565' },
+]
+
+function ResultsChart({ counts, total }) {
+  let offset = 0
+  const segments = resultSegments.map((segment) => {
+    const value = counts[segment.key]
+    const dash = total ? `${(value / total) * 100} ${100 - (value / total) * 100}` : '0 100'
+    const currentOffset = offset
+    offset += total ? (value / total) * 100 : 0
+    return { ...segment, value, dash, offset: -currentOffset }
+  })
+  const passedRate = total ? Math.round((counts.passed / total) * 100) : 0
+
+  return (
+    <Card className="results-chart-card">
+      <div className="results-chart">
+        <div className="results-donut" role="img" aria-label={`Test results: ${resultSegments.map(({ label, key }) => `${label} ${counts[key]}`).join(', ')}`}>
+          <svg viewBox="0 0 120 120" aria-hidden="true">
+            <circle className="results-donut-track" cx="60" cy="60" r="48" />
+            {segments.map(({ key, color, dash, offset: dashOffset }) => (
+              <circle key={key} cx="60" cy="60" r="48" fill="none" stroke={color} strokeWidth="12" strokeDasharray={dash} strokeDashoffset={dashOffset} pathLength="100" />
+            ))}
+          </svg>
+          <div className="results-donut-center"><strong>{passedRate}%</strong><span>passed</span></div>
+        </div>
+        <div className="results-legend">
+          <div className="results-legend-title">Test results <span>{total} total</span></div>
+          {segments.map(({ key, label, color, value }) => (
+            <div className="results-legend-row" key={key}>
+              <span className="results-legend-label"><i style={{ backgroundColor: color }} />{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  )
 }
 
 export default function ReportPage({ data, phase, report, navigate, reload }) {
@@ -72,7 +116,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
   // GET /reports/:id/results already returns the merged view: every catalog
   // test plus the latest run covering the report date (`no_run` otherwise),
   // and unregistered runs tagged with inCatalog = false.
-  const { tests, counts } = useMemo(() => {
+  const { tests, suites, counts } = useMemo(() => {
     const normalized = query.toLowerCase()
     const matched = []
     const tally = { passed: 0, failed: 0, broken: 0, skipped: 0, no_run: 0 }
@@ -83,7 +127,19 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
       matched.push(row)
       if (tally[row.status] !== undefined) tally[row.status] += 1
     }
-    return { tests: matched, counts: tally }
+    const suites = []
+    const suitesByName = new Map()
+    for (const test of matched) {
+      const suiteName = test.suiteName || suiteFallback
+      let suite = suitesByName.get(suiteName)
+      if (!suite) {
+        suite = { key: `suite-${suites.length}`, suiteName, tests: [] }
+        suitesByName.set(suiteName, suite)
+        suites.push(suite)
+      }
+      suite.tests.push(test)
+    }
+    return { tests: matched, suites, counts: tally }
   }, [data.results, query])
 
   return (
@@ -102,20 +158,32 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
         </div>
         <Button icon={<ReloadOutlined />} onClick={reload}>Refresh results</Button>
       </div>
-      <Row gutter={[12, 12]} className="stats-row">
-        <Col xs={12} sm={8}><Card><Statistic title="Total tests" value={tests.length} prefix={<FileTextOutlined />} /></Card></Col>
-        <Col xs={12} sm={8}><Card><Statistic title="Passed" value={counts.passed} valueStyle={statValueStyles.passed} prefix={<CheckCircleFilled />} /></Card></Col>
-        <Col xs={12} sm={8}><Card><Statistic title="Failed" value={counts.failed} valueStyle={statValueStyles.failed} prefix={<ExclamationCircleFilled />} /></Card></Col>
-        <Col xs={12} sm={8}><Card><Statistic title="Broken" value={counts.broken} valueStyle={statValueStyles.broken} prefix={<StopFilled />} /></Card></Col>
-        <Col xs={12} sm={8}><Card><Statistic title="Skipped" value={counts.skipped} valueStyle={statValueStyles.skipped} prefix={<WarningFilled />} /></Card></Col>
-        <Col xs={12} sm={8}><Card><Statistic title="No run" value={counts.no_run} valueStyle={statValueStyles.no_run} prefix={<ClockCircleOutlined />} /></Card></Col>
-      </Row>
+      <ResultsChart counts={counts} total={tests.length} />
       <div className="toolbar report-toolbar">
         <Input prefix={<SearchOutlined />} placeholder="Search tests by name or result path" value={query} onChange={(event) => setQuery(event.target.value)} allowClear />
-        <Text type="secondary">Showing <strong>{tests.length}</strong> results</Text>
+        <Text type="secondary">Showing <strong>{tests.length}</strong> cases in <strong>{suites.length}</strong> suites</Text>
       </div>
       <Card className="table-card test-table-card" styles={{ body: cardBody }}>
-        <Table rowKey="rowKey" columns={columns} dataSource={tests} pagination={false} expandable={{ expandedRowRender, expandIcon }} locale={{ emptyText }} />
+        <Table
+          rowKey="key"
+          columns={suiteColumns}
+          dataSource={suites}
+          pagination={false}
+          expandable={{
+            expandedRowRender: (suite) => (
+              <Table
+                className="suite-cases-table"
+                rowKey="rowKey"
+                columns={caseColumns}
+                dataSource={suite.tests}
+                pagination={false}
+                expandable={{ expandedRowRender }}
+                locale={{ emptyText }}
+              />
+            ),
+          }}
+          locale={{ emptyText }}
+        />
       </Card>
     </>
   )
