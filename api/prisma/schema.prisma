@@ -13,11 +13,12 @@ enum Environment {
   production
 }
 
+// Values reported by the automation system.
 enum TestStatus {
   passed
   failed
+  broken
   skipped
-  running
 }
 
 model Phase {
@@ -28,37 +29,54 @@ model Phase {
   endedAt     DateTime      @db.Date
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)
   reports     Report[]
-  results     TestResult[]
 
   @@index([createdAt])
 }
 
 model Report {
-  id        String       @id @default(cuid()) @db.VarChar(30)
+  id        String   @id @default(cuid()) @db.VarChar(30)
   phaseId   Int
-  name      String       @db.VarChar(200)
-  createdAt DateTime     @default(now()) @db.Timestamptz(3)
-  author    String       @default("You") @db.VarChar(120)
-  phase     Phase        @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  results   TestResult[]
+  name      String   @db.VarChar(200)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  author    String   @default("You") @db.VarChar(120)
+  phase     Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   @@index([phaseId, createdAt])
 }
 
-model TestResult {
-  id              String     @id @default(cuid()) @db.VarChar(30)
-  phaseId         Int
-  reportId        String     @db.VarChar(30)
-  automatedTestId String     @db.VarChar(200)
-  name            String     @db.VarChar(300)
-  status          TestStatus
-  duration        Int        @default(0)
-  lastRunAt       DateTime   @default(now()) @db.Timestamptz(3)
-  errorMessage    String?
-  steps           Json       @default("[]") @db.JsonB
-  phase           Phase      @relation(fields: [phaseId], references: [id], onDelete: Cascade)
-  report          Report     @relation(fields: [reportId], references: [id], onDelete: Cascade)
+// Catalog of automated tests, imported from the JSON file contract or harvested
+// from stored runs. `resultPath` is the key that links a run to its definition.
+model AutomatedTest {
+  id                 String   @id @default(cuid()) @db.VarChar(30)
+  resultPath         String   @unique @db.VarChar(300)
+  display            String   @db.VarChar(300)
+  fullResponsibility String?  @db.VarChar(200)
+  defaultSuiteName   String?  @db.VarChar(200)
+  defaultCaseName    String?  @db.VarChar(300)
+  defaultOwner       String?  @db.VarChar(120)
+  tags               Json     @default("[]") @db.JsonB
+  source             String   @default("manual") @db.VarChar(30)
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+}
 
-  @@unique([reportId, automatedTestId])
-  @@index([phaseId, reportId])
+// One run of an automated test, as posted by the automation system.
+// Runs are not bound to a report row: a report shows the runs whose
+// [startDate, endDate] window covers the report date.
+model TestResult {
+  id        String     @id @default(cuid()) @db.VarChar(30)
+  path      String     @db.VarChar(300)
+  suiteName String?    @db.VarChar(200)
+  caseName  String?    @db.VarChar(300)
+  status    TestStatus
+  owner     String?    @db.VarChar(120)
+  circuit   String?    @db.VarChar(120)
+  message   String?
+  startDate DateTime   @db.Timestamptz(3)
+  endDate   DateTime   @db.Timestamptz(3)
+  tags      Json       @default("[]") @db.JsonB
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+
+  @@index([path, startDate])
+  @@index([startDate, endDate])
 }

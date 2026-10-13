@@ -24,7 +24,10 @@ export async function getData(route = { page: 'phases' }) {
     return { phases: [phase], reports, results: [] }
   }
   const reportId = route.reportId || route.report?.id
-  const [report, results] = await Promise.all([request(`/reports/${reportId}`), request(`/reports/${reportId}/results`)])
+  const [report, results] = await Promise.all([
+    request(`/reports/${reportId}`),
+    request(`/reports/${reportId}/results`),
+  ])
   return { phases: [report.phase], reports: [report], results }
 }
 
@@ -45,8 +48,24 @@ export async function deleteReport(reportId) {
   return request(`/reports/${reportId}`, { method: 'DELETE' })
 }
 
-export async function upsertTestResult({ phaseId, reportId, automatedTestId, ...result }) {
-  return request(`/reports/${reportId}/results`, { method: 'POST', body: JSON.stringify({ phaseId, automatedTestId, ...result }) })
+export async function getAutomatedTests() {
+  return request('/tests')
+}
+
+export async function createAutomatedTest(values) {
+  return request('/tests', { method: 'POST', body: JSON.stringify(values) })
+}
+
+export async function createAutomatedTestsBulk(tests) {
+  return request('/tests/bulk', { method: 'POST', body: JSON.stringify({ tests }) })
+}
+
+export async function deleteAutomatedTest(testId) {
+  return request(`/tests/${testId}`, { method: 'DELETE' })
+}
+
+export async function harvestAutomatedTests() {
+  return request('/tests/harvest', { method: 'POST' })
 }
 
 export async function importLegacyData(data) {

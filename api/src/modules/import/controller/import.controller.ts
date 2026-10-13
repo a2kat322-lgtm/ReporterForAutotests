@@ -1,6 +1,7 @@
 import { Body, Controller, Headers, Post } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
-import { ImportService, LegacyImportPayload } from '../service/import.service'
+import { ImportService } from '../service/import.service'
+import { LegacyImportPayload } from '../repository/import.repository'
 
 @Controller('import')
 export class ImportController {

@@ -5,6 +5,8 @@ import { APP_GUARD } from '@nestjs/core'
 import { ImportModule } from './modules/import/import.module'
 import { PhasesModule } from './modules/phases/phases.module'
 import { ReportsModule } from './modules/reports/reports.module'
+import { ResultsModule } from './modules/results/results.module'
+import { TestsModule } from './modules/tests/tests.module'
 import { PrismaModule } from './common/database/prisma.module'
 import { appConfig } from './config/app.config'
 
@@ -18,6 +20,8 @@ import { appConfig } from './config/app.config'
     PrismaModule,
     PhasesModule,
     ReportsModule,
+    ResultsModule,
+    TestsModule,
     ImportModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -2,6 +2,7 @@ import 'reflect-metadata'
 import { ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
+import { json, urlencoded } from 'express'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
@@ -9,6 +10,9 @@ async function bootstrap() {
   const config = app.get(ConfigService)
 
   app.setGlobalPrefix('api')
+  // The automation system posts runs as application/x-www-form-urlencoded.
+  app.use(json({ limit: '10mb' }))
+  app.use(urlencoded({ extended: true, limit: '10mb' }))
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }))
   app.enableCors({ origin: config.get<string>('app.corsOrigin'), credentials: false })
   app.enableShutdownHooks()

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { App, Button, Card, Empty, Popconfirm, Table, Typography } from 'antd'
-import { ArrowLeftOutlined, DeleteOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
+import { App, Button, Card, Empty, Popconfirm, Space, Table, Typography } from 'antd'
+import { ArrowLeftOutlined, DeleteOutlined, ExperimentOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
 import CreateReportModal from '../components/CreateReportModal'
+import TestCatalogModal from '../components/TestCatalogModal'
 import PageHeading from '../components/PageHeading'
 import { formatDate } from '../utils/format'
 import { createReport, deleteReport } from '../services/dataService'
@@ -13,6 +14,7 @@ const emptyText = <Empty description="No reports yet" />
 
 export default function ReportsPage({ data, phase, navigate, reload }) {
   const [modalOpen, setModalOpen] = useState(false)
+  const [catalogOpen, setCatalogOpen] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const { message } = App.useApp()
   const reports = useMemo(() => data.reports.filter((item) => item.phaseId === phase.id), [data.reports, phase.id])
@@ -51,7 +53,6 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
     },
     { title: 'CREATED', dataIndex: 'createdAt', render: (value) => formatDate(value, true) },
     { title: 'CREATED BY', dataIndex: 'author', render: (value) => <Text type="secondary">{value}</Text> },
-    { title: 'RESULTS', render: (_, report) => <Text>{report._count?.results ?? report.resultCount ?? 0} tests</Text> },
     {
       title: '',
       width: 96,
@@ -59,7 +60,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         <span onClick={(event) => event.stopPropagation()}>
           <Popconfirm
             title="Delete this report?"
-            description="All test results in this report will be deleted too."
+            description="Stored automation runs are kept; only the report itself is deleted."
             okText="Delete"
             okButtonProps={{ danger: true, loading: deletingId === report.id }}
             cancelText="Cancel"
@@ -80,7 +81,12 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         eyebrow={`${phase.environment.toUpperCase()} · ${formatDate(phase.startedAt)} — ${formatDate(phase.endedAt)}`}
         title={phase.name}
         description="Reports and automated test runs for this testing phase."
-        action={<Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>New report</Button>}
+        action={
+          <Space>
+            <Button size="large" icon={<ExperimentOutlined />} onClick={() => setCatalogOpen(true)}>Test catalog</Button>
+            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>New report</Button>
+          </Space>
+        }
       />
       <div className="toolbar">
         <Text type="secondary"><strong className="toolbar-count">{reports.length}</strong> reports</Text>
@@ -97,6 +103,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         />
       </Card>
       <CreateReportModal open={modalOpen} onCancel={() => setModalOpen(false)} onCreate={create} />
+      <TestCatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} />
     </>
   )
 }

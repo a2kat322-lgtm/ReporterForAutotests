@@ -1,13 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { ConfigType } from '@nestjs/config'
 import { appConfig } from '../../../config/app.config'
-import { ImportRepository } from '../repository/import.repository'
-
-export interface LegacyImportPayload {
-  phases: any[]
-  reports: any[]
-  results: any[]
-}
+import { ImportRepository, LegacyImportPayload } from '../repository/import.repository'
 
 @Injectable()
 export class ImportService {

@@ -1,6 +1,22 @@
-import { PrismaClient, Environment, TestStatus } from '@prisma/client'
+import { PrismaClient, Environment, Prisma, TestStatus } from '@prisma/client'
 
 const prisma = new PrismaClient()
+
+function run(path: string, status: TestStatus, startDate: string, durationMs: number, extra: Partial<{ suiteName: string; caseName: string; owner: string; circuit: string; message: string; tags: string[] }> = {}) {
+  const start = new Date(startDate)
+  return {
+    path,
+    suiteName: extra.suiteName ?? null,
+    caseName: extra.caseName ?? null,
+    status,
+    owner: extra.owner ?? null,
+    circuit: extra.circuit ?? null,
+    message: extra.message ?? null,
+    startDate: start,
+    endDate: new Date(start.valueOf() + durationMs),
+    tags: (extra.tags ?? []) as unknown as Prisma.InputJsonValue,
+  }
+}
 
 async function main() {
   const phases = [
@@ -14,6 +30,7 @@ async function main() {
     const saved = existing ? await prisma.phase.update({ where: { id: existing.id }, data: phase }) : await prisma.phase.create({ data: phase })
     ids.push(saved.id)
   }
+
   const reports = [
     { id: 'report-smoke-24', phaseId: ids[0], name: 'Smoke tests', createdAt: new Date('2025-04-21T10:42:00Z'), author: 'CI pipeline' },
     { id: 'report-regression-24', phaseId: ids[0], name: 'Full regression', createdAt: new Date('2025-04-21T14:08:00Z'), author: 'QA team' },
@@ -21,18 +38,40 @@ async function main() {
     { id: 'report-payments', phaseId: ids[2], name: 'Checkout verification', createdAt: new Date('2025-04-13T09:10:00Z'), author: 'Release bot' },
   ]
   for (const report of reports) await prisma.report.upsert({ where: { id: report.id }, create: report, update: report })
-  const results = [
-    { id: 'result-checkout', phaseId: ids[0], reportId: reports[0].id, automatedTestId: 'checkout-payment', name: 'Checkout payment flow', status: TestStatus.passed, duration: 8420, lastRunAt: new Date('2025-04-21T10:38:11Z'), steps: [{ name: 'Open checkout', status: 'passed', duration: 950, output: 'Checkout loaded in 950 ms' }, { name: 'Enter card details', status: 'passed', duration: 1870, output: '•••• 4242' }, { name: 'Confirm payment', status: 'passed', duration: 5600, output: 'Payment intent succeeded' }] },
-    { id: 'result-login', phaseId: ids[0], reportId: reports[0].id, automatedTestId: 'login-valid', name: 'User can log in with valid credentials', status: TestStatus.passed, duration: 3210, lastRunAt: new Date('2025-04-21T10:37:48Z'), steps: [{ name: 'Open sign in', status: 'passed', duration: 740 }, { name: 'Submit credentials', status: 'passed', duration: 2470, output: 'Redirected to dashboard' }] },
-    { id: 'result-refund', phaseId: ids[0], reportId: reports[0].id, automatedTestId: 'refund-permission', name: 'Refund is restricted by role', status: TestStatus.failed, duration: 10980, lastRunAt: new Date('2025-04-21T10:36:22Z'), errorMessage: 'Expected HTTP 403, received 500 from /api/refunds', steps: [{ name: 'Create viewer account', status: 'passed', duration: 3200 }, { name: 'Request refund', status: 'failed', duration: 7780, error: 'Expected HTTP 403, received 500' }] },
-    { id: 'result-search', phaseId: ids[0], reportId: reports[1].id, automatedTestId: 'global-search', name: 'Global search returns relevant records', status: TestStatus.passed, duration: 6040, lastRunAt: new Date('2025-04-21T14:02:04Z'), steps: [{ name: 'Seed records', status: 'passed', duration: 2110 }, { name: 'Search by email', status: 'passed', duration: 3930, output: 'Found 4 matching records' }] },
-    { id: 'result-export', phaseId: ids[0], reportId: reports[1].id, automatedTestId: 'export-csv', name: 'Export results as CSV', status: TestStatus.skipped, duration: 0, lastRunAt: new Date('2025-04-21T14:01:33Z'), steps: [{ name: 'Open export menu', status: 'skipped', duration: 0, output: 'Skipped: feature flag disabled' }] },
-    { id: 'result-nightly-login', phaseId: ids[1], reportId: reports[2].id, automatedTestId: 'login-valid', name: 'User can log in with valid credentials', status: TestStatus.running, duration: 0, lastRunAt: new Date('2025-04-17T06:24:01Z'), steps: [{ name: 'Open sign in', status: 'passed', duration: 740 }, { name: 'Submit credentials', status: 'running', duration: 0 }] },
-    { id: 'result-payment-prod', phaseId: ids[2], reportId: reports[3].id, automatedTestId: 'checkout-payment', name: 'Checkout payment flow', status: TestStatus.passed, duration: 7340, lastRunAt: new Date('2025-04-13T09:02:51Z'), steps: [{ name: 'Open checkout', status: 'passed', duration: 820 }, { name: 'Confirm payment', status: 'passed', duration: 6520 }] },
+
+  // Catalog entries mirroring the JSON file contract; resultPath links runs to
+  // definitions. By convention resultPath is the fully qualified Java test class.
+  const catalog = [
+    { resultPath: 'com.acme.shop.checkout.PaymentFlowTest', display: 'Checkout payment flow', fullResponsibility: 'Payments squad', defaultSuiteName: 'Checkout IT', defaultCaseName: 'paymentSucceedsWithValidCard', defaultOwner: 'alex.kim', tags: ['checkout', 'smoke'] },
+    { resultPath: 'com.acme.shop.auth.LoginValidCredentialsTest', display: 'User can log in with valid credentials', defaultSuiteName: 'Auth', defaultCaseName: 'loginWithValidCredentials', defaultOwner: 'maria.petrova', tags: ['auth', 'smoke'] },
+    { resultPath: 'com.acme.shop.payments.RefundPermissionTest', display: 'Refund is restricted by role', defaultSuiteName: 'Payments', defaultCaseName: 'viewerCannotRefund', defaultOwner: 'alex.kim', tags: ['payments', 'rbac'] },
+    { resultPath: 'com.acme.shop.search.GlobalSearchTest', display: 'Global search returns relevant records', defaultSuiteName: 'Search', tags: ['search'] },
+    { resultPath: 'com.acme.shop.export.CsvExportTest', display: 'Export results as CSV', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'] },
   ]
-  for (const result of results) {
-    const { id, ...data } = result
-    await prisma.testResult.upsert({ where: { reportId_automatedTestId: { reportId: data.reportId, automatedTestId: data.automatedTestId } }, create: result, update: data })
+  for (const test of catalog) {
+    await prisma.automatedTest.upsert({
+      where: { resultPath: test.resultPath },
+      create: { ...test, tags: test.tags as unknown as Prisma.InputJsonValue, source: 'file' },
+      update: { ...test, tags: test.tags as unknown as Prisma.InputJsonValue },
+    })
+  }
+
+  // Standalone run records: a report shows the runs whose [startDate, endDate]
+  // window covers the report date, so seeds are dated to match the reports above.
+  const runs = [
+    run('com.acme.shop.checkout.PaymentFlowTest', TestStatus.passed, '2025-04-21T10:38:11Z', 8420, { suiteName: 'Checkout IT', caseName: 'paymentSucceedsWithValidCard', owner: 'alex.kim', circuit: 'green', tags: ['checkout', 'smoke'] }),
+    run('com.acme.shop.auth.LoginValidCredentialsTest', TestStatus.passed, '2025-04-21T10:37:48Z', 3210, { suiteName: 'Auth', caseName: 'loginWithValidCredentials', owner: 'maria.petrova', circuit: 'green', tags: ['auth', 'smoke'] }),
+    run('com.acme.shop.payments.RefundPermissionTest', TestStatus.failed, '2025-04-21T10:36:22Z', 10980, { suiteName: 'Payments', caseName: 'viewerCannotRefund', owner: 'alex.kim', circuit: 'red', message: 'org.opentest4j.AssertionFailedError: expected: <403> but was: <500> at RefundPermissionTest.java:87', tags: ['payments', 'rbac'] }),
+    run('com.acme.shop.search.GlobalSearchTest', TestStatus.passed, '2025-04-21T14:02:04Z', 6040, { suiteName: 'Search', caseName: 'searchByEmailFindsRecords', owner: 'ivan.sokolov', circuit: 'green', tags: ['search'] }),
+    run('com.acme.shop.export.CsvExportTest', TestStatus.skipped, '2025-04-21T14:01:33Z', 0, { suiteName: 'Export', caseName: 'exportResultsAsCsv', message: 'Skipped: feature flag export.v2 disabled', tags: ['export', 'feature-flag'] }),
+    run('com.acme.shop.auth.LoginValidCredentialsTest', TestStatus.broken, '2025-04-17T06:24:01Z', 5300, { suiteName: 'Auth', caseName: 'loginWithValidCredentials', owner: 'maria.petrova', circuit: 'yellow', message: 'org.openqa.selenium.TimeoutException: waiting for #signin-form', tags: ['auth', 'nightly'] }),
+    run('com.acme.shop.checkout.PaymentFlowTest', TestStatus.passed, '2025-04-13T09:02:51Z', 7340, { suiteName: 'Checkout IT', caseName: 'paymentSucceedsWithValidCard', owner: 'alex.kim', circuit: 'green', tags: ['checkout', 'smoke'] }),
+    // A run without a catalog entry — shows up in reports as "unregistered".
+    run('com.acme.legacy.OrphanProbeTest', TestStatus.passed, '2025-04-21T11:10:00Z', 1200, { caseName: 'probeResponds', tags: ['legacy'] }),
+  ]
+  for (const data of runs) {
+    const existing = await prisma.testResult.findFirst({ where: { path: data.path, startDate: data.startDate } })
+    if (!existing) await prisma.testResult.create({ data })
   }
 }
 

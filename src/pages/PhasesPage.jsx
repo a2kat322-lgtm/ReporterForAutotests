@@ -63,7 +63,7 @@ export default function PhasesPage({ data, navigate, reload }) {
         <span onClick={(event) => event.stopPropagation()}>
           <Popconfirm
             title="Delete this phase?"
-            description="All reports and test results in this phase will be deleted too."
+            description="All reports in this phase will be deleted too. Stored automation runs are kept."
             okText="Delete"
             okButtonProps={{ danger: true, loading: deletingId === phase.id }}
             cancelText="Cancel"
