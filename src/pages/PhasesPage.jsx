@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { App, Button, Card, Empty, Popconfirm, Table, Tag, Typography } from 'antd'
-import { DeleteOutlined, FolderOpenOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
+import { App, Button, Card, Empty, Popconfirm, Switch, Table, Tag, Typography } from 'antd'
+import { DeleteOutlined, FolderOpenOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons'
 import CreatePhaseModal from '../components/CreatePhaseModal'
 import PageHeading from '../components/PageHeading'
 import { envColors } from '../constants'
@@ -15,7 +16,18 @@ const emptyText = <Empty description="No test phases yet" />
 export default function PhasesPage({ data, navigate, reload }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
+  const [onlyCurrentPhases, setOnlyCurrentPhases] = useState(true)
   const { message } = App.useApp()
+
+  const visiblePhases = useMemo(() => {
+    if (!onlyCurrentPhases) return data.phases
+    const today = dayjs().startOf('day')
+    return data.phases.filter((phase) => {
+      const startedAt = dayjs(phase.startedAt).startOf('day')
+      const endedAt = dayjs(phase.endedAt).startOf('day')
+      return !today.isBefore(startedAt) && !today.isAfter(endedAt)
+    })
+  }, [data.phases, onlyCurrentPhases])
 
   const create = async (values) => {
     await createPhase(values)
@@ -40,7 +52,20 @@ export default function PhasesPage({ data, navigate, reload }) {
   // Action column closes over remove(), so columns are built per component instance.
   const columns = useMemo(() => [
     {
-      title: 'PHASE',
+      title: (
+        <div className="phase-table-heading">
+          <span>PHASE</span>
+          <label className="phase-current-filter">
+            <Text type="secondary">Active today</Text>
+            <Switch
+              size="small"
+              checked={onlyCurrentPhases}
+              onChange={setOnlyCurrentPhases}
+              aria-label="Show only phases active today"
+            />
+          </label>
+        </div>
+      ),
       dataIndex: 'name',
       key: 'name',
       render: (name, phase) => (
@@ -75,7 +100,7 @@ export default function PhasesPage({ data, navigate, reload }) {
         </span>
       ),
     },
-  ], [deletingId])
+  ], [deletingId, onlyCurrentPhases])
 
   return (
     <>
@@ -86,14 +111,13 @@ export default function PhasesPage({ data, navigate, reload }) {
         action={<Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>New phase</Button>}
       />
       <div className="toolbar">
-        <Text type="secondary"><strong className="toolbar-count">{data.phases.length}</strong> phases</Text>
-        <Button icon={<ReloadOutlined />} onClick={reload}>Refresh</Button>
+        <Text type="secondary"><strong className="toolbar-count">{visiblePhases.length}</strong> of {data.phases.length} phases</Text>
       </div>
       <Card className="table-card" styles={{ body: cardBody }}>
         <Table
           rowKey="id"
           columns={columns}
-          dataSource={data.phases}
+          dataSource={visiblePhases}
           pagination={false}
           onRow={(phase) => ({ onClick: () => navigate({ page: 'reports', phaseId: phase.id, phase }) })}
           locale={{ emptyText }}
