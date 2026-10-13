@@ -47,7 +47,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
       render: (name, report) => (
         <div className="report-cell">
           <div className="report-icon"><FileTextOutlined /></div>
-          <div><Text strong>{name}</Text><Text type="secondary" className="phase-id">{report.id}</Text></div>
+          <div><Text strong>{name}</Text><Text type="secondary" className="phase-id">{formatDate(report.startDate)} — {formatDate(report.endDate)}</Text><Text type="secondary" className="phase-id">{report.id}</Text></div>
         </div>
       ),
     },

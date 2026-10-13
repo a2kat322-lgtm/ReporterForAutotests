@@ -18,8 +18,10 @@ export class ReportsRepository {
     return this.prisma.report.findUnique({ where: { id }, include: { phase: true } })
   }
 
-  createForPhase(phaseId: number, dto: CreateReportDto) {
-    return this.prisma.report.create({ data: { ...dto, phaseId } })
+  createForPhase(phaseId: number, dto: CreateReportDto, startDate: Date, endDate: Date) {
+    return this.prisma.report.create({
+      data: { name: dto.name, startDate, endDate, phaseId },
+    })
   }
 
   delete(id: number) {

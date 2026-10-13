@@ -37,11 +37,14 @@ model Report {
   id        Int      @id @default(autoincrement())
   phaseId   Int
   name      String   @db.VarChar(200)
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   author    String   @default("You") @db.VarChar(120)
   phase     Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   @@index([phaseId, createdAt])
+  @@index([phaseId, startDate, endDate])
 }
 
 // Catalog of automated tests, imported from the JSON file contract or harvested
@@ -61,8 +64,8 @@ model AutomatedTest {
 }
 
 // One run of an automated test, as posted by the automation system.
-// Runs are not bound to a report row: a report shows the runs whose
-// [startDate, endDate] window covers the report date.
+// Runs are not bound to a report row: a report shows runs whose
+// [startDate, endDate] window overlaps its inclusive [startDate, endDate] period.
 model TestResult {
   id        String     @id @default(cuid()) @db.VarChar(30)
   path      String     @db.VarChar(300)

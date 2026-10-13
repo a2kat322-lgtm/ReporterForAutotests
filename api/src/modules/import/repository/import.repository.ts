@@ -63,8 +63,10 @@ export class ImportRepository {
         const phaseId = phaseIds.get(report.phaseId)
         if (!phaseId || !report.name) throw new BadRequestException('Legacy report references an unknown phase')
         const createdAt = report.createdAt ? new Date(report.createdAt) : new Date()
+        const startDate = new Date(Date.UTC(createdAt.getUTCFullYear(), createdAt.getUTCMonth(), createdAt.getUTCDate()))
+        const endDate = startDate
         const existing = await tx.report.findFirst({ where: { phaseId, name: report.name } })
-        const saved = existing ?? await tx.report.create({ data: { phaseId, name: report.name, author: report.author || 'Imported', createdAt } })
+        const saved = existing ?? await tx.report.create({ data: { phaseId, name: report.name, author: report.author || 'Imported', createdAt, startDate, endDate } })
         reportIds.set(report.id, { id: saved.id, createdAt: saved.createdAt })
       }
 

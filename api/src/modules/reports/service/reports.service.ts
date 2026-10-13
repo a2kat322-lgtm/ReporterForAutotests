@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { AutomatedTest, Prisma, Report, TestResult } from '@prisma/client'
 import { PhasesService } from '../../phases/service/phases.service'
 import { ResultsRepository } from '../../results/repository/results.repository'
@@ -8,6 +8,14 @@ import { CreateReportDto } from '../dto/create-report.dto'
 import { ReportsRepository } from '../repository/reports.repository'
 
 const MS_PER_DAY = 86_400_000
+
+function parseDateOnly(value: string): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(Number.NaN)
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
+    ? date
+    : new Date(Number.NaN)
+}
 
 @Injectable()
 export class ReportsService {
@@ -31,7 +39,12 @@ export class ReportsService {
 
   async createForPhase(phaseId: number, dto: CreateReportDto) {
     await this.phasesService.ensureExists(phaseId)
-    return this.reportsRepository.createForPhase(phaseId, dto)
+    const startDate = parseDateOnly(dto.startDate)
+    const endDate = parseDateOnly(dto.endDate)
+    if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || endDate < startDate) {
+      throw new BadRequestException('End date cannot be before start date')
+    }
+    return this.reportsRepository.createForPhase(phaseId, dto, startDate, endDate)
   }
 
   async delete(id: number) {
@@ -48,17 +61,15 @@ export class ReportsService {
   }
 
   /**
-   * The report view: every visible catalog test, plus runs whose [startDate,
-   * endDate] window covers the report date. Catalog tests without a covering
-   * run are returned with status `no_run`; runs are matched to catalog entries
-   * by resultPath = path, otherwise shown as unregistered runs. Catalog tests
-   * flagged visible = false are excluded along with their runs.
+   * The report view: every visible catalog test plus runs overlapping the
+   * report's inclusive date range. Catalog tests without a matching run are
+   * returned with status `no_run`; unregistered runs are included as well.
    */
   async findResults(id: number): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
     const [catalog, runs] = await Promise.all([
       this.testsRepository.findAll(),
-      this.resultsRepository.findRunsCoveringWindow(dayStart(report.createdAt), dayEnd(report.createdAt)),
+      this.resultsRepository.findRunsCoveringWindow(dayStart(report.startDate), dayEnd(report.endDate)),
     ])
 
     const latestRunByPath = new Map<string, TestResult>()

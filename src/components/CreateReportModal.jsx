@@ -1,4 +1,4 @@
-import { Form, Input, Modal } from 'antd'
+import { DatePicker, Form, Input, Modal } from 'antd'
 
 export default function CreateReportModal({ open, onCancel, onCreate }) {
   const [form] = Form.useForm()
@@ -10,7 +10,11 @@ export default function CreateReportModal({ open, onCancel, onCreate }) {
     } catch {
       return // keep the modal open so the user can fix validation errors
     }
-    await onCreate({ name: values.name })
+    await onCreate({
+      name: values.name,
+      startDate: values.period[0].format('YYYY-MM-DD'),
+      endDate: values.period[1].format('YYYY-MM-DD'),
+    })
     form.resetFields()
   }
 
@@ -20,7 +24,17 @@ export default function CreateReportModal({ open, onCancel, onCreate }) {
         <Form.Item name="name" label="Report name" rules={[{ required: true, message: 'Enter a report name' }]}>
           <Input placeholder="e.g. Regression run" />
         </Form.Item>
-        <div className="form-hint">The report will be created for the current phase with today's date.</div>
+        <Form.Item
+          name="period"
+          label="Test results period"
+          rules={[
+            { required: true, message: 'Choose the test results period' },
+            { validator: (_, value) => (value?.[1]?.isBefore(value?.[0], 'day') ? Promise.reject(new Error('End date cannot be before start date')) : Promise.resolve()) },
+          ]}
+        >
+          <DatePicker.RangePicker className="full-width" />
+        </Form.Item>
+        <div className="form-hint">Automated test runs overlapping this period will appear in the report.</div>
       </Form>
     </Modal>
   )

@@ -11,12 +11,12 @@ export class ResultsRepository {
   }
 
   /**
-   * Runs whose [startDate, endDate] window overlaps the given day.
-   * Overlap condition: startDate <= dayEnd AND endDate >= dayStart.
+   * Runs whose [startDate, endDate] window overlaps the inclusive report period.
+   * Overlap condition: startDate <= periodEnd AND endDate >= periodStart.
    */
-  findRunsCoveringWindow(dayStart: Date, dayEnd: Date) {
+  findRunsCoveringWindow(periodStart: Date, periodEnd: Date) {
     return this.prisma.testResult.findMany({
-      where: { startDate: { lte: dayEnd }, endDate: { gte: dayStart } },
+      where: { startDate: { lte: periodEnd }, endDate: { gte: periodStart } },
       orderBy: { startDate: 'desc' },
     })
   }

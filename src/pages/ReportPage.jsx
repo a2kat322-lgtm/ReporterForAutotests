@@ -154,8 +154,8 @@ function ResultsChart({ counts, total }) {
 export default function ReportPage({ data, phase, report, navigate, reload }) {
   const [query, setQuery] = useState('')
 
-  // GET /reports/:id/results already returns the merged view: every catalog
-  // test plus the latest run covering the report date (`no_run` otherwise),
+  // GET /reports/:id/results returns the merged view: every catalog test plus
+  // the latest run overlapping the report date range (`no_run` otherwise),
   // and unregistered runs tagged with inCatalog = false.
   const { tests, suites, counts } = useMemo(() => {
     const normalized = query.toLowerCase()
@@ -188,7 +188,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
       <div className="back-link" onClick={() => navigate({ page: 'reports', phaseId: phase.id, phase })}><ArrowLeftOutlined /> Back to {phase.name}</div>
       <div className="report-header">
         <div>
-          <Text className="eyebrow">REPORT · {formatDate(report.createdAt, true).toUpperCase()}</Text>
+          <Text className="eyebrow">REPORT · {formatDate(report.startDate)} — {formatDate(report.endDate)}</Text>
           <Title level={1}>{report.name}</Title>
           <Space>
             <Tag color={envColors[phase.environment]}>{phase.environment}</Tag>
