@@ -1,5 +1,4 @@
-import { DatePicker, Form, Input, Modal, Select } from 'antd'
-import { environmentOptions } from '../constants'
+import { DatePicker, Form, Input, Modal } from 'antd'
 
 export default function CreatePhaseModal({ open, onCancel, onCreate }) {
   const [form] = Form.useForm()
@@ -26,8 +25,8 @@ export default function CreatePhaseModal({ open, onCancel, onCreate }) {
         <Form.Item name="name" label="Phase name" rules={[{ required: true, message: 'Enter a phase name' }]}>
           <Input placeholder="e.g. Release 2.5.0" />
         </Form.Item>
-        <Form.Item name="environment" label="Environment" rules={[{ required: true, message: 'Select an environment' }]}>
-          <Select options={environmentOptions} placeholder="Select environment" />
+        <Form.Item name="environment" label="Environment" rules={[{ required: true, message: 'Enter an environment' }]}>
+          <Input placeholder="e.g. staging" />
         </Form.Item>
         <Form.Item
           name="period"
