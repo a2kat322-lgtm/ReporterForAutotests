@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, Descriptions, Empty, Input, Space, Table, Tag, Tooltip, Typography } from 'antd'
-import { ArrowLeftOutlined, DownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, BarChartOutlined, DownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
 import StatusTag from '../components/StatusTag'
 import { envColors } from '../constants'
 import { formatDate, formatDuration } from '../utils/format'
@@ -197,7 +197,10 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
             <Text type="secondary">Created by {report.author}</Text>
           </Space>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={reload}>Refresh results</Button>
+        <Space>
+          <Button icon={<BarChartOutlined />} onClick={() => navigate({ page: 'analytics', phaseId: phase.id, reportId: report.id, phase, report })}>Open analytics</Button>
+          <Button icon={<ReloadOutlined />} onClick={reload}>Refresh results</Button>
+        </Space>
       </div>
       <ResultsChart counts={counts} total={tests.length} />
       <div className="toolbar report-toolbar">

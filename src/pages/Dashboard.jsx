@@ -5,6 +5,7 @@ import Shell from '../components/Shell'
 import { getData } from '../services/dataService'
 import PhasesPage from './PhasesPage'
 import ReportPage from './ReportPage'
+import ReportDashboard from './ReportDashboard'
 import ReportsPage from './ReportsPage'
 
 const { Text } = Typography
@@ -42,6 +43,7 @@ export default function Dashboard({ route, navigate }) {
   } else if (data) {
     if (page === 'reports' && phase) content = <ReportsPage data={data} phase={phase} navigate={navigate} reload={reload} />
     else if (page === 'report' && phase && report) content = <ReportPage data={data} phase={phase} report={report} navigate={navigate} reload={reload} />
+    else if (page === 'analytics' && phase && report) content = <ReportDashboard data={data} phase={phase} report={report} navigate={navigate} />
     else if (page !== 'phases' && !phase) content = <Alert type="warning" showIcon message="Phase not found" description="The requested phase may have been removed." action={<Button onClick={() => navigate({ page: 'phases' })}>Back to phases</Button>} />
     else content = <PhasesPage data={data} navigate={navigate} reload={reload} />
   } else {
