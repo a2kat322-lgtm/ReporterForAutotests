@@ -313,7 +313,11 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
       }
       suite.tests.push(test)
     }
-    return { tests: matched, suites, counts: tally }
+     for (const suite of suites) {
+       suite.tests.sort((a, b) => (a.caseName || a.name || '').localeCompare(b.caseName || b.name || '', undefined, { sensitivity: 'base' }))
+     }
+     suites.sort((a, b) => a.suiteName.localeCompare(b.suiteName, undefined, { sensitivity: 'base' }))
+     return { tests: matched, suites, counts: tally }
   }, [data.results, query])
 
   return (
