@@ -48,6 +48,10 @@ export async function deleteReport(reportId) {
   return request(`/reports/${reportId}`, { method: 'DELETE' })
 }
 
+export async function updateResultFeedback(resultId, values) {
+  return request(`/reports/results/${resultId}/feedback`, { method: 'PATCH', body: JSON.stringify(values) })
+}
+
 export async function getAutomatedTests() {
   return request('/tests')
 }

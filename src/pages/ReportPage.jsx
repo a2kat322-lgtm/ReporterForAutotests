@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, Descriptions, Empty, Input, Space, Table, Tag, Tooltip, Typography } from 'antd'
+import { Button, Card, Descriptions, Empty, Input, Select, Space, Table, Tag, Tooltip, Typography, message } from 'antd'
+import { updateResultFeedback } from '../services/dataService'
 import { ArrowLeftOutlined, BarChartOutlined, DownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
 import StatusTag from '../components/StatusTag'
 import { envColors } from '../constants'
@@ -56,7 +57,69 @@ function getDurationMs(test) {
   return Number.isFinite(start) && Number.isFinite(end) && end >= start ? end - start : null
 }
 
-function RunDetails({ test }) {
+const failureReasons = [
+  { value: 'Assertion failed', label: 'Assertion failed' },
+  { value: 'Timeout', label: 'Timeout' },
+  { value: 'Environment issue', label: 'Environment issue' },
+  { value: 'Test data issue', label: 'Test data issue' },
+  { value: 'Application error', label: 'Application error' },
+  { value: 'Other', label: 'Other' },
+]
+
+function FailureFeedbackFields({ test, reload, compact = false }) {
+  const [comment, setComment] = useState(test.failureComment || '')
+  const [saving, setSaving] = useState(false)
+
+  async function save(values) {
+    if (!test.resultId) return
+    setSaving(true)
+    try {
+      await updateResultFeedback(test.resultId, values)
+      message.success('Failure feedback saved')
+      reload()
+    } catch (error) {
+      message.error(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Space direction={compact ? 'horizontal' : 'vertical'} size={compact ? 6 : 8} style={{ width: '100%' }} onClick={(event) => event.stopPropagation()}>
+      <Select
+        size={compact ? 'small' : 'middle'}
+        style={{ minWidth: compact ? 150 : 220 }}
+        placeholder="Failure reason"
+        value={test.failureReason || undefined}
+        options={failureReasons}
+        loading={saving}
+        onChange={(failureReason) => save({ failureReason, failureComment: comment })}
+        allowClear
+      />
+      <Input
+        size={compact ? 'small' : 'middle'}
+        style={{ minWidth: compact ? 180 : 260 }}
+        placeholder="Failure comment"
+        maxLength={5000}
+        value={comment}
+        onChange={(event) => setComment(event.target.value)}
+        onBlur={() => {
+          if (comment !== (test.failureComment || '')) save({ failureReason: test.failureReason, failureComment: comment })
+        }}
+      />
+    </Space>
+  )
+}
+
+function FailureFeedback({ test, reload }) {
+  return (
+    <Descriptions.Item label="Failure feedback" span={2}>
+      <FailureFeedbackFields test={test} reload={reload} />
+    </Descriptions.Item>
+  )
+}
+
+function RunDetails({ test, reload }) {
   return (
     <Descriptions size="small" column={2} className="run-details">
       <Descriptions.Item label="Result path"><Text code>{test.path}</Text></Descriptions.Item>
@@ -72,15 +135,16 @@ function RunDetails({ test }) {
           <Text type={test.status === 'passed' ? 'secondary' : 'danger'}>{test.message}</Text>
         </Descriptions.Item>
       ) : null}
+      {test.status === 'failed' || test.status === 'broken' ? <FailureFeedback test={test} reload={reload} /> : null}
     </Descriptions>
   )
 }
 
-const expandedRowRender = (test) => (test.status === 'no_run'
+const expandedRowRender = (test, reload) => (test.status === 'no_run'
   ? <Text type="secondary">No run covers this report date yet.</Text>
-  : <RunDetails test={test} />)
+  : <RunDetails test={test} reload={reload} />)
 
-const caseColumns = [
+const getCaseColumns = (reload) => [
   {
     title: 'CASE NAME',
     dataIndex: 'caseName',
@@ -98,6 +162,13 @@ const caseColumns = [
   { title: 'STATUS', dataIndex: 'status', width: 110, render: (status) => <StatusTag status={status} /> },
   { title: 'OWNER', dataIndex: 'owner', width: 130, render: (value) => <Text type="secondary">{value || '—'}</Text> },
   { title: 'DURATION', dataIndex: 'durationMs', width: 110, render: (value, test) => <Text type="secondary">{formatDuration(getDurationMs(test))}</Text> },
+  {
+    title: 'FAILURE FEEDBACK',
+    width: 390,
+    render: (_, test) => (test.status === 'failed' || test.status === 'broken'
+      ? <FailureFeedbackFields test={test} reload={reload} compact />
+      : null),
+  },
   { title: '', width: 50, render: () => <DownOutlined className="expand-icon" /> },
 ]
 
@@ -114,7 +185,7 @@ const suiteColumns = [
   },
 ]
 
-function SuiteTable({ suites }) {
+function SuiteTable({ suites, reload }) {
   const [expandedKeys, setExpandedKeys] = useState([])
 
   return (
@@ -136,21 +207,21 @@ function SuiteTable({ suites }) {
       expandable={{
         expandedRowKeys: expandedKeys,
         onExpandedRowsChange: setExpandedKeys,
-        expandedRowRender: (suite) => <CaseTable tests={suite.tests} />,
+        expandedRowRender: (suite) => <CaseTable tests={suite.tests} reload={reload} />,
       }}
       locale={{ emptyText }}
     />
   )
 }
 
-function CaseTable({ tests }) {
+function CaseTable({ tests, reload }) {
   const [expandedKeys, setExpandedKeys] = useState([])
 
   return (
     <Table
       className="suite-cases-table"
       rowKey="rowKey"
-      columns={caseColumns}
+      columns={getCaseColumns(reload)}
       dataSource={tests}
       pagination={false}
       onRow={(test) => ({
@@ -162,7 +233,7 @@ function CaseTable({ tests }) {
         },
         style: { cursor: 'pointer' },
       })}
-      expandable={{ expandedRowKeys: expandedKeys, onExpandedRowsChange: setExpandedKeys, expandedRowRender }}
+      expandable={{ expandedRowKeys: expandedKeys, onExpandedRowsChange: setExpandedKeys, expandedRowRender: (test) => expandedRowRender(test, reload) }}
       locale={{ emptyText }}
     />
   )
@@ -270,7 +341,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
         <Text type="secondary">Showing <strong>{tests.length}</strong> cases in <strong>{suites.length}</strong> suites</Text>
       </div>
       <Card className="table-card test-table-card" styles={{ body: cardBody }}>
-        <SuiteTable suites={suites} />
+        <SuiteTable suites={suites} reload={reload} />
       </Card>
     </>
   )

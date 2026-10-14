@@ -67,8 +67,10 @@ model TestResult {
   status    TestStatus
   owner     String?    @db.VarChar(120)
   circuit   String?    @db.VarChar(120)
-  message   String?
-  startDate DateTime   @db.Timestamptz(3)
+  message        String?
+  failureReason  String?    @db.VarChar(120)
+  failureComment String?
+  startDate      DateTime   @db.Timestamptz(3)
   endDate   DateTime   @db.Timestamptz(3)
   tags      Json       @default("[]") @db.JsonB
   createdAt DateTime   @default(now()) @db.Timestamptz(3)

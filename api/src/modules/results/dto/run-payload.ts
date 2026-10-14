@@ -41,6 +41,8 @@ export interface ReportResultRow {
   owner: string | null
   circuit: string | null
   message: string | null
+  failureReason: string | null
+  failureComment: string | null
   status: TestStatus | 'no_run'
   startDate: Date | null
   endDate: Date | null

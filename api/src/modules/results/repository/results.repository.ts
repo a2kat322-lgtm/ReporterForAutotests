@@ -14,6 +14,14 @@ export class ResultsRepository {
    * Runs whose [startDate, endDate] window overlaps the inclusive report period.
    * Overlap condition: startDate <= periodEnd AND endDate >= periodStart.
    */
+  findById(id: bigint) {
+    return this.prisma.testResult.findUnique({ where: { id } })
+  }
+
+  updateFeedback(id: bigint, data: { failureReason: string | null; failureComment: string | null }) {
+    return this.prisma.testResult.update({ where: { id }, data })
+  }
+
   findRunsCoveringWindow(periodStart: Date, periodEnd: Date) {
     return this.prisma.testResult.findMany({
       where: { startDate: { lte: periodEnd }, endDate: { gte: periodStart } },

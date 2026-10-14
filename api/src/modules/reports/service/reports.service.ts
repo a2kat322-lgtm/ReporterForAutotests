@@ -5,6 +5,7 @@ import { ResultsRepository } from '../../results/repository/results.repository'
 import { ReportResultRow } from '../../results/dto/run-payload'
 import { TestsRepository } from '../../tests/repository/tests.repository'
 import { CreateReportDto } from '../dto/create-report.dto'
+import { UpdateResultFeedbackDto } from '../dto/update-result-feedback.dto'
 import { ReportsRepository } from '../repository/reports.repository'
 
 const MS_PER_DAY = 86_400_000
@@ -68,6 +69,18 @@ export class ReportsService {
    * report's inclusive date range. Catalog tests without a matching run are
    * returned with status `no_run`; unregistered runs are included as well.
    */
+  async updateResultFeedback(resultId: bigint, dto: UpdateResultFeedbackDto) {
+    const result = await this.resultsRepository.findById(resultId)
+    if (!result) throw new NotFoundException('Test result not found')
+    if (result.status !== 'failed' && result.status !== 'broken') {
+      throw new BadRequestException('Feedback can only be added to failed or broken tests')
+    }
+    return this.resultsRepository.updateFeedback(resultId, {
+      failureReason: dto.failureReason?.trim() || null,
+      failureComment: dto.failureComment?.trim() || null,
+    })
+  }
+
   async findResults(id: bigint): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
     const [catalog, runs] = await Promise.all([
@@ -117,6 +130,8 @@ function toRow(test: AutomatedTest | null, run: TestResult | null): ReportResult
     owner: run?.owner ?? test?.defaultOwner ?? null,
     circuit: run?.circuit ?? null,
     message: run?.message ?? null,
+    failureReason: run?.failureReason ?? null,
+    failureComment: run?.failureComment ?? null,
     status: run?.status ?? 'no_run',
     startDate: run?.startDate ?? null,
     endDate: run?.endDate ?? null,
