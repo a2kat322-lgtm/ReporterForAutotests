@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post } from '@nestjs/common'
+import { ParseBigIntPipe } from '../../../common/pipes/parse-bigint.pipe'
 import { CreateReportDto } from '../dto/create-report.dto'
 import { ReportsService } from '../service/reports.service'
 
@@ -7,8 +8,8 @@ export class PhaseReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
   @Get()
-  findByPhase(@Param('phaseId', ParseIntPipe) phaseId: number) { return this.reportsService.findByPhaseId(phaseId) }
+  findByPhase(@Param('phaseId', ParseBigIntPipe) phaseId: bigint) { return this.reportsService.findByPhaseId(phaseId) }
 
   @Post()
-  create(@Param('phaseId', ParseIntPipe) phaseId: number, @Body() dto: CreateReportDto) { return this.reportsService.createForPhase(phaseId, dto) }
+  create(@Param('phaseId', ParseBigIntPipe) phaseId: bigint, @Body() dto: CreateReportDto) { return this.reportsService.createForPhase(phaseId, dto) }
 }

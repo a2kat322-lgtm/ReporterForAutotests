@@ -36,7 +36,7 @@ export class TestsRepository {
     })
   }
 
-  delete(id: string) {
+  delete(id: bigint) {
     return this.prisma.automatedTest.delete({ where: { id } })
   }
 }

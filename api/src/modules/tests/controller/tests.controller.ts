@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@ne
 import { Throttle } from '@nestjs/throttler'
 import { BulkAutomatedTestsDto } from '../dto/bulk-automated-tests.dto'
 import { CreateAutomatedTestDto } from '../dto/create-automated-test.dto'
+import { ParseBigIntPipe } from '../../../common/pipes/parse-bigint.pipe'
 import { TestsService } from '../service/tests.service'
 
 @Controller('tests')
@@ -28,5 +29,5 @@ export class TestsController {
 
   @Delete(':testId')
   @HttpCode(200)
-  delete(@Param('testId') testId: string) { return this.testsService.delete(testId) }
+  delete(@Param('testId', ParseBigIntPipe) testId: bigint) { return this.testsService.delete(testId) }
 }

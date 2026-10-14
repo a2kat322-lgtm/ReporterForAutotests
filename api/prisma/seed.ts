@@ -24,7 +24,7 @@ async function main() {
     { name: 'Nightly regression · 17 Apr', environment: 'test', startedAt: new Date('2025-04-17'), endedAt: new Date('2025-04-17') },
     { name: 'Payments hotfix', environment: 'production', startedAt: new Date('2025-04-12'), endedAt: new Date('2025-04-13') },
   ]
-  const ids: number[] = []
+  const ids: bigint[] = []
   for (const phase of phases) {
     const existing = await prisma.phase.findFirst({ where: { name: phase.name } })
     const saved = existing ? await prisma.phase.update({ where: { id: existing.id }, data: phase }) : await prisma.phase.create({ data: phase })
@@ -32,10 +32,10 @@ async function main() {
   }
 
   const reports = [
-    { phaseId: ids[0], name: 'Smoke tests', createdAt: new Date('2025-04-21T10:42:00Z'), author: 'CI pipeline' },
-    { phaseId: ids[0], name: 'Full regression', createdAt: new Date('2025-04-21T14:08:00Z'), author: 'QA team' },
-    { phaseId: ids[1], name: 'Nightly suite', createdAt: new Date('2025-04-17T06:24:00Z'), author: 'CI pipeline' },
-    { phaseId: ids[2], name: 'Checkout verification', createdAt: new Date('2025-04-13T09:10:00Z'), author: 'Release bot' },
+    { phaseId: ids[0], name: 'Smoke tests', createdAt: new Date('2025-04-21T10:42:00Z'), startDate: new Date('2025-04-21'), endDate: new Date('2025-04-21'), author: 'CI pipeline' },
+    { phaseId: ids[0], name: 'Full regression', createdAt: new Date('2025-04-21T14:08:00Z'), startDate: new Date('2025-04-21'), endDate: new Date('2025-04-21'), author: 'QA team' },
+    { phaseId: ids[1], name: 'Nightly suite', createdAt: new Date('2025-04-17T06:24:00Z'), startDate: new Date('2025-04-17'), endDate: new Date('2025-04-17'), author: 'CI pipeline' },
+    { phaseId: ids[2], name: 'Checkout verification', createdAt: new Date('2025-04-13T09:10:00Z'), startDate: new Date('2025-04-13'), endDate: new Date('2025-04-13'), author: 'Release bot' },
   ]
   // Report ids are autoincrement integers now, so re-seeding matches on (phase, name).
   for (const report of reports) {

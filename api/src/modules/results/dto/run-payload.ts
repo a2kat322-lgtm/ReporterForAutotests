@@ -33,7 +33,7 @@ export interface NormalizedRun {
 
 /** A row of the merged report view: one catalog test with its latest run, or a run without a catalog entry. */
 export interface ReportResultRow {
-  rowKey: string
+  rowKey: string | number
   path: string
   name: string
   suiteName: string | null
@@ -47,7 +47,7 @@ export interface ReportResultRow {
   durationMs: number | null
   tags: string[]
   inCatalog: boolean
-  catalogId: string | null
+  catalogId: number | null
   fullResponsibility: string | null
-  resultId: string | null
+  resultId: number | null
 }

@@ -10,7 +10,7 @@ export class PhasesRepository {
     return this.prisma.phase.findMany({ orderBy: { createdAt: 'desc' } })
   }
 
-  findById(id: number) {
+  findById(id: bigint) {
     return this.prisma.phase.findUnique({ where: { id } })
   }
 
@@ -20,7 +20,7 @@ export class PhasesRepository {
     })
   }
 
-  delete(id: number) {
+  delete(id: bigint) {
     return this.prisma.phase.delete({ where: { id } })
   }
 }

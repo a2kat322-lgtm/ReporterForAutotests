@@ -8,6 +8,8 @@ import { AppModule } from './app.module'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   const config = app.get(ConfigService)
+  // JSON has no BigInt primitive. Use Number as requested for the public API.
+  ;(BigInt.prototype as typeof BigInt.prototype & { toJSON?: () => number }).toJSON = function () { return Number(this) }
 
   app.setGlobalPrefix('api')
   // The automation system posts runs as application/x-www-form-urlencoded.

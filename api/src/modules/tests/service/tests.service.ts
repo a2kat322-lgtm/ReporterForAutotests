@@ -98,7 +98,7 @@ export class TestsService {
     return { created, skipped, paths: paths.length }
   }
 
-  async delete(id: string) {
+  async delete(id: bigint) {
     try {
       await this.testsRepository.delete(id)
     } catch (error) {

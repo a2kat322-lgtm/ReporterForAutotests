@@ -47,7 +47,7 @@ export class ImportRepository {
 
   executeImport(body: LegacyImportPayload) {
     return this.prisma.$transaction(async (tx) => {
-      const phaseIds = new Map<unknown, number>()
+      const phaseIds = new Map<unknown, bigint>()
       for (const phase of body.phases) {
         const environment = phase?.environment
         const startedAt = new Date(`${phase?.startedAt}T00:00:00.000Z`)
@@ -58,7 +58,7 @@ export class ImportRepository {
         phaseIds.set(phase.id, saved.id)
       }
 
-      const reportIds = new Map<unknown, { id: number; createdAt: Date }>()
+      const reportIds = new Map<unknown, { id: bigint; createdAt: Date }>()
       for (const report of body.reports) {
         const phaseId = phaseIds.get(report.phaseId)
         if (!phaseId || !report.name) throw new BadRequestException('Legacy report references an unknown phase')

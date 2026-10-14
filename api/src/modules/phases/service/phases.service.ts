@@ -11,7 +11,7 @@ export class PhasesService {
     return this.phasesRepository.findAll()
   }
 
-  async findById(id: number) {
+  async findById(id: bigint) {
     const phase = await this.phasesRepository.findById(id)
     if (!phase) throw new NotFoundException('Phase not found')
     return phase
@@ -26,12 +26,12 @@ export class PhasesService {
     return this.phasesRepository.create(dto, startedAt, endedAt)
   }
 
-  async ensureExists(id: number) {
+  async ensureExists(id: bigint) {
     await this.findById(id)
     return id
   }
 
-  async delete(id: number) {
+  async delete(id: bigint) {
     try {
       await this.phasesRepository.delete(id)
     } catch (error) {

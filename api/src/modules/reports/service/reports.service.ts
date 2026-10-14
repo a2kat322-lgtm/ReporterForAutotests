@@ -26,18 +26,18 @@ export class ReportsService {
     private readonly testsRepository: TestsRepository,
   ) {}
 
-  async findById(id: number) {
+  async findById(id: bigint) {
     const report = await this.reportsRepository.findById(id)
     if (!report) throw new NotFoundException('Report not found')
     return report
   }
 
-  async findByPhaseId(phaseId: number) {
+  async findByPhaseId(phaseId: bigint) {
     await this.phasesService.ensureExists(phaseId)
     return this.reportsRepository.findByPhaseId(phaseId)
   }
 
-  async createForPhase(phaseId: number, dto: CreateReportDto) {
+  async createForPhase(phaseId: bigint, dto: CreateReportDto) {
     const phase = await this.phasesService.findById(phaseId)
     const startDate = parseDateOnly(dto.startDate)
     const endDate = parseDateOnly(dto.endDate)
@@ -50,7 +50,7 @@ export class ReportsService {
     return this.reportsRepository.createForPhase(phaseId, dto, startDate, endDate)
   }
 
-  async delete(id: number) {
+  async delete(id: bigint) {
     try {
       await this.reportsRepository.delete(id)
     } catch (error) {
@@ -68,7 +68,7 @@ export class ReportsService {
    * report's inclusive date range. Catalog tests without a matching run are
    * returned with status `no_run`; unregistered runs are included as well.
    */
-  async findResults(id: number): Promise<ReportResultRow[]> {
+  async findResults(id: bigint): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
     const [catalog, runs] = await Promise.all([
       this.testsRepository.findAll(),
@@ -109,7 +109,7 @@ function dayEnd(date: Date): Date {
 function toRow(test: AutomatedTest | null, run: TestResult | null): ReportResultRow {
   const tags = (run?.tags ?? test?.tags ?? []) as unknown
   return {
-    rowKey: run?.id ?? `catalog-${test?.id}`,
+    rowKey: run?.id != null ? Number(run.id) : `catalog-${test?.id}`,
     path: run?.path ?? test?.resultPath ?? '',
     name: run?.caseName || test?.defaultCaseName || run?.path || 'Unknown test',
     suiteName: run?.suiteName ?? test?.defaultSuiteName ?? null,
@@ -123,8 +123,8 @@ function toRow(test: AutomatedTest | null, run: TestResult | null): ReportResult
     durationMs: run ? Math.max(0, run.endDate.valueOf() - run.startDate.valueOf()) : null,
     tags: Array.isArray(tags) ? tags.map(String) : [],
     inCatalog: Boolean(test),
-    catalogId: test?.id ?? null,
+    catalogId: test?.id == null ? null : Number(test.id),
     fullResponsibility: test?.fullResponsibility ?? null,
-    resultId: run?.id ?? null,
+    resultId: run?.id == null ? null : Number(run.id),
   }
 }

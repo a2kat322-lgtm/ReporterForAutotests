@@ -355,7 +355,7 @@ export default function TestCatalogModal({ open, onClose }) {
               size="small"
               columns={caseColumns}
               dataSource={suite.tests}
-              pagination={suite.tests.length > 10 ? paginationConfig : false}
+              pagination={false}
               rowSelection={{
                 selectedRowKeys,
                 onChange: setSelectedRowKeys,
