@@ -47,6 +47,15 @@ function countLabel(count, label) {
   return `${count} ${label}${count === 1 ? '' : 's'}`
 }
 
+function getDurationMs(test) {
+  if (Number.isFinite(test.durationMs)) return test.durationMs
+  if (!test.startDate || !test.endDate) return null
+
+  const start = new Date(test.startDate).getTime()
+  const end = new Date(test.endDate).getTime()
+  return Number.isFinite(start) && Number.isFinite(end) && end >= start ? end - start : null
+}
+
 function RunDetails({ test }) {
   return (
     <Descriptions size="small" column={2} className="run-details">
@@ -88,8 +97,7 @@ const caseColumns = [
   },
   { title: 'STATUS', dataIndex: 'status', width: 110, render: (status) => <StatusTag status={status} /> },
   { title: 'OWNER', dataIndex: 'owner', width: 130, render: (value) => <Text type="secondary">{value || '—'}</Text> },
-  { title: 'DURATION', dataIndex: 'durationMs', width: 110, render: (value) => <Text type="secondary">{formatDuration(value)}</Text> },
-  { title: 'START', dataIndex: 'startDate', width: 160, render: (value) => <Text type="secondary">{formatDate(value, true)}</Text> },
+  { title: 'DURATION', dataIndex: 'durationMs', width: 110, render: (value, test) => <Text type="secondary">{formatDuration(getDurationMs(test))}</Text> },
   { title: '', width: 50, render: () => <DownOutlined className="expand-icon" /> },
 ]
 
