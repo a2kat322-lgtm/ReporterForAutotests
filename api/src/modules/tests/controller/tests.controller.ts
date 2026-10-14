@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@ne
 import { Throttle } from '@nestjs/throttler'
 import { BulkAutomatedTestsDto } from '../dto/bulk-automated-tests.dto'
 import { CreateAutomatedTestDto } from '../dto/create-automated-test.dto'
+import { UpdateVisibilityDto } from '../dto/update-visibility.dto'
 import { ParseBigIntPipe } from '../../../common/pipes/parse-bigint.pipe'
 import { TestsService } from '../service/tests.service'
 
@@ -18,6 +19,10 @@ export class TestsController {
   @Post('bulk')
   @HttpCode(200)
   createBulk(@Body() dto: BulkAutomatedTestsDto) { return this.testsService.createBulk(dto.tests) }
+
+  @Post('visibility')
+  @HttpCode(200)
+  updateVisibility(@Body() dto: UpdateVisibilityDto) { return this.testsService.updateVisibility(dto) }
 
   /** Builds the catalog from distinct paths in stored run results. */
   @Post('harvest')

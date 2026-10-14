@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { App, Button, DatePicker, Empty, Form, Modal, Popconfirm, Space, Switch, Table, Tag, Tooltip, Typography, Upload } from 'antd'
 import { DeleteOutlined, FileAddOutlined, ImportOutlined, UploadOutlined } from '@ant-design/icons'
-import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests } from '../services/dataService'
+import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests, updateAutomatedTestsVisibility } from '../services/dataService'
 import { parseTestsFile } from '../utils/testFileParser'
 
 const { Text, Paragraph } = Typography
@@ -170,12 +170,12 @@ export default function TestCatalogModal({ open, onClose }) {
     if (!selectedTests.length) return
     setBulkUpdating(true)
     try {
-      const results = await Promise.allSettled(selectedTests.map((test) => createAutomatedTest({ ...toDtoPayload(test), visible })))
-      const failed = results.filter((result) => result.status === 'rejected').length
-      if (failed) message.error(`Failed to update ${failed} test${failed === 1 ? '' : 's'}`)
-      else message.success(`${selectedTests.length} tests ${visible ? 'enabled' : 'hidden'} in reports`)
+      await updateAutomatedTestsVisibility(selectedTests.map((test) => test.resultPath), visible)
+      message.success(`${selectedTests.length} tests ${visible ? 'enabled' : 'hidden'} in reports`)
       setSelectedRowKeys([])
       await refresh()
+    } catch (error) {
+      message.error(error.message || 'Failed to update visibility')
     } finally {
       setBulkUpdating(false)
     }
@@ -194,12 +194,12 @@ export default function TestCatalogModal({ open, onClose }) {
   const toggleSuiteVisibility = async (suite, visible) => {
     setBulkUpdating(true)
     try {
-      const results = await Promise.allSettled(suite.tests.map((test) => createAutomatedTest({ ...toDtoPayload(test), visible })))
-      const failed = results.filter((result) => result.status === 'rejected').length
-      if (failed) message.error(`Failed to update ${failed} test${failed === 1 ? '' : 's'} in ${suite.suiteName}`)
-      else message.success(`${suite.tests.length} tests in ${suite.suiteName} ${visible ? 'enabled' : 'hidden'} in reports`)
+      await updateAutomatedTestsVisibility(suite.tests.map((test) => test.resultPath), visible)
+      message.success(`${suite.tests.length} tests in ${suite.suiteName} ${visible ? 'enabled' : 'hidden'} in reports`)
       setSelectedRowKeys((keys) => keys.filter((key) => !suite.tests.some((test) => test.id === key)))
       await refresh()
+    } catch (error) {
+      message.error(error.message || 'Failed to update visibility')
     } finally {
       setBulkUpdating(false)
     }

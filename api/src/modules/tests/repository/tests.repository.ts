@@ -21,6 +21,13 @@ export class TestsRepository {
     })
   }
 
+  updateVisibility(resultPaths: string[], visible: boolean) {
+    return this.prisma.automatedTest.updateMany({
+      where: { resultPath: { in: resultPaths } },
+      data: { visible },
+    })
+  }
+
   update(resultPath: string, dto: CreateAutomatedTestDto) {
     return this.prisma.automatedTest.update({
       where: { resultPath },

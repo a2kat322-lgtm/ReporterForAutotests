@@ -60,6 +60,10 @@ export async function createAutomatedTestsBulk(tests) {
   return request('/tests/bulk', { method: 'POST', body: JSON.stringify({ tests }) })
 }
 
+export async function updateAutomatedTestsVisibility(resultPaths, visible) {
+  return request('/tests/visibility', { method: 'POST', body: JSON.stringify({ resultPaths, visible }) })
+}
+
 export async function deleteAutomatedTest(testId) {
   return request(`/tests/${testId}`, { method: 'DELETE' })
 }

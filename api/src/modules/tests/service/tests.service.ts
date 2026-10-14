@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { AutomatedTest, Prisma } from '@prisma/client'
 import { CreateAutomatedTestDto } from '../dto/create-automated-test.dto'
+import { UpdateVisibilityDto } from '../dto/update-visibility.dto'
 import { TestsRepository } from '../repository/tests.repository'
 import { ResultsRepository } from '../../results/repository/results.repository'
 
@@ -45,6 +46,13 @@ export class TestsService {
       else updated += 1
     }
     return { created, updated, total: dtos.length }
+  }
+
+  updateVisibility(dto: UpdateVisibilityDto) {
+    const resultPaths = [...new Set(dto.resultPaths.map((path) => path.trim()).filter(Boolean))]
+    if (!resultPaths.length) throw new BadRequestException('At least one resultPath is required')
+    return this.testsRepository.updateVisibility(resultPaths, dto.visible)
+      .then(({ count }) => ({ updated: count, total: resultPaths.length }))
   }
 
   /** Registers catalog entries for distinct paths seen within the selected period. */
