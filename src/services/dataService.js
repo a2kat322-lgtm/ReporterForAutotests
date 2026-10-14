@@ -64,8 +64,9 @@ export async function deleteAutomatedTest(testId) {
   return request(`/tests/${testId}`, { method: 'DELETE' })
 }
 
-export async function harvestAutomatedTests() {
-  return request('/tests/harvest', { method: 'POST' })
+export async function harvestAutomatedTests(startDate, endDate) {
+  const params = new URLSearchParams({ startDate, endDate })
+  return request(`/tests/harvest?${params}`, { method: 'POST' })
 }
 
 export async function importLegacyData(data) {

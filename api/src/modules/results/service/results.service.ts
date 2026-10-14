@@ -50,7 +50,8 @@ export class ResultsService {
     const path = firstString(body?.path)
     if (!path) throw new BadRequestException('path is required')
 
-    const status = firstString(body?.status)
+    const rawStatus = firstString(body?.status)
+    const status = rawStatus?.toLowerCase()
     if (!status || !STATUSES.has(status)) {
       throw new BadRequestException(`status must be one of ${[...STATUSES].join(', ')}`)
     }

@@ -82,8 +82,19 @@ export default function PhasesPage({ data, navigate, reload }) {
     },
     { title: 'RESULTS', render: () => <Text type="secondary">Open phase for reports</Text> },
     {
-      title: '',
-      width: 96,
+      title: (
+        <div className="phase-actions-heading">
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={(event) => { event.stopPropagation(); setModalOpen(true) }}
+          >
+            Add phase
+          </Button>
+        </div>
+      ),
+      width: 132,
       render: (_, phase) => (
         <span onClick={(event) => event.stopPropagation()}>
           <Popconfirm
@@ -108,7 +119,6 @@ export default function PhasesPage({ data, navigate, reload }) {
         eyebrow="TEST MANAGEMENT"
         title="Test phases"
         description="Organize test runs by release, environment, or any testing cycle."
-        action={<Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>New phase</Button>}
       />
       <div className="toolbar">
         <Text type="secondary"><strong className="toolbar-count">{visiblePhases.length}</strong> of {data.phases.length} phases</Text>

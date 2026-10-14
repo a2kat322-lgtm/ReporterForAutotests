@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { BulkAutomatedTestsDto } from '../dto/bulk-automated-tests.dto'
 import { CreateAutomatedTestDto } from '../dto/create-automated-test.dto'
@@ -22,7 +22,9 @@ export class TestsController {
   @Post('harvest')
   @HttpCode(200)
   @Throttle({ short: { limit: 1, ttl: 10_000 }, long: { limit: 10, ttl: 60_000 } })
-  harvest() { return this.testsService.harvestFromResults() }
+  harvest(@Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
+    return this.testsService.harvestFromResults(startDate, endDate)
+  }
 
   @Delete(':testId')
   @HttpCode(200)

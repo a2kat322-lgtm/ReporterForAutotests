@@ -21,18 +21,25 @@ export class ResultsRepository {
     })
   }
 
-  /** Latest run per path — used when harvesting the catalog from stored runs. */
-  findDistinctPaths() {
+  /** Distinct paths seen in runs overlapping the inclusive harvest period. */
+  findDistinctPaths(periodStart?: Date, periodEnd?: Date) {
+    const periodFilter = periodStart && periodEnd
+      ? { startDate: { lte: periodEnd }, endDate: { gte: periodStart } }
+      : {}
     return this.prisma.testResult.groupBy({
       by: ['path'],
+      where: periodFilter,
       _count: { _all: true },
       _max: { startDate: true },
     })
   }
 
-  findLatestRunPerPath(paths: string[]) {
+  findLatestRunPerPath(paths: string[], periodStart?: Date, periodEnd?: Date) {
+    const periodFilter = periodStart && periodEnd
+      ? { startDate: { lte: periodEnd }, endDate: { gte: periodStart } }
+      : {}
     return this.prisma.testResult.findMany({
-      where: { path: { in: paths } },
+      where: { path: { in: paths }, ...periodFilter },
       orderBy: { startDate: 'desc' },
     })
   }

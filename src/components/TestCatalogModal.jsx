@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { App, Button, Empty, Form, Input, Modal, Popconfirm, Space, Switch, Table, Tag, Tooltip, Typography, Upload } from 'antd'
-import { DeleteOutlined, FileAddOutlined, ImportOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons'
+import { App, Button, DatePicker, Empty, Form, Modal, Popconfirm, Space, Switch, Table, Tag, Tooltip, Typography, Upload } from 'antd'
+import { DeleteOutlined, FileAddOutlined, ImportOutlined, UploadOutlined } from '@ant-design/icons'
 import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests } from '../services/dataService'
 import { parseTestsFile } from '../utils/testFileParser'
 
@@ -49,15 +49,15 @@ const staticColumns = [
 
 const paginationConfig = { pageSize: 10, size: 'small' }
 const emptyText = <Empty description="No tests in this suite" />
-const emptyCatalog = <Empty description="Catalog is empty — add tests manually, import a JSON file, or harvest from stored runs" />
+const emptyCatalog = <Empty description="Catalog is empty — import a JSON file or harvest from stored runs" />
 
 export default function TestCatalogModal({ open, onClose }) {
   const [form] = Form.useForm()
   const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(false)
-  const [adding, setAdding] = useState(false)
   const [importing, setImporting] = useState(false)
   const [harvesting, setHarvesting] = useState(false)
+  const [harvestOpen, setHarvestOpen] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [togglingId, setTogglingId] = useState(null)
   const [bulkUpdating, setBulkUpdating] = useState(false)
@@ -85,31 +85,20 @@ export default function TestCatalogModal({ open, onClose }) {
     setSelectedRowKeys((keys) => keys.filter((key) => catalogIds.has(key)))
   }, [catalog])
 
-  const addManual = async () => {
-    let values
-    try {
-      values = await form.validateFields()
-    } catch {
-      return // keep the form for the user to fix
-    }
-    setAdding(true)
-    try {
-      await createAutomatedTest(values)
-      form.resetFields()
-      message.success('Test added to catalog')
-      refresh()
-    } catch (error) {
-      message.error(error.message || 'Failed to add test')
-    } finally {
-      setAdding(false)
-    }
-  }
-
   const harvest = async () => {
+    let period
+    try {
+      period = await form.validateFields(['harvestPeriod'])
+    } catch {
+      return
+    }
+    const [startDate, endDate] = period.harvestPeriod
     setHarvesting(true)
     try {
-      const result = await harvestAutomatedTests()
+      const result = await harvestAutomatedTests(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'))
       message.success(`Harvested from runs: ${result.created} added, ${result.skipped} already in catalog`)
+      setHarvestOpen(false)
+      form.resetFields(['harvestPeriod'])
       refresh()
     } catch (error) {
       message.error(error.message || 'Harvest failed')
@@ -290,28 +279,41 @@ export default function TestCatalogModal({ open, onClose }) {
         Runs are matched to reports by date window, not by an explicit link.
       </Paragraph>
 
-      <Form form={form} layout="inline" style={{ marginBottom: 12, rowGap: 8 }}>
-        <Form.Item name="resultPath" rules={[{ required: true, message: 'Enter the result path' }]} style={{ flex: 1.6 }}>
-          <Input placeholder="resultPath — Java test class (e.g. com.acme.shop.checkout.PaymentFlowTest)" maxLength={300} />
-        </Form.Item>
-        <Form.Item name="defaultCaseName" rules={[{ required: true, message: 'Enter a case name' }]} style={{ flex: 1.6 }}>
-          <Input placeholder="Case name (e.g. paymentSucceedsWithValidCard)" maxLength={300} />
-        </Form.Item>
-        <Form.Item name="defaultSuiteName" style={{ flex: 1 }}>
-          <Input placeholder="Suite (optional)" maxLength={200} />
-        </Form.Item>
-        <Form.Item>
-          <Space>
-            <Button type="primary" icon={<PlusOutlined />} loading={adding} onClick={addManual}>Add</Button>
-            <Upload accept=".json" showUploadList={false} beforeUpload={(file) => { handleFile(file); return false }}>
-              <Button icon={<UploadOutlined />} loading={importing && !preview}>From JSON file</Button>
-            </Upload>
-            <Tooltip title="Register every distinct path seen in stored runs">
-              <Button icon={<ImportOutlined />} loading={harvesting} onClick={harvest}>Harvest from runs</Button>
-            </Tooltip>
+      <Space style={{ marginBottom: 12 }} wrap>
+        <Upload accept=".json" showUploadList={false} beforeUpload={(file) => { handleFile(file); return false }}>
+          <Button icon={<UploadOutlined />} loading={importing && !preview}>Import JSON</Button>
+        </Upload>
+        <Tooltip title="Register distinct test paths from stored runs">
+          <Button icon={<ImportOutlined />} onClick={() => setHarvestOpen(true)}>Harvest from runs</Button>
+        </Tooltip>
+      </Space>
+
+      <Modal
+        title="Harvest tests from runs"
+        open={harvestOpen}
+        onCancel={() => setHarvestOpen(false)}
+        footer={null}
+        destroyOnHidden
+      >
+        <Paragraph type="secondary">Choose the run date range. Distinct test paths found in overlapping runs will be added to the catalog.</Paragraph>
+        <Form form={form} layout="vertical" onFinish={harvest}>
+          <Form.Item
+            name="harvestPeriod"
+            label="Run date range"
+            rules={[{ required: true, message: 'Choose the run date range to harvest' }]}
+          >
+            <DatePicker.RangePicker
+              style={{ width: '100%' }}
+              aria-label="Run date range for harvesting tests"
+              placeholder={['From date', 'To date']}
+            />
+          </Form.Item>
+          <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setHarvestOpen(false)}>Cancel</Button>
+            <Button type="primary" htmlType="submit" icon={<ImportOutlined />} loading={harvesting}>Start harvest</Button>
           </Space>
-        </Form.Item>
-      </Form>
+        </Form>
+      </Modal>
 
       <div className="form-hint" style={{ marginBottom: 12 }}>
         <Text code>.json</Text> file contract: an array of{' '}
