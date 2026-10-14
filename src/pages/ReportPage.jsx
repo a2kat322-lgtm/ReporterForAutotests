@@ -114,6 +114,60 @@ const suiteColumns = [
   },
 ]
 
+function SuiteTable({ suites }) {
+  const [expandedKeys, setExpandedKeys] = useState([])
+
+  return (
+    <Table
+      rowKey="key"
+      columns={suiteColumns}
+      dataSource={suites}
+      pagination={false}
+      onRow={(suite) => ({
+        onClick: (event) => {
+          // Let the built-in expand control handle its own click.
+          if (event.target.closest('.ant-table-row-expand-icon')) return
+          setExpandedKeys((keys) => keys.includes(suite.key)
+            ? keys.filter((key) => key !== suite.key)
+            : [...keys, suite.key])
+        },
+        style: { cursor: 'pointer' },
+      })}
+      expandable={{
+        expandedRowKeys: expandedKeys,
+        onExpandedRowsChange: setExpandedKeys,
+        expandedRowRender: (suite) => <CaseTable tests={suite.tests} />,
+      }}
+      locale={{ emptyText }}
+    />
+  )
+}
+
+function CaseTable({ tests }) {
+  const [expandedKeys, setExpandedKeys] = useState([])
+
+  return (
+    <Table
+      className="suite-cases-table"
+      rowKey="rowKey"
+      columns={caseColumns}
+      dataSource={tests}
+      pagination={false}
+      onRow={(test) => ({
+        onClick: (event) => {
+          if (event.target.closest('.ant-table-row-expand-icon')) return
+          setExpandedKeys((keys) => keys.includes(test.rowKey)
+            ? keys.filter((key) => key !== test.rowKey)
+            : [...keys, test.rowKey])
+        },
+        style: { cursor: 'pointer' },
+      })}
+      expandable={{ expandedRowKeys: expandedKeys, onExpandedRowsChange: setExpandedKeys, expandedRowRender }}
+      locale={{ emptyText }}
+    />
+  )
+}
+
 const resultSegments = [
   { key: 'passed', label: 'Passed', color: '#4ade80' },
   { key: 'failed', label: 'Failed', color: '#fb7185' },
@@ -216,26 +270,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
         <Text type="secondary">Showing <strong>{tests.length}</strong> cases in <strong>{suites.length}</strong> suites</Text>
       </div>
       <Card className="table-card test-table-card" styles={{ body: cardBody }}>
-        <Table
-          rowKey="key"
-          columns={suiteColumns}
-          dataSource={suites}
-          pagination={false}
-          expandable={{
-            expandedRowRender: (suite) => (
-              <Table
-                className="suite-cases-table"
-                rowKey="rowKey"
-                columns={caseColumns}
-                dataSource={suite.tests}
-                pagination={false}
-                expandable={{ expandedRowRender }}
-                locale={{ emptyText }}
-              />
-            ),
-          }}
-          locale={{ emptyText }}
-        />
+        <SuiteTable suites={suites} />
       </Card>
     </>
   )
