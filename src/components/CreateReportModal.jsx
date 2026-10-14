@@ -10,12 +10,12 @@ export default function CreateReportModal({ open, onCancel, onCreate }) {
     } catch {
       return // keep the modal open so the user can fix validation errors
     }
-    await onCreate({
+    const created = await onCreate({
       name: values.name,
       startDate: values.period[0].format('YYYY-MM-DD'),
       endDate: values.period[1].format('YYYY-MM-DD'),
     })
-    form.resetFields()
+    if (created) form.resetFields()
   }
 
   return (

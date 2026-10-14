@@ -1,5 +1,4 @@
-import { IsDateString, IsEnum, IsString, Matches, MaxLength, MinLength } from 'class-validator'
-import { Environment } from '@prisma/client'
+import { IsDateString, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
@@ -9,8 +8,10 @@ export class CreatePhaseDto {
   @MaxLength(200)
   name: string
 
-  @IsEnum(Environment)
-  environment: Environment
+  @IsString()
+  @MinLength(1)
+  @MaxLength(100)
+  environment: string
 
   @IsDateString()
   @Matches(DATE_ONLY, { message: 'startedAt must be a YYYY-MM-DD date' })

@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Environment {
-  test
-  stage
-  production
-}
-
 // Values reported by the automation system.
 enum TestStatus {
   passed
@@ -24,7 +18,7 @@ enum TestStatus {
 model Phase {
   id          Int           @id @default(autoincrement())
   name        String        @db.VarChar(200)
-  environment Environment
+  environment String
   startedAt   DateTime      @db.Date
   endedAt     DateTime      @db.Date
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)

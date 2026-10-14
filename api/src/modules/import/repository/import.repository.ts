@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { Environment, Prisma, TestStatus } from '@prisma/client'
+import { Prisma, TestStatus } from '@prisma/client'
 import { PrismaService } from '../../../common/database/prisma.service'
 
 export interface LegacyPhase {
   id: unknown
   name?: string
-  environment?: Environment
+  environment?: string
   startedAt?: string
   endedAt?: string
 }
@@ -52,7 +52,7 @@ export class ImportRepository {
         const environment = phase?.environment
         const startedAt = new Date(`${phase?.startedAt}T00:00:00.000Z`)
         const endedAt = new Date(`${phase?.endedAt}T00:00:00.000Z`)
-        if (!phase?.name || !environment || !Object.values(Environment).includes(environment) || Number.isNaN(startedAt.valueOf()) || Number.isNaN(endedAt.valueOf()) || endedAt < startedAt) throw new BadRequestException('Invalid legacy phase')
+        if (!phase?.name || typeof environment !== 'string' || !environment.trim() || Number.isNaN(startedAt.valueOf()) || Number.isNaN(endedAt.valueOf()) || endedAt < startedAt) throw new BadRequestException('Invalid legacy phase')
         const existing = await tx.phase.findFirst({ where: { name: phase.name, startedAt } })
         const saved = existing ?? await tx.phase.create({ data: { name: phase.name, environment, startedAt, endedAt } })
         phaseIds.set(phase.id, saved.id)

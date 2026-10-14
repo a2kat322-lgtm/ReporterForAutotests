@@ -38,11 +38,14 @@ export class ReportsService {
   }
 
   async createForPhase(phaseId: number, dto: CreateReportDto) {
-    await this.phasesService.ensureExists(phaseId)
+    const phase = await this.phasesService.findById(phaseId)
     const startDate = parseDateOnly(dto.startDate)
     const endDate = parseDateOnly(dto.endDate)
     if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || endDate < startDate) {
       throw new BadRequestException('End date cannot be before start date')
+    }
+    if (startDate < phase.startedAt || endDate > phase.endedAt) {
+      throw new BadRequestException('Report dates must be within the phase date range')
     }
     return this.reportsRepository.createForPhase(phaseId, dto, startDate, endDate)
   }

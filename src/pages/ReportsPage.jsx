@@ -20,10 +20,16 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
   const reports = useMemo(() => data.reports.filter((item) => item.phaseId === phase.id), [data.reports, phase.id])
 
   const create = async (values) => {
-    await createReport({ ...values, phaseId: phase.id })
-    setModalOpen(false)
-    message.success('Report created')
-    reload()
+    try {
+      await createReport({ ...values, phaseId: phase.id })
+      setModalOpen(false)
+      message.success('Report created')
+      reload()
+      return true
+    } catch (error) {
+      message.error(error.message || 'Failed to create report')
+      return false
+    }
   }
 
   const remove = async (report) => {

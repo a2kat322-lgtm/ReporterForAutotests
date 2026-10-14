@@ -1,4 +1,4 @@
-import { PrismaClient, Environment, Prisma, TestStatus } from '@prisma/client'
+import { PrismaClient, Prisma, TestStatus } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -20,9 +20,9 @@ function run(path: string, status: TestStatus, startDate: string, durationMs: nu
 
 async function main() {
   const phases = [
-    { name: 'Release 2.4.0', environment: Environment.stage, startedAt: new Date('2025-04-18'), endedAt: new Date('2025-04-21') },
-    { name: 'Nightly regression · 17 Apr', environment: Environment.test, startedAt: new Date('2025-04-17'), endedAt: new Date('2025-04-17') },
-    { name: 'Payments hotfix', environment: Environment.production, startedAt: new Date('2025-04-12'), endedAt: new Date('2025-04-13') },
+    { name: 'Release 2.4.0', environment: 'stage', startedAt: new Date('2025-04-18'), endedAt: new Date('2025-04-21') },
+    { name: 'Nightly regression · 17 Apr', environment: 'test', startedAt: new Date('2025-04-17'), endedAt: new Date('2025-04-17') },
+    { name: 'Payments hotfix', environment: 'production', startedAt: new Date('2025-04-12'), endedAt: new Date('2025-04-13') },
   ]
   const ids: number[] = []
   for (const phase of phases) {
