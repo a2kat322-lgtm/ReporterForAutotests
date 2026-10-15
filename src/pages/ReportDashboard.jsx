@@ -90,6 +90,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     </Row>
     <Row gutter={[12, 12]} className="analytics-charts"><Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col><Col xs={24} lg={12}><DurationChart suites={metrics.suites} /></Col></Row>
     <Row gutter={[12, 12]}><Col xs={24} lg={8}><Card title="Tests by owner" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" /></Card></Col><Col xs={24} lg={16}><Card title="Slowest test cases" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'No timing data available' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique errors" className="analytics-card"><Table rowKey="key" columns={errorColumns} dataSource={metrics.errors} pagination={false} size="small" locale={{ emptyText: 'No error messages in failed tests' }} /></Card></Col></Row>
     <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
   </>
 }
