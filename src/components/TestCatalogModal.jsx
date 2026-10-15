@@ -8,6 +8,8 @@ import { getCaseColumns, getSuiteColumns, caseEmptyText, catalogEmptyText, toDto
 
 const { Text, Paragraph } = Typography
 
+const compareCatalogNames = (left, right) => left.localeCompare(right, undefined, { sensitivity: 'base', numeric: true })
+
 export default function TestCatalogModal({ open, onClose, environment }) {
   const [form] = Form.useForm()
   const [catalog, setCatalog] = useState([])
@@ -145,7 +147,14 @@ export default function TestCatalogModal({ open, onClose, environment }) {
       if (!groups.has(suiteName)) groups.set(suiteName, [])
       groups.get(suiteName).push(test)
     }
-    return Array.from(groups, ([suiteName, tests], index) => ({ key: `suite-${index}`, suiteName, tests }))
+    return Array.from(groups, ([suiteName, tests], index) => ({
+      key: `suite-${index}`,
+      suiteName,
+      tests: tests.sort((a, b) => compareCatalogNames(
+        a.defaultCaseName || a.resultPath,
+        b.defaultCaseName || b.resultPath,
+      )),
+    })).sort((a, b) => compareCatalogNames(a.suiteName, b.suiteName))
   }, [catalog])
 
   const toggleSuiteVisibility = async (suite, visible) => {
