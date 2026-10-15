@@ -1,55 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { App, Button, DatePicker, Empty, Form, Modal, Popconfirm, Space, Switch, Table, Tag, Tooltip, Typography, Upload } from 'antd'
-import { DeleteOutlined, FileAddOutlined, ImportOutlined, UploadOutlined } from '@ant-design/icons'
+import { App, Button, Form, Modal, Space, Table, Tooltip, Typography, Upload } from 'antd'
+import { FileAddOutlined, ImportOutlined, UploadOutlined } from '@ant-design/icons'
 import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests, updateAutomatedTestsVisibility } from '../services/dataService'
 import { parseTestsFile } from '../utils/testFileParser'
+import HarvestModal from './HarvestModal'
+import { getCaseColumns, getSuiteColumns, caseEmptyText, catalogEmptyText, toDtoPayload } from './CatalogTableParts'
 
 const { Text, Paragraph } = Typography
-
-const sourceColors = { file: 'blue', harvested: 'green', manual: 'purple' }
-
-// The API upserts by resultPath and forbids non-whitelisted fields, so only
-// DTO fields are sent when toggling the visibility flag.
-function toDtoPayload(test) {
-  const payload = { resultPath: test.resultPath, defaultCaseName: test.defaultCaseName || test.resultPath }
-  for (const field of ['fullResponsibility', 'defaultSuiteName', 'defaultCaseName', 'defaultOwner']) {
-    if (test[field] != null) payload[field] = test[field]
-  }
-  if (Array.isArray(test.tags)) payload.tags = test.tags
-  return payload
-}
-
-const staticColumns = [
-  {
-    title: 'TEST',
-    dataIndex: 'defaultCaseName',
-    render: (caseName, test) => (
-      <div className="catalog-test-cell">
-        <Text strong>{caseName || test.resultPath}</Text>
-        <div><Text type="secondary" className="phase-id">{test.resultPath}</Text></div>
-      </div>
-    ),
-  },
-  { title: 'OWNER', dataIndex: 'defaultOwner', width: 110, ellipsis: true, render: (value) => (value ? <Text type="secondary">{value}</Text> : <Text type="secondary">—</Text>) },
-  {
-    title: 'TAGS',
-    dataIndex: 'tags',
-    width: 140,
-    render: (tags) => (Array.isArray(tags) && tags.length
-      ? <Space size={4} wrap>{tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}</Space>
-      : <Text type="secondary">—</Text>),
-  },
-  {
-    title: 'SOURCE',
-    dataIndex: 'source',
-    width: 90,
-    render: (value) => <Tag color={sourceColors[value] ?? 'default'}>{value}</Tag>,
-  },
-]
-
-const paginationConfig = { pageSize: 10, size: 'small' }
-const emptyText = <Empty description="No tests in this suite" />
-const emptyCatalog = <Empty description="Catalog is empty — import a JSON file or harvest from stored runs" />
 
 export default function TestCatalogModal({ open, onClose }) {
   const [form] = Form.useForm()
@@ -207,62 +164,8 @@ export default function TestCatalogModal({ open, onClose }) {
 
   const suiteIsVisible = (suite) => suite.tests.some((test) => test.visible !== false)
 
-  const caseColumns = [
-    ...staticColumns,
-    {
-      title: <Tooltip title="Off — the test is hidden from reports"><span>SHOW</span></Tooltip>,
-      dataIndex: 'visible',
-      width: 70,
-      align: 'center',
-      render: (visible, test) => (
-        <Switch
-          size="small"
-          checked={visible !== false}
-          checkedChildren="Y"
-          unCheckedChildren="N"
-          loading={togglingId === test.id}
-          onChange={(checked) => toggleVisible(test, checked)}
-          aria-label={`Show ${(test.defaultCaseName || test.resultPath)} in reports`}
-        />
-      ),
-    },
-    {
-      title: '',
-      width: 52,
-      render: (_, test) => (
-        <Popconfirm
-          title="Remove from catalog?"
-          description="Stored run results are kept; the test just stops appearing as 'No run'."
-          okText="Remove"
-          okButtonProps={{ danger: true, loading: deletingId === test.id }}
-          cancelText="Cancel"
-          onConfirm={() => remove(test)}
-        >
-          <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Remove ${(test.defaultCaseName || test.resultPath)}`} />
-        </Popconfirm>
-      ),
-    },
-  ]
-
-  const suiteColumns = [{
-    title: 'SUITE',
-    dataIndex: 'suiteName',
-    render: (suiteName, suite) => (
-      <Space>
-        <Text strong>{suiteName} <Text type="secondary">({suite.tests.length})</Text></Text>
-        <Switch
-          size="small"
-          checked={suiteIsVisible(suite)}
-          checkedChildren="Y"
-          unCheckedChildren="N"
-          loading={bulkUpdating}
-          onClick={(_, event) => event.stopPropagation()}
-          onChange={(visible) => toggleSuiteVisibility(suite, visible)}
-          aria-label={`Show ${suiteName} suite in reports`}
-        />
-      </Space>
-    ),
-  }]
+  const caseColumns = getCaseColumns({ togglingId, deletingId, onToggleVisible: toggleVisible, onRemove: remove })
+  const suiteColumns = getSuiteColumns({ bulkUpdating, suiteIsVisible, onToggleSuiteVisibility: toggleSuiteVisibility })
 
   return (
     <Modal
@@ -288,32 +191,13 @@ export default function TestCatalogModal({ open, onClose }) {
         </Tooltip>
       </Space>
 
-      <Modal
-        title="Harvest tests from runs"
+      <HarvestModal
         open={harvestOpen}
-        onCancel={() => setHarvestOpen(false)}
-        footer={null}
-        destroyOnHidden
-      >
-        <Paragraph type="secondary">Choose the run date range. Distinct test paths found in overlapping runs will be added to the catalog.</Paragraph>
-        <Form form={form} layout="vertical" onFinish={harvest}>
-          <Form.Item
-            name="harvestPeriod"
-            label="Run date range"
-            rules={[{ required: true, message: 'Choose the run date range to harvest' }]}
-          >
-            <DatePicker.RangePicker
-              style={{ width: '100%' }}
-              aria-label="Run date range for harvesting tests"
-              placeholder={['From date', 'To date']}
-            />
-          </Form.Item>
-          <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <Button onClick={() => setHarvestOpen(false)}>Cancel</Button>
-            <Button type="primary" htmlType="submit" icon={<ImportOutlined />} loading={harvesting}>Start harvest</Button>
-          </Space>
-        </Form>
-      </Modal>
+        form={form}
+        onClose={() => setHarvestOpen(false)}
+        onHarvest={harvest}
+        harvesting={harvesting}
+      />
 
       <div className="form-hint" style={{ marginBottom: 12 }}>
         <Text code>.json</Text> file contract: an array of{' '}
@@ -340,32 +224,45 @@ export default function TestCatalogModal({ open, onClose }) {
         </Space>
       ) : null}
 
-      <Table
-        rowKey="key"
-        size="small"
+      <CatalogTable
         loading={loading}
-        columns={suiteColumns}
-        dataSource={groupedCatalog}
-        pagination={false}
-        expandable={{
-          expandedRowRender: (suite) => (
-            <Table
-              className="suite-cases-table"
-              rowKey="id"
-              size="small"
-              columns={caseColumns}
-              dataSource={suite.tests}
-              pagination={false}
-              rowSelection={{
-                selectedRowKeys,
-                onChange: setSelectedRowKeys,
-              }}
-              locale={{ emptyText }}
-            />
-          ),
-        }}
-        locale={{ emptyText: emptyCatalog }}
+        groupedCatalog={groupedCatalog}
+        suiteColumns={suiteColumns}
+        caseColumns={caseColumns}
+        selectedRowKeys={selectedRowKeys}
+        onSelectionChange={setSelectedRowKeys}
       />
     </Modal>
+  )
+}
+
+function CatalogTable({ loading, groupedCatalog, suiteColumns, caseColumns, selectedRowKeys, onSelectionChange }) {
+  return (
+    <Table
+      rowKey="key"
+      size="small"
+      loading={loading}
+      columns={suiteColumns}
+      dataSource={groupedCatalog}
+      pagination={false}
+      expandable={{
+        expandedRowRender: (suite) => (
+          <Table
+            className="suite-cases-table"
+            rowKey="id"
+            size="small"
+            columns={caseColumns}
+            dataSource={suite.tests}
+            pagination={false}
+            rowSelection={{
+              selectedRowKeys,
+              onChange: onSelectionChange,
+            }}
+            locale={{ emptyText: caseEmptyText }}
+          />
+        ),
+      }}
+      locale={{ emptyText: catalogEmptyText }}
+    />
   )
 }

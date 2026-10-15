@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
-import { AutomatedTest, Prisma, Report, TestResult } from '@prisma/client'
+import { Prisma, TestResult } from '@prisma/client'
 import { PhasesService } from '../../phases/service/phases.service'
 import { ResultsRepository } from '../../results/repository/results.repository'
 import { ReportResultRow } from '../../results/dto/run-payload'
@@ -7,16 +7,7 @@ import { TestsRepository } from '../../tests/repository/tests.repository'
 import { CreateReportDto } from '../dto/create-report.dto'
 import { UpdateResultFeedbackDto } from '../dto/update-result-feedback.dto'
 import { ReportsRepository } from '../repository/reports.repository'
-
-const MS_PER_DAY = 86_400_000
-
-function parseDateOnly(value: string): Date {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(Number.NaN)
-  const date = new Date(`${value}T00:00:00.000Z`)
-  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
-    ? date
-    : new Date(Number.NaN)
-}
+import { dayEnd, dayStart, parseDateOnly, toRow } from './report-view.utils'
 
 @Injectable()
 export class ReportsService {
@@ -64,11 +55,6 @@ export class ReportsService {
     return { deleted: true, id }
   }
 
-  /**
-   * The report view: every visible catalog test plus runs overlapping the
-   * report's inclusive date range. Catalog tests without a matching run are
-   * returned with status `no_run`; unregistered runs are included as well.
-   */
   async updateResultFeedback(resultId: bigint, dto: UpdateResultFeedbackDto) {
     const result = await this.resultsRepository.findById(resultId)
     if (!result) throw new NotFoundException('Test result not found')
@@ -81,6 +67,11 @@ export class ReportsService {
     })
   }
 
+  /**
+   * The report view: every visible catalog test plus runs overlapping the
+   * report's inclusive date range. Catalog tests without a matching run are
+   * returned with status `no_run`; unregistered runs are included as well.
+   */
   async findResults(id: bigint): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
     const [catalog, runs] = await Promise.all([
@@ -106,40 +97,5 @@ export class ReportsService {
       if (!catalogPaths.has(run.path)) rows.push(toRow(null, run))
     }
     return rows
-  }
-}
-
-function dayStart(date: Date): Date {
-  const day = new Date(date)
-  day.setUTCHours(0, 0, 0, 0)
-  return day
-}
-
-function dayEnd(date: Date): Date {
-  return new Date(dayStart(date).valueOf() + MS_PER_DAY - 1)
-}
-
-function toRow(test: AutomatedTest | null, run: TestResult | null): ReportResultRow {
-  const tags = (run?.tags ?? test?.tags ?? []) as unknown
-  return {
-    rowKey: run?.id != null ? Number(run.id) : `catalog-${test?.id}`,
-    path: run?.path ?? test?.resultPath ?? '',
-    name: run?.caseName || test?.defaultCaseName || run?.path || 'Unknown test',
-    suiteName: run?.suiteName ?? test?.defaultSuiteName ?? null,
-    caseName: run?.caseName ?? test?.defaultCaseName ?? null,
-    owner: run?.owner ?? test?.defaultOwner ?? null,
-    circuit: run?.circuit ?? null,
-    message: run?.message ?? null,
-    failureReason: run?.failureReason ?? null,
-    failureComment: run?.failureComment ?? null,
-    status: run?.status ?? 'no_run',
-    startDate: run?.startDate ?? null,
-    endDate: run?.endDate ?? null,
-    durationMs: run ? Math.max(0, run.endDate.valueOf() - run.startDate.valueOf()) : null,
-    tags: Array.isArray(tags) ? tags.map(String) : [],
-    inCatalog: Boolean(test),
-    catalogId: test?.id == null ? null : Number(test.id),
-    fullResponsibility: test?.fullResponsibility ?? null,
-    resultId: run?.id == null ? null : Number(run.id),
   }
 }
