@@ -63,6 +63,8 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
         const comment = test.failureComment?.trim() || ''
         if (reason) {
           reasons.set(reason, (reasons.get(reason) || 0) + 1)
+        } else {
+          reasons.set('(null)', (reasons.get('(null)') || 0) + 1)
         }
         if (reason || comment) {
           const key = `${reason}\u0000${comment}`
@@ -98,7 +100,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     : {}
   const errorColumns = [{ title: 'ERROR MESSAGE', dataIndex: 'message', render: (message) => <Text>{message}</Text> }, { title: 'COUNT', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> }]
   const reasonColumns = [
-    { title: 'ANALYSIS RESULT', dataIndex: 'reason', render: (reason) => <Text>{reason}</Text> },
+    { title: 'ANALYSIS RESULT', dataIndex: 'reason', render: (reason) => reason === '(null)' ? <Text type="secondary">null (not specified)</Text> : <Text>{reason}</Text> },
     { title: 'COUNT / %', key: 'countPercent', align: 'right', width: 160, render: (_, row) => {
       const percent = metrics.reasonTotal ? Math.round(row.count / metrics.reasonTotal * 100) : 0
       return <Tag color="red">{row.count} · {percent}%</Tag>
