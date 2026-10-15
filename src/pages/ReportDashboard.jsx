@@ -49,7 +49,10 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
       suite.count += 1
       groups.set(suiteName, suite)
       const owner = test.owner || 'Unassigned'
-      owners.set(owner, (owners.get(owner) || 0) + 1)
+      const ownerStats = owners.get(owner) || { owner, counts: Object.fromEntries(statuses.map(({ key }) => [key, 0])), total: 0 }
+      ownerStats.counts[test.status] = (ownerStats.counts[test.status] || 0) + 1
+      ownerStats.total += 1
+      owners.set(owner, ownerStats)
       if (['failed', 'broken'].includes(test.status)) {
         if (test.message?.trim()) {
           const errorMessage = test.message.trim()
@@ -65,10 +68,26 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
         }
       }
     }
-    return { counts, total: results.length, duration, timed, suites: [...groups.values()].sort((a, b) => b.duration - a.duration), owners: [...owners].map(([owner, count]) => ({ owner, count })).sort((a, b) => b.count - a.count), errors: [...errors].map(([message, count]) => ({ key: message, message, count })).sort((a, b) => b.count - a.count || a.message.localeCompare(b.message)), failureFeedback: [...failureFeedback.values()].map((item, index) => ({ ...item, key: `${item.reason}-${item.comment}-${index}` })).sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason) || a.comment.localeCompare(b.comment)) }
+    return { counts, total: results.length, duration, timed, suites: [...groups.values()].sort((a, b) => b.duration - a.duration), owners: [...owners.values()].sort((a, b) => b.total - a.total), errors: [...errors].map(([message, count]) => ({ key: message, message, count })).sort((a, b) => b.count - a.count || a.message.localeCompare(b.message)), failureFeedback: [...failureFeedback.values()].map((item, index) => ({ ...item, key: `${item.reason}-${item.comment}-${index}` })).sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason) || a.comment.localeCompare(b.comment)) }
   }, [results])
   const passedRate = metrics.total ? Math.round(metrics.counts.passed / metrics.total * 100) : 0
-  const ownerColumns = [{ title: 'OWNER', dataIndex: 'owner', render: (owner) => owner === 'Unassigned' ? <Text type="secondary">{owner}</Text> : owner }, { title: 'TESTS', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag>{count}</Tag> }]
+  const ownerColumns = [
+    { title: 'OWNER', dataIndex: 'owner', render: (owner) => owner === 'Unassigned' ? <Text type="secondary">{owner}</Text> : owner },
+    ...statuses.map(({ key, label, color }) => ({
+      title: label.toUpperCase(),
+      key,
+      align: 'center',
+      width: 110,
+      render: (_, row) => {
+        const count = row.counts[key] || 0
+        const percent = row.total ? Math.round(count / row.total * 100) : 0
+        return count
+          ? <Tag style={{ marginInlineEnd: 0 }} color={key === 'passed' ? 'green' : key === 'failed' ? 'red' : key === 'broken' ? 'orange' : key === 'skipped' ? 'default' : 'default'}>{count} · {percent}%</Tag>
+          : <Text type="secondary">—</Text>
+      },
+    })),
+    { title: 'TOTAL', dataIndex: 'total', width: 90, align: 'right', render: (total) => <Tag>{total}</Tag> },
+  ]
   const errorColumns = [{ title: 'ERROR MESSAGE', dataIndex: 'message', render: (message) => <Text>{message}</Text> }, { title: 'COUNT', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> }]
   const feedbackColumns = [
     { title: 'FAILURE REASON', dataIndex: 'reason', width: 220, render: (reason) => reason || <Text type="secondary">Not specified</Text> },
@@ -89,7 +108,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
       <Col xs={24} sm={12} xl={6}><Metric label="Execution time" value={formatDuration(metrics.duration)} note={metrics.timed ? `Average ${formatDuration(metrics.duration / metrics.timed)}` : 'No timing data'} /></Col>
     </Row>
     <Row gutter={[12, 12]} className="analytics-charts"><Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col><Col xs={24} lg={12}><DurationChart suites={metrics.suites} /></Col></Row>
-    <Row gutter={[12, 12]}><Col xs={24} lg={8}><Card title="Tests by owner" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" /></Card></Col><Col xs={24} lg={16}><Card title="Slowest test cases" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'No timing data available' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]}><Col xs={24} lg={14}><Card title="Tests by owner" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" scroll={{ x: true }} /></Card></Col><Col xs={24} lg={10}><Card title="Slowest test cases" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'No timing data available' }} /></Card></Col></Row>
     <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique errors" className="analytics-card"><Table rowKey="key" columns={errorColumns} dataSource={metrics.errors} pagination={false} size="small" locale={{ emptyText: 'No error messages in failed tests' }} /></Card></Col></Row>
     <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
   </>
