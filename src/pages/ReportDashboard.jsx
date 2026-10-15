@@ -50,11 +50,13 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
       suite.count += 1
       groups.set(suiteName, suite)
       const owner = test.owner || 'Unassigned'
-      const ownerStats = owners.get(owner) || { owner, counts: Object.fromEntries(statuses.map(({ key }) => [key, 0])), total: 0 }
+      const ownerStats = owners.get(owner) || { owner, counts: Object.fromEntries(statuses.map(({ key }) => [key, 0])), total: 0, failed: 0, needsAnalysis: 0 }
       ownerStats.counts[test.status] = (ownerStats.counts[test.status] || 0) + 1
       ownerStats.total += 1
       owners.set(owner, ownerStats)
       if (['failed', 'broken'].includes(test.status)) {
+        ownerStats.failed += 1
+        if (!test.failureReason?.trim()) ownerStats.needsAnalysis += 1
         if (test.message?.trim()) {
           const errorMessage = test.message.trim()
           errors.set(errorMessage, (errors.get(errorMessage) || 0) + 1)
@@ -106,6 +108,14 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
       return <Tag color="red">{row.count} · {percent}%</Tag>
     } },
   ]
+  const needsAnalysis = metrics.owners.filter((row) => row.needsAnalysis > 0).map((row) => ({ ...row, key: row.owner }))
+  const needsAnalysisColumns = [
+    { title: 'OWNER', dataIndex: 'owner', width: ownerColWidth, render: (owner) => owner === 'Unassigned' ? <Text type="secondary">{owner}</Text> : owner },
+    { title: 'NEEDS ANALYSIS', key: 'needsAnalysis', align: 'right', width: 160, render: (_, row) => {
+      const percent = row.failed ? Math.round(row.needsAnalysis / row.failed * 100) : 0
+      return <Tag color="orange">{row.needsAnalysis} · {percent}%</Tag>
+    } },
+  ]
   const feedbackColumns = [
     { title: 'FAILURE REASON', dataIndex: 'reason', width: 220, render: (reason) => reason || <Text type="secondary">Not specified</Text> },
     { title: 'COMMENT', dataIndex: 'comment', render: (comment) => comment || <Text type="secondary">No comment</Text> },
@@ -127,6 +137,6 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     <Row gutter={[12, 12]} className="analytics-charts"><Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col><Col xs={24} lg={12}><DurationChart suites={metrics.suites} /></Col></Row>
     <Row gutter={[12, 12]}><Col xs={24} lg={14}><Card title="Tests by owner" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" {...tableProps} /></Card></Col><Col xs={24} lg={10}><Card title="Slowest test cases" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'No timing data available' }} /></Card></Col></Row>
     <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique errors" className="analytics-card"><Table rowKey="key" columns={errorColumns} dataSource={metrics.errors} pagination={false} size="small" locale={{ emptyText: 'No error messages in failed tests' }} /></Card></Col></Row>
-    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24} lg={8}><Card title="Analysis results" className="analytics-card"><Table rowKey="key" columns={reasonColumns} dataSource={metrics.reasons} pagination={false} size="small" locale={{ emptyText: 'No analysis results in failed tests' }} /></Card></Col><Col xs={24} lg={16}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24} lg={8}><Card title="Analysis results" className="analytics-card"><Table rowKey="key" columns={reasonColumns} dataSource={metrics.reasons} pagination={false} size="small" locale={{ emptyText: 'No analysis results in failed tests' }} /></Card></Col><Col xs={24} lg={8}><Card title="Needs analysis" className="analytics-card"><Table rowKey="key" columns={needsAnalysisColumns} dataSource={needsAnalysis} pagination={false} size="small" locale={{ emptyText: 'All failed tests are analyzed' }} /></Card></Col><Col xs={24} lg={8}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
   </>
 }
