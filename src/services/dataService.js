@@ -52,8 +52,11 @@ export async function updateResultFeedback(resultId, values) {
   return request(`/reports/results/${resultId}/feedback`, { method: 'PATCH', body: JSON.stringify(values) })
 }
 
-export async function getAutomatedTests() {
-  return request('/tests')
+export async function getAutomatedTests(environment) {
+  const params = new URLSearchParams()
+  if (environment) params.set('environment', environment)
+  const query = params.toString()
+  return request(`/tests${query ? `?${query}` : ''}`)
 }
 
 export async function createAutomatedTest(values) {
@@ -72,8 +75,9 @@ export async function deleteAutomatedTest(testId) {
   return request(`/tests/${testId}`, { method: 'DELETE' })
 }
 
-export async function harvestAutomatedTests(startDate, endDate) {
+export async function harvestAutomatedTests(startDate, endDate, environment) {
   const params = new URLSearchParams({ startDate, endDate })
+  if (environment) params.set('environment', environment)
   return request(`/tests/harvest?${params}`, { method: 'POST' })
 }
 

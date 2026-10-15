@@ -8,7 +8,7 @@ import { getCaseColumns, getSuiteColumns, caseEmptyText, catalogEmptyText, toDto
 
 const { Text, Paragraph } = Typography
 
-export default function TestCatalogModal({ open, onClose }) {
+export default function TestCatalogModal({ open, onClose, environment }) {
   const [form] = Form.useForm()
   const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(false)
@@ -25,13 +25,13 @@ export default function TestCatalogModal({ open, onClose }) {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      setCatalog(await getAutomatedTests())
+      setCatalog(await getAutomatedTests(environment))
     } catch (error) {
       message.error(error.message || 'Failed to load test catalog')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [environment])
 
   useEffect(() => {
     if (open) refresh()
@@ -52,7 +52,7 @@ export default function TestCatalogModal({ open, onClose }) {
     const [startDate, endDate] = period.harvestPeriod
     setHarvesting(true)
     try {
-      const result = await harvestAutomatedTests(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'))
+      const result = await harvestAutomatedTests(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'), environment)
       message.success(`Harvested from runs: ${result.created} added, ${result.skipped} already in catalog`)
       setHarvestOpen(false)
       form.resetFields(['harvestPeriod'])
@@ -179,7 +179,9 @@ export default function TestCatalogModal({ open, onClose }) {
       <Paragraph type="secondary">
         Catalog tests appear in every report with status <Text code>No run</Text> until the automation
         posts a run for their <Text code>resultPath</Text> via <Text code>POST /api/results</Text>.
-        Runs are matched to reports by date window, not by an explicit link.
+        Runs are matched to reports by date window and by the phase environment: only tests whose
+        runs were posted with a matching <Text code>Circuit</Text> (<Text code>{environment}</Text>)
+        are shown here and in this phase's reports.
       </Paragraph>
 
       <Space style={{ marginBottom: 12 }} wrap>
@@ -194,6 +196,7 @@ export default function TestCatalogModal({ open, onClose }) {
       <HarvestModal
         open={harvestOpen}
         form={form}
+        environment={environment}
         onClose={() => setHarvestOpen(false)}
         onHarvest={harvest}
         harvesting={harvesting}
@@ -237,6 +240,8 @@ export default function TestCatalogModal({ open, onClose }) {
 }
 
 function CatalogTable({ loading, groupedCatalog, suiteColumns, caseColumns, selectedRowKeys, onSelectionChange }) {
+  const [expandedKeys, setExpandedKeys] = useState([])
+
   return (
     <Table
       rowKey="key"
@@ -245,7 +250,20 @@ function CatalogTable({ loading, groupedCatalog, suiteColumns, caseColumns, sele
       columns={suiteColumns}
       dataSource={groupedCatalog}
       pagination={false}
+      onRow={(suite) => ({
+        // Toggle from anywhere in the row except the built-in expand control
+        // (it toggles itself) and interactive children (the visibility switch).
+        onClick: (event) => {
+          if (event.target.closest('.ant-table-row-expand-icon')) return
+          setExpandedKeys((keys) => keys.includes(suite.key)
+            ? keys.filter((key) => key !== suite.key)
+            : [...keys, suite.key])
+        },
+        style: { cursor: 'pointer' },
+      })}
       expandable={{
+        expandedRowKeys: expandedKeys,
+        onExpandedRowsChange: setExpandedKeys,
         expandedRowRender: (suite) => (
           <Table
             className="suite-cases-table"

@@ -11,13 +11,38 @@ export class TestsRepository {
     return this.prisma.automatedTest.findMany({ orderBy: { createdAt: 'asc' } })
   }
 
+  /** Catalog entries are scoped by environments explicitly assigned during Harvest. */
+  findForEnvironment(environment: string) {
+    return this.prisma.automatedTest.findMany({
+      where: { environments: { has: environment } },
+      orderBy: { createdAt: 'asc' },
+    })
+  }
+
+  /** Add an environment to an existing path only after an explicit Harvest. */
+  async addEnvironment(resultPath: string, environment: string) {
+    const test = await this.prisma.automatedTest.findUnique({ where: { resultPath }, select: { environments: true } })
+    if (!test) return false
+    if (test.environments.some((item) => item.toLocaleLowerCase() === environment.toLocaleLowerCase())) return false
+    await this.prisma.automatedTest.update({
+      where: { resultPath },
+      data: { environments: { push: environment } },
+    })
+    return true
+  }
+
   findByResultPath(resultPath: string) {
     return this.prisma.automatedTest.findUnique({ where: { resultPath } })
   }
 
-  create(dto: CreateAutomatedTestDto, source: string) {
+  create(dto: CreateAutomatedTestDto, source: string, environment?: string) {
     return this.prisma.automatedTest.create({
-      data: { ...dto, tags: (dto.tags ?? []) as unknown as Prisma.InputJsonValue, source },
+      data: {
+        ...dto,
+        environments: environment ? [environment] : [],
+        tags: (dto.tags ?? []) as unknown as Prisma.InputJsonValue,
+        source,
+      },
     })
   }
 

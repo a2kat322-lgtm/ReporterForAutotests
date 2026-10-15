@@ -24,6 +24,17 @@ export class TestsService {
     return this.testsRepository.findAll()
   }
 
+  /**
+   * Catalog scoped to one environment (circuit): a test belongs to the phase's
+   * environment when at least one of its runs was posted with a matching circuit.
+   * Blank environment falls back to the full catalog.
+   */
+  async findForEnvironment(environment?: string) {
+    const normalized = environment?.trim()
+    if (!normalized) return this.testsRepository.findAll()
+    return this.testsRepository.findForEnvironment(normalized)
+  }
+
   /** Idempotent upsert keyed by resultPath: re-importing a file updates entries. */
   async create(dto: CreateAutomatedTestDto, source = 'manual') {
     const resultPath = dto.resultPath.trim()
@@ -55,10 +66,19 @@ export class TestsService {
       .then(({ count }) => ({ updated: count, total: resultPaths.length }))
   }
 
-  /** Registers catalog entries for distinct paths seen within the selected period. */
-  async harvestFromResults(startDateValue?: string, endDateValue?: string) {
+  /**
+   * Registers catalog entries for distinct paths seen within the selected period.
+   * When `environment` is supplied, only runs whose circuit matches it are considered,
+   * so harvested tests stay scoped to the environment of the phase that opened the catalog.
+   */
+  async harvestFromResults(startDateValue?: string, endDateValue?: string, environment?: string) {
     if (Boolean(startDateValue) !== Boolean(endDateValue)) {
       throw new BadRequestException('Both startDate and endDate are required')
+    }
+
+    const normalizedEnvironment = environment?.trim()
+    if (normalizedEnvironment === '') {
+      throw new BadRequestException('environment must not be blank when provided')
     }
 
     let periodStart: Date
@@ -77,9 +97,14 @@ export class TestsService {
       periodEnd = new Date('9999-12-31T23:59:59.999Z')
     }
 
-    const groups = await this.resultsRepository.findDistinctPaths(periodStart, periodEnd)
+    const groups = await this.resultsRepository.findDistinctPaths(periodStart, periodEnd, normalizedEnvironment)
     const paths = groups.map((group) => group.path)
-    const latestRuns = await this.resultsRepository.findLatestRunPerPath(paths, periodStart, periodEnd)
+    const latestRuns = await this.resultsRepository.findLatestRunPerPath(
+      paths,
+      periodStart,
+      periodEnd,
+      normalizedEnvironment,
+    )
     const latestByPath = new Map<string, (typeof latestRuns)[number]>()
     for (const run of latestRuns) {
       if (!latestByPath.has(run.path)) latestByPath.set(run.path, run)
@@ -89,7 +114,11 @@ export class TestsService {
     let skipped = 0
     for (const path of paths) {
       const existing = await this.testsRepository.findByResultPath(path)
-      if (existing) { skipped += 1; continue }
+      if (existing) {
+        if (normalizedEnvironment) await this.testsRepository.addEnvironment(path, normalizedEnvironment)
+        skipped += 1
+        continue
+      }
       const run = latestByPath.get(path)
       await this.testsRepository.create(
         {
@@ -100,6 +129,7 @@ export class TestsService {
           tags: Array.isArray(run?.tags) ? (run.tags as unknown[]).map(String) : [],
         },
         'harvested',
+        normalizedEnvironment,
       )
       created += 1
     }

@@ -1,9 +1,9 @@
 import { Button, DatePicker, Form, Modal, Space, Typography } from 'antd'
 import { ImportOutlined } from '@ant-design/icons'
 
-const { Paragraph } = Typography
+const { Paragraph, Text } = Typography
 
-export default function HarvestModal({ open, form, onClose, onHarvest, harvesting }) {
+export default function HarvestModal({ open, form, environment, onClose, onHarvest, harvesting }) {
   return (
     <Modal
       title="Harvest tests from runs"
@@ -12,7 +12,10 @@ export default function HarvestModal({ open, form, onClose, onHarvest, harvestin
       footer={null}
       destroyOnHidden
     >
-      <Paragraph type="secondary">Choose the run date range. Distinct test paths found in overlapping runs will be added to the catalog.</Paragraph>
+      <Paragraph type="secondary">
+        Choose the run date range. Distinct test paths found in overlapping runs will be added to the catalog.
+        {environment ? <> Only runs whose <Text code>Circuit</Text> matches this phase's environment (<Text code>{environment}</Text>) are harvested.</> : null}
+      </Paragraph>
       <Form form={form} layout="vertical" onFinish={onHarvest}>
         <Form.Item
           name="harvestPeriod"

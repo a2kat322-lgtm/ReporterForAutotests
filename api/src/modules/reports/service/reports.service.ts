@@ -70,13 +70,16 @@ export class ReportsService {
   /**
    * The report view: every visible catalog test plus runs overlapping the
    * report's inclusive date range. Catalog tests without a matching run are
-   * returned with status `no_run`; unregistered runs are included as well.
+   * returned with status `no_run`; runs appear only for paths explicitly
+   * registered in the catalog. Runs and catalog entries are scoped to the
+   * phase's environment; catalog membership comes from explicit Harvest.
    */
   async findResults(id: bigint): Promise<ReportResultRow[]> {
     const report = await this.findById(id)
+    const environment = report.phase.environment.trim()
     const [catalog, runs] = await Promise.all([
-      this.testsRepository.findAll(),
-      this.resultsRepository.findRunsCoveringWindow(dayStart(report.startDate), dayEnd(report.endDate)),
+      this.testsRepository.findForEnvironment(environment),
+      this.resultsRepository.findRunsCoveringWindow(dayStart(report.startDate), dayEnd(report.endDate), environment),
     ])
 
     const latestRunByPath = new Map<string, TestResult>()
@@ -90,16 +93,11 @@ export class ReportsService {
     }
 
     const rows: ReportResultRow[] = []
-    const catalogPaths = new Set<string>()
     for (const test of catalog) {
-      catalogPaths.add(test.resultPath)
       // Hidden catalog tests are excluded from the report, including their runs.
       if (!test.visible) continue
       const run = latestRunByPath.get(test.resultPath)
       rows.push(toRow(test, run ?? null))
-    }
-    for (const run of latestRunByPath.values()) {
-      if (!catalogPaths.has(run.path)) rows.push(toRow(null, run))
     }
     return rows
   }

@@ -11,9 +11,9 @@ const { Title, Text } = Typography
 const cardBody = { padding: 0 }
 const suiteFallback = 'Unassigned suite'
 
-// GET /reports/:id/results returns the merged view: every catalog test plus
-// the latest run overlapping the report date range (`no_run` otherwise),
-// and unregistered runs tagged with inCatalog = false.
+// GET /reports/:id/results returns visible catalog tests plus the latest run
+// overlapping the report date range (`no_run` otherwise). A run is shown only
+// after its path has been registered in the catalog through Harvest.
 function buildReportView(results, query) {
   const normalized = query.toLowerCase()
   const matched = []

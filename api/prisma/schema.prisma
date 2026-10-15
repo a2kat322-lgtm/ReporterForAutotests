@@ -45,6 +45,8 @@ model Report {
 model AutomatedTest {
   id                 BigInt   @id @default(autoincrement())
   resultPath         String   @unique @db.VarChar(300)
+  // Environments explicitly associated with this test by Harvest.
+  environments       String[] @default([])
   fullResponsibility String?  @db.VarChar(200)
   defaultSuiteName   String?  @db.VarChar(200)
   defaultCaseName    String?  @db.VarChar(300)

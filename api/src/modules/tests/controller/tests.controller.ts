@@ -10,8 +10,11 @@ import { TestsService } from '../service/tests.service'
 export class TestsController {
   constructor(private readonly testsService: TestsService) {}
 
+  /** Full catalog, or — with `?environment=` — only tests whose runs' circuit matches it. */
   @Get()
-  findAll() { return this.testsService.findAll() }
+  findAll(@Query('environment') environment?: string) {
+    return this.testsService.findForEnvironment(environment)
+  }
 
   @Post()
   create(@Body() dto: CreateAutomatedTestDto) { return this.testsService.create(dto) }
@@ -24,12 +27,16 @@ export class TestsController {
   @HttpCode(200)
   updateVisibility(@Body() dto: UpdateVisibilityDto) { return this.testsService.updateVisibility(dto) }
 
-  /** Builds the catalog from distinct paths in stored run results. */
+  /** Builds the catalog from distinct paths in stored run results, optionally scoped to one environment (circuit). */
   @Post('harvest')
   @HttpCode(200)
   @Throttle({ short: { limit: 1, ttl: 10_000 }, long: { limit: 10, ttl: 60_000 } })
-  harvest(@Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
-    return this.testsService.harvestFromResults(startDate, endDate)
+  harvest(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('environment') environment?: string,
+  ) {
+    return this.testsService.harvestFromResults(startDate, endDate, environment)
   }
 
   @Delete(':testId')
