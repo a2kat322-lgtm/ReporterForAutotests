@@ -37,6 +37,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     const groups = new Map()
     const owners = new Map()
     const errors = new Map()
+    const reasons = new Map()
     const failureFeedback = new Map()
     let duration = 0
     let timed = 0
@@ -60,6 +61,9 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
         }
         const reason = test.failureReason?.trim() || ''
         const comment = test.failureComment?.trim() || ''
+        if (reason) {
+          reasons.set(reason, (reasons.get(reason) || 0) + 1)
+        }
         if (reason || comment) {
           const key = `${reason}\u0000${comment}`
           const current = failureFeedback.get(key) || { reason, comment, count: 0 }
@@ -68,7 +72,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
         }
       }
     }
-    return { counts, total: results.length, duration, timed, suites: [...groups.values()].sort((a, b) => b.duration - a.duration), owners: [...owners.values()].sort((a, b) => b.total - a.total), errors: [...errors].map(([message, count]) => ({ key: message, message, count })).sort((a, b) => b.count - a.count || a.message.localeCompare(b.message)), failureFeedback: [...failureFeedback.values()].map((item, index) => ({ ...item, key: `${item.reason}-${item.comment}-${index}` })).sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason) || a.comment.localeCompare(b.comment)) }
+    return { counts, total: results.length, duration, timed, suites: [...groups.values()].sort((a, b) => b.duration - a.duration), owners: [...owners.values()].sort((a, b) => b.total - a.total), errors: [...errors].map(([message, count]) => ({ key: message, message, count })).sort((a, b) => b.count - a.count || a.message.localeCompare(b.message)), reasonTotal: [...reasons.values()].reduce((sum, count) => sum + count, 0), reasons: [...reasons].map(([reason, count]) => ({ key: reason, reason, count })).sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason)), failureFeedback: [...failureFeedback.values()].map((item, index) => ({ ...item, key: `${item.reason}-${item.comment}-${index}` })).sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason) || a.comment.localeCompare(b.comment)) }
   }, [results])
   const passedRate = metrics.total ? Math.round(metrics.counts.passed / metrics.total * 100) : 0
   const ownerColWidth = Math.min(Math.max(8, ...metrics.owners.map((row) => row.owner.length)) * 8 + 48, 360)
@@ -93,6 +97,13 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     ? { tableLayout: 'fixed' }
     : {}
   const errorColumns = [{ title: 'ERROR MESSAGE', dataIndex: 'message', render: (message) => <Text>{message}</Text> }, { title: 'COUNT', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> }]
+  const reasonColumns = [
+    { title: 'ANALYSIS RESULT', dataIndex: 'reason', render: (reason) => <Text>{reason}</Text> },
+    { title: 'COUNT / %', key: 'countPercent', align: 'right', width: 160, render: (_, row) => {
+      const percent = metrics.reasonTotal ? Math.round(row.count / metrics.reasonTotal * 100) : 0
+      return <Tag color="red">{row.count} · {percent}%</Tag>
+    } },
+  ]
   const feedbackColumns = [
     { title: 'FAILURE REASON', dataIndex: 'reason', width: 220, render: (reason) => reason || <Text type="secondary">Not specified</Text> },
     { title: 'COMMENT', dataIndex: 'comment', render: (comment) => comment || <Text type="secondary">No comment</Text> },
@@ -114,6 +125,6 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     <Row gutter={[12, 12]} className="analytics-charts"><Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col><Col xs={24} lg={12}><DurationChart suites={metrics.suites} /></Col></Row>
     <Row gutter={[12, 12]}><Col xs={24} lg={14}><Card title="Tests by owner" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" {...tableProps} /></Card></Col><Col xs={24} lg={10}><Card title="Slowest test cases" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'No timing data available' }} /></Card></Col></Row>
     <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique errors" className="analytics-card"><Table rowKey="key" columns={errorColumns} dataSource={metrics.errors} pagination={false} size="small" locale={{ emptyText: 'No error messages in failed tests' }} /></Card></Col></Row>
-    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24} lg={8}><Card title="Analysis results" className="analytics-card"><Table rowKey="key" columns={reasonColumns} dataSource={metrics.reasons} pagination={false} size="small" locale={{ emptyText: 'No analysis results in failed tests' }} /></Card></Col><Col xs={24} lg={16}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
   </>
 }
