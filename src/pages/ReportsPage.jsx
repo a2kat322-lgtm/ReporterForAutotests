@@ -3,6 +3,7 @@ import { App, Button, Card, Empty, Popconfirm, Space, Table, Typography } from '
 import { ArrowLeftOutlined, DeleteOutlined, ExperimentOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
 import CreateReportModal from '../components/CreateReportModal'
 import TestCatalogModal from '../components/TestCatalogModal'
+import ReportsSummaryChart from '../components/ReportsSummaryChart'
 import PageHeading from '../components/PageHeading'
 import { formatDate } from '../utils/format'
 import { createReport, deleteReport } from '../services/dataService'
@@ -98,6 +99,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         <Text type="secondary"><strong className="toolbar-count">{reports.length}</strong> reports</Text>
         <Button icon={<ReloadOutlined />} onClick={reload}>Refresh</Button>
       </div>
+      <ReportsSummaryChart reports={reports} summaries={data.reportSummaries || []} />
       <Card className="table-card" styles={{ body: cardBody }}>
         <Table
           rowKey="id"

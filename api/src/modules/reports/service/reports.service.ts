@@ -29,6 +29,40 @@ export class ReportsService {
     return this.reportsRepository.findByPhaseId(phaseId)
   }
 
+  async findResultsByPhaseId(phaseId: bigint) {
+    const phase = await this.phasesService.findById(phaseId)
+    const reports = await this.reportsRepository.findByPhaseId(phaseId)
+    if (!reports.length) return []
+
+    const periodStart = dayStart(new Date(Math.min(...reports.map((report) => report.startDate.getTime()))))
+    const periodEnd = dayEnd(new Date(Math.max(...reports.map((report) => report.endDate.getTime()))))
+    const environment = phase.environment.trim()
+    const [catalog, runs] = await Promise.all([
+      this.testsRepository.findForEnvironment(environment),
+      this.resultsRepository.findRunsCoveringWindow(periodStart, periodEnd, environment),
+    ])
+    const visibleCatalog = catalog.filter((test) => test.visible)
+
+    return reports.map((report) => {
+      const start = dayStart(report.startDate)
+      const end = dayEnd(report.endDate)
+      const latestRunByPath = new Map<string, TestResult>()
+      for (const run of runs) {
+        if (run.startDate > end || run.endDate < start) continue
+        const current = latestRunByPath.get(run.path)
+        if (!current || (current.status !== 'passed' && run.status === 'passed')) {
+          latestRunByPath.set(run.path, run)
+        }
+      }
+      const counts = { passed: 0, failed: 0, broken: 0, skipped: 0, no_run: 0 }
+      for (const test of visibleCatalog) {
+        const status = latestRunByPath.get(test.resultPath)?.status ?? 'no_run'
+        if (counts[status] !== undefined) counts[status] += 1
+      }
+      return { reportId: report.id, counts, total: visibleCatalog.length }
+    })
+  }
+
   async createForPhase(phaseId: bigint, dto: CreateReportDto) {
     const phase = await this.phasesService.findById(phaseId)
     const startDate = parseDateOnly(dto.startDate)

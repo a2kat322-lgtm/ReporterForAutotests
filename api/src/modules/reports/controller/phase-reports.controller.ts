@@ -10,6 +10,9 @@ export class PhaseReportsController {
   @Get()
   findByPhase(@Param('phaseId', ParseBigIntPipe) phaseId: bigint) { return this.reportsService.findByPhaseId(phaseId) }
 
+  @Get('results-summary')
+  findResultsSummary(@Param('phaseId', ParseBigIntPipe) phaseId: bigint) { return this.reportsService.findResultsByPhaseId(phaseId) }
+
   @Post()
   create(@Param('phaseId', ParseBigIntPipe) phaseId: bigint, @Body() dto: CreateReportDto) { return this.reportsService.createForPhase(phaseId, dto) }
 }
