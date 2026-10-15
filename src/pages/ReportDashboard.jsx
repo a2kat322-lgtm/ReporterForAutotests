@@ -73,7 +73,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
   const passedRate = metrics.total ? Math.round(metrics.counts.passed / metrics.total * 100) : 0
   const ownerColumns = [
     { title: 'OWNER', dataIndex: 'owner', render: (owner) => owner === 'Unassigned' ? <Text type="secondary">{owner}</Text> : owner },
-    ...statuses.map(({ key, label, color }) => ({
+    ...statuses.filter(({ key }) => (metrics.counts[key] || 0) > 0).map(({ key, label, color }) => ({
       title: label.toUpperCase(),
       key,
       align: 'center',
