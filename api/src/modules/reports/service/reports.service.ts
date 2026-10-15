@@ -81,7 +81,12 @@ export class ReportsService {
 
     const latestRunByPath = new Map<string, TestResult>()
     for (const run of runs) {
-      if (!latestRunByPath.has(run.path)) latestRunByPath.set(run.path, run)
+      const current = latestRunByPath.get(run.path)
+      // runs are sorted by startDate desc; keep the earliest passing run so a
+      // later failure does not override an earlier pass in the report view.
+      if (!current || (current.status !== 'passed' && run.status === 'passed')) {
+        latestRunByPath.set(run.path, run)
+      }
     }
 
     const rows: ReportResultRow[] = []
