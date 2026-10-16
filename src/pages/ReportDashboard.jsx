@@ -9,7 +9,7 @@ const statuses = [
   { key: 'failed', label: 'Failed', color: '#fb7185' },
   { key: 'broken', label: 'Broken', color: '#fbbf24' },
   { key: 'skipped', label: 'Skipped', color: '#9ca0af' },
-  { key: 'no_run', label: 'No run', color: '#525565' },
+  { key: 'no_run', label: 'No run', color: 'var(--result-no-run)' },
 ]
 
 function Metric({ label, value, note, color }) {
@@ -20,7 +20,7 @@ function StatusChart({ counts, total }) {
   return <Card title="Results overview" className="analytics-card"><div className="analytics-status-list">
     {statuses.map(({ key, label, color }) => {
       const count = counts[key] || 0
-      return <div className="analytics-status-row" key={key}><div className="analytics-status-label"><i style={{ background: color }} />{label}</div><Progress percent={total ? Math.round(count / total * 100) : 0} showInfo={false} strokeColor={color} trailColor="#292b38"/><strong>{count}</strong></div>
+      return <div className="analytics-status-row" key={key}><div className="analytics-status-label"><i style={{ background: color }} />{label}</div><Progress percent={total ? Math.round(count / total * 100) : 0} showInfo={false} strokeColor={color} trailColor="var(--result-track)"/><strong>{count}</strong></div>
     })}
   </div></Card>
 }

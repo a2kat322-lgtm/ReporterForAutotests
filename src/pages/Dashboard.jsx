@@ -10,7 +10,7 @@ import ReportsPage from './ReportsPage'
 
 const { Text } = Typography
 
-export default function Dashboard({ route, navigate }) {
+export default function Dashboard({ route, navigate, colorMode, onToggleTheme }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   // Bump on every explicit refresh; route changes refetch via the primitive deps below.
@@ -51,5 +51,5 @@ export default function Dashboard({ route, navigate }) {
   }
 
   const shellRoute = { ...route, phase: phase ?? route.phase, report: report ?? route.report }
-  return <Shell route={shellRoute} navigate={navigate}>{content}</Shell>
+  return <Shell route={shellRoute} navigate={navigate} colorMode={colorMode} onToggleTheme={onToggleTheme}>{content}</Shell>
 }

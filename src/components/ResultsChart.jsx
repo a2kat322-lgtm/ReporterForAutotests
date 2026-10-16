@@ -5,7 +5,7 @@ const resultSegments = [
   { key: 'failed', label: 'Failed', color: '#fb7185' },
   { key: 'broken', label: 'Broken', color: '#fbbf24' },
   { key: 'skipped', label: 'Skipped', color: '#9ca0af' },
-  { key: 'no_run', label: 'No run', color: '#525565' },
+  { key: 'no_run', label: 'No run', color: 'var(--result-no-run)' },
 ]
 
 export default function ResultsChart({ counts, total }) {

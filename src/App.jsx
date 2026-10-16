@@ -17,8 +17,13 @@ function getPath(route) {
   return '/'
 }
 
+function getInitialTheme() {
+  try { return localStorage.getItem('test-insights-theme') === 'light' ? 'light' : 'dark' } catch { return 'dark' }
+}
+
 export default function App() {
   const [route, setRoute] = useState(getRoute)
+  const [colorMode, setColorMode] = useState(getInitialTheme)
   const navigate = useCallback((nextRoute) => {
     window.history.pushState({}, '', getPath(nextRoute))
     setRoute(nextRoute)
@@ -30,10 +35,20 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
 
+  const isLight = colorMode === 'light'
+  useEffect(() => {
+    document.documentElement.dataset.theme = colorMode
+    try { localStorage.setItem('test-insights-theme', colorMode) } catch { /* Storage may be unavailable. */ }
+  }, [colorMode])
+
+  const tokens = isLight
+    ? { colorPrimary: '#7c3aed', colorBgBase: '#f5f6fa', colorBgContainer: '#ffffff', colorBorder: '#e5e7eb', colorText: '#20212a', colorTextSecondary: '#737684', borderRadius: 10, fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }
+    : { colorPrimary: '#8b5cf6', colorBgBase: '#0f1015', colorBgContainer: '#171820', colorBorder: '#292b38', borderRadius: 10, fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }
+
   return (
-    <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#8b5cf6', colorBgBase: '#0f1015', colorBgContainer: '#171820', colorBorder: '#292b38', borderRadius: 10, fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' } }}>
+    <ConfigProvider theme={{ algorithm: isLight ? theme.defaultAlgorithm : theme.darkAlgorithm, token: tokens }}>
       <AntApp>
-        <Dashboard route={route} navigate={navigate} />
+        <Dashboard route={route} navigate={navigate} colorMode={colorMode} onToggleTheme={() => setColorMode((mode) => mode === 'dark' ? 'light' : 'dark')} />
       </AntApp>
     </ConfigProvider>
   )

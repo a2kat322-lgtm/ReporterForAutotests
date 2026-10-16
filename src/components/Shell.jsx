@@ -1,5 +1,5 @@
-import { Avatar, Button, Layout, Space, Typography } from 'antd'
-import { ClockCircleOutlined, CodeOutlined, DownOutlined, FolderOpenOutlined, RightOutlined, RocketOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
+import { Avatar, Button, Layout, Space, Switch, Tooltip, Typography } from 'antd'
+import { BulbOutlined, ClockCircleOutlined, CodeOutlined, DownOutlined, FolderOpenOutlined, MoonOutlined, RightOutlined, RocketOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
@@ -8,7 +8,7 @@ const avatarStyle = { background: '#e8b86b', color: '#2a1d0c' }
 
 const pageTitles = { phases: 'Test phases' }
 
-export default function Shell({ children, route, navigate }) {
+export default function Shell({ children, route, navigate, colorMode, onToggleTheme }) {
   return (
     <Layout className="app-shell">
       <Sider width={232} className="sidebar" breakpoint="lg" collapsedWidth="0">
@@ -29,6 +29,7 @@ export default function Shell({ children, route, navigate }) {
             <span>{pageTitles[route.page] ?? route.phase?.name ?? route.report?.name}</span>
           </div>
           <Space>
+            <Tooltip title={colorMode === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Switch checked={colorMode === 'light'} onChange={onToggleTheme} checkedChildren={<BulbOutlined />} unCheckedChildren={<MoonOutlined />} aria-label="Переключить тему" /></Tooltip>
             <Button type="text" icon={<SearchOutlined />} />
             <Button type="text" icon={<span className="help-icon">?</span>} />
             <Avatar size={30} style={avatarStyle}>AK</Avatar>
