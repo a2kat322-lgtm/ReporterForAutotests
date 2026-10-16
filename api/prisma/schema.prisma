@@ -46,7 +46,7 @@ model AutomatedTest {
   id                 BigInt   @id @default(autoincrement())
   resultPath         String   @unique @db.VarChar(300)
   // Environments explicitly associated with this test by Harvest.
-  environments       String[] @default([])
+  environments       AutomatedTestEnvironment[]
   fullResponsibility String?  @db.VarChar(200)
   defaultSuiteName   String?  @db.VarChar(200)
   defaultCaseName    String?  @db.VarChar(300)
@@ -56,6 +56,16 @@ model AutomatedTest {
   source             String   @default("manual") @db.VarChar(30)
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+}
+
+// Canonical environment names are lowercase; composite PK prevents duplicates.
+model AutomatedTestEnvironment {
+  automatedTestId BigInt
+  environment     String        @db.Text
+  automatedTest   AutomatedTest @relation(fields: [automatedTestId], references: [id], onDelete: Cascade)
+
+  @@id([automatedTestId, environment])
+  @@index([environment])
 }
 
 // One run of an automated test, as posted by the automation system.

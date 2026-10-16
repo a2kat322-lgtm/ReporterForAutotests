@@ -1,5 +1,5 @@
 {
-  "name": "test-insights-api",
+  "name": "reporter-for-autotests-api",
   "version": "1.0.0",
   "private": true,
   "scripts": {

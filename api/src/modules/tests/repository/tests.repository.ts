@@ -14,21 +14,58 @@ export class TestsRepository {
   /** Catalog entries are scoped by environments explicitly assigned during Harvest. */
   findForEnvironment(environment: string) {
     return this.prisma.automatedTest.findMany({
-      where: { environments: { has: environment } },
+      where: { environments: { some: { environment: environment.trim().toLowerCase() } } },
       orderBy: { createdAt: 'asc' },
     })
   }
 
-  /** Add an environment to an existing path only after an explicit Harvest. */
-  async addEnvironment(resultPath: string, environment: string) {
-    const test = await this.prisma.automatedTest.findUnique({ where: { resultPath }, select: { environments: true } })
-    if (!test) return false
-    if (test.environments.some((item) => item.toLocaleLowerCase() === environment.toLocaleLowerCase())) return false
-    await this.prisma.automatedTest.update({
-      where: { resultPath },
-      data: { environments: { push: environment } },
+  /** Batch-register memberships and create missing catalog rows idempotently. */
+  async harvestBatch(entries: Array<{
+    resultPath: string
+    defaultCaseName: string
+    defaultSuiteName?: string
+    defaultOwner?: string
+    tags: string[]
+  }>, environment: string) {
+    if (!entries.length) return { created: 0 }
+    const canonicalEnvironment = environment.trim().toLowerCase()
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.automatedTest.findMany({
+        where: { resultPath: { in: entries.map((entry) => entry.resultPath) } },
+        select: { resultPath: true },
+      })
+      await tx.automatedTest.createMany({
+        data: entries.map((entry) => ({
+          resultPath: entry.resultPath,
+          defaultCaseName: entry.defaultCaseName,
+          defaultSuiteName: entry.defaultSuiteName,
+          defaultOwner: entry.defaultOwner,
+          tags: entry.tags as unknown as Prisma.InputJsonValue,
+          source: 'harvested',
+        })),
+        skipDuplicates: true,
+      })
+      const tests = await tx.automatedTest.findMany({
+        where: { resultPath: { in: entries.map((entry) => entry.resultPath) } },
+        select: { id: true },
+      })
+      await tx.automatedTestEnvironment.createMany({
+        data: tests.map((test) => ({ automatedTestId: test.id, environment: canonicalEnvironment })),
+        skipDuplicates: true,
+      })
+      return { created: Math.max(0, tests.length - before.length) }
     })
-    return true
+  }
+
+  /** Add one membership; lowercase canonicalization makes this case-insensitive. */
+  async addEnvironment(resultPath: string, environment: string) {
+    const test = await this.prisma.automatedTest.findUnique({ where: { resultPath }, select: { id: true } })
+    if (!test) return false
+    const result = await this.prisma.automatedTestEnvironment.createMany({
+      data: [{ automatedTestId: test.id, environment: environment.trim().toLowerCase() }],
+      skipDuplicates: true,
+    })
+    return result.count > 0
   }
 
   findByResultPath(resultPath: string) {
@@ -36,13 +73,20 @@ export class TestsRepository {
   }
 
   create(dto: CreateAutomatedTestDto, source: string, environment?: string) {
-    return this.prisma.automatedTest.create({
-      data: {
-        ...dto,
-        environments: environment ? [environment] : [],
-        tags: (dto.tags ?? []) as unknown as Prisma.InputJsonValue,
-        source,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const test = await tx.automatedTest.create({
+        data: {
+          ...dto,
+          tags: (dto.tags ?? []) as unknown as Prisma.InputJsonValue,
+          source,
+        },
+      })
+      if (environment?.trim()) {
+        await tx.automatedTestEnvironment.create({
+          data: { automatedTestId: test.id, environment: environment.trim().toLowerCase() },
+        })
+      }
+      return test
     })
   }
 

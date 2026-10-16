@@ -18,7 +18,7 @@ function getPath(route) {
 }
 
 function getInitialTheme() {
-  try { return localStorage.getItem('test-insights-theme') === 'light' ? 'light' : 'dark' } catch { return 'dark' }
+  try { return localStorage.getItem('reporter-for-autotests-theme') === 'light' ? 'light' : 'dark' } catch { return 'dark' }
 }
 
 export default function App() {
@@ -38,7 +38,7 @@ export default function App() {
   const isLight = colorMode === 'light'
   useEffect(() => {
     document.documentElement.dataset.theme = colorMode
-    try { localStorage.setItem('test-insights-theme', colorMode) } catch { /* Storage may be unavailable. */ }
+    try { localStorage.setItem('reporter-for-autotests-theme', colorMode) } catch { /* Storage may be unavailable. */ }
   }, [colorMode])
 
   const tokens = isLight

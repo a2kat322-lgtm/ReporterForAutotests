@@ -1,4 +1,4 @@
-# Test Insights
+# Reporter for autotests
 
 React + Vite frontend with a NestJS REST API, Prisma ORM, PostgreSQL, and versioned Prisma migrations.
 

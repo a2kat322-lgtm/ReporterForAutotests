@@ -1,0 +1,8 @@
+<svg width="232" height="76" viewBox="0 0 232 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="chart" x1="15" y1="28" x2="65" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#fb7185"/><stop offset=".5" stop-color="#fbbf24"/><stop offset="1" stop-color="#34d399"/></linearGradient><linearGradient id="mark" x1="0" y1="3" x2="70" y2="73" gradientUnits="userSpaceOnUse"><stop stop-color="#252638"/><stop offset="1" stop-color="#171820"/></linearGradient></defs>
+  <path d="M58 3H12C5.37258 3 0 8.37258 0 15V61C0 67.6274 5.37258 73 12 73H58C64.6274 73 70 67.6274 70 61V15C70 8.37258 64.6274 3 58 3Z" fill="url(#mark)" stroke="#343548"/>
+  <path d="M15 58L25 38L35 48L45 28L55 43" stroke-width="3" stroke-linecap="round" stroke="url(#chart)"/>
+  <circle cx="15" cy="58" r="3" fill="#fb7185"/><circle cx="25" cy="38" r="3" fill="#fbbf24"/><circle cx="35" cy="48" r="3" fill="#fbbf24"/><circle cx="45" cy="28" r="3" fill="#34d399"/><circle cx="55" cy="43" r="3" fill="#34d399"/>
+  <path d="M63 13H47C45.8954 13 45 13.8954 45 15V26C45 27.1046 45.8954 28 47 28H63C64.1046 28 65 27.1046 65 26V15C65 13.8954 64.1046 13 63 13Z" fill="#6366f1"/><path d="M50 18H60M50 22H60" stroke="white" stroke-width="1.5"/>
+  <text x="92" y="37" fill="#f5f3ff" font-family="Manrope, Inter, Arial, sans-serif" font-size="24" font-weight="800" letter-spacing="-.6">Reporter</text><text x="93" y="61" fill="#a5a6bc" font-family="Manrope, Inter, Arial, sans-serif" font-size="16" font-weight="500" letter-spacing=".15">for autotests</text>
+</svg>

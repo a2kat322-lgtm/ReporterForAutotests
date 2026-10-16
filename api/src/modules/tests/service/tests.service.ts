@@ -110,30 +110,18 @@ export class TestsService {
       if (!latestByPath.has(run.path)) latestByPath.set(run.path, run)
     }
 
-    let created = 0
-    let skipped = 0
-    for (const path of paths) {
-      const existing = await this.testsRepository.findByResultPath(path)
-      if (existing) {
-        if (normalizedEnvironment) await this.testsRepository.addEnvironment(path, normalizedEnvironment)
-        skipped += 1
-        continue
-      }
+    const entries = paths.map((path) => {
       const run = latestByPath.get(path)
-      await this.testsRepository.create(
-        {
-          resultPath: path,
-          defaultCaseName: run?.caseName || path,
-          defaultSuiteName: run?.suiteName ?? undefined,
-          defaultOwner: run?.owner ?? undefined,
-          tags: Array.isArray(run?.tags) ? (run.tags as unknown[]).map(String) : [],
-        },
-        'harvested',
-        normalizedEnvironment,
-      )
-      created += 1
-    }
-    return { created, skipped, paths: paths.length }
+      return {
+        resultPath: path,
+        defaultCaseName: run?.caseName || path,
+        defaultSuiteName: run?.suiteName ?? undefined,
+        defaultOwner: run?.owner ?? undefined,
+        tags: Array.isArray(run?.tags) ? (run.tags as unknown[]).map(String) : [],
+      }
+    })
+    const { created } = await this.testsRepository.harvestBatch(entries, normalizedEnvironment ?? '')
+    return { created, skipped: paths.length - created, paths: paths.length }
   }
 
   async delete(id: bigint) {
