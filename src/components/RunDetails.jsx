@@ -38,6 +38,7 @@ export function FailureFeedbackFields({ test, reload, compact = false }) {
         size={compact ? 'small' : 'middle'}
         style={{ minWidth: compact ? 150 : 220 }}
         placeholder="Failure reason"
+        className="failure-reason-select"
         value={test.failureReason || undefined}
         options={failureReasons}
         loading={saving}

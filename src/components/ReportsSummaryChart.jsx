@@ -35,7 +35,18 @@ export default function ReportsSummaryChart({ reports, summaries }) {
                 <div className="reports-summary-bar" title={`${summary.total} total tests`}>
                   {segments.map(({ key, color, label }) => {
                     const value = summary.counts[key] || 0
-                    return value ? <span key={key} style={{ width: `${(value / maxTotal) * 100}%`, backgroundColor: color }} title={`${label}: ${value}`} /> : null
+                    if (!value) return null
+                    const percentage = summary.total ? Math.round((value / summary.total) * 100) : 0
+                    return (
+                      <span
+                        key={key}
+                        className="reports-summary-segment"
+                        style={{ width: `${(value / maxTotal) * 100}%`, backgroundColor: color }}
+                        title={`${label}: ${value} (${percentage}%)`}
+                      >
+                        <span>{value} · {percentage}%</span>
+                      </span>
+                    )
                   })}
                 </div>
                 <Text type="secondary" className="reports-summary-total">{summary.total}</Text>
