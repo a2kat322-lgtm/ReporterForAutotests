@@ -6,12 +6,12 @@ import { formatDate } from '../utils/format'
 const { Text } = Typography
 
 export const failureReasons = [
-  { value: 'Assertion failed', label: 'Assertion failed' },
-  { value: 'Timeout', label: 'Timeout' },
-  { value: 'Environment issue', label: 'Environment issue' },
-  { value: 'Test data issue', label: 'Test data issue' },
-  { value: 'Application error', label: 'Application error' },
-  { value: 'Other', label: 'Other' },
+  { value: 'Сбой проверки', label: 'Сбой проверки' },
+  { value: 'Таймаут', label: 'Таймаут' },
+  { value: 'Проблема окружения', label: 'Проблема окружения' },
+  { value: 'Проблема тестовых данных', label: 'Проблема тестовых данных' },
+  { value: 'Ошибка приложения', label: 'Ошибка приложения' },
+  { value: 'Другое', label: 'Другое' },
 ]
 
 export function FailureFeedbackFields({ test, reload, compact = false }) {
@@ -23,7 +23,7 @@ export function FailureFeedbackFields({ test, reload, compact = false }) {
     setSaving(true)
     try {
       await updateResultFeedback(test.resultId, values)
-      message.success('Failure feedback saved')
+      message.success('Обратная связь по падению сохранена')
       reload()
     } catch (error) {
       message.error(error.message)
@@ -37,7 +37,7 @@ export function FailureFeedbackFields({ test, reload, compact = false }) {
       <Select
         size={compact ? 'small' : 'middle'}
         style={{ minWidth: compact ? 150 : 220 }}
-        placeholder="Failure reason"
+        placeholder="Причина падения"
         className="failure-reason-select"
         value={test.failureReason || undefined}
         options={failureReasons}
@@ -48,7 +48,7 @@ export function FailureFeedbackFields({ test, reload, compact = false }) {
       <Input
         size={compact ? 'small' : 'middle'}
         style={{ minWidth: compact ? 180 : 260 }}
-        placeholder="Failure comment"
+        placeholder="Комментарий к падению"
         maxLength={5000}
         value={comment}
         onChange={(event) => setComment(event.target.value)}
@@ -62,7 +62,7 @@ export function FailureFeedbackFields({ test, reload, compact = false }) {
 
 function FailureFeedback({ test, reload }) {
   return (
-    <Descriptions.Item label="Failure feedback" span={2}>
+    <Descriptions.Item label="Обратная связь по падению" span={2}>
       <FailureFeedbackFields test={test} reload={reload} />
     </Descriptions.Item>
   )
@@ -71,16 +71,16 @@ function FailureFeedback({ test, reload }) {
 export default function RunDetails({ test, reload }) {
   return (
     <Descriptions size="small" column={2} className="run-details">
-      <Descriptions.Item label="Result path"><Text code>{test.path}</Text></Descriptions.Item>
-      <Descriptions.Item label="Owner">{test.owner || '—'}</Descriptions.Item>
+      <Descriptions.Item label="Путь результата"><Text code>{test.path}</Text></Descriptions.Item>
+      <Descriptions.Item label="Владелец">{test.owner || '—'}</Descriptions.Item>
       <Descriptions.Item label="Circuit">{test.circuit || '—'}</Descriptions.Item>
-      <Descriptions.Item label="Responsibility">{test.fullResponsibility || '—'}</Descriptions.Item>
-      <Descriptions.Item label="Window">{formatDate(test.startDate, true)} → {formatDate(test.endDate, true)}</Descriptions.Item>
-      <Descriptions.Item label="Tags">
+      <Descriptions.Item label="Ответственность">{test.fullResponsibility || '—'}</Descriptions.Item>
+      <Descriptions.Item label="Окно">{formatDate(test.startDate, true)} → {formatDate(test.endDate, true)}</Descriptions.Item>
+      <Descriptions.Item label="Теги">
         {test.tags?.length ? <Space size={4} wrap>{test.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}</Space> : '—'}
       </Descriptions.Item>
       {test.message ? (
-        <Descriptions.Item label="Message" span={2}>
+        <Descriptions.Item label="Сообщение" span={2}>
           <Text type={test.status === 'passed' ? 'secondary' : 'danger'}>{test.message}</Text>
         </Descriptions.Item>
       ) : null}

@@ -19,22 +19,22 @@ export default function CreateReportModal({ open, onCancel, onCreate }) {
   }
 
   return (
-    <Modal title="Create report" open={open} onCancel={onCancel} onOk={submit} okText="Create report" destroyOnHidden>
+    <Modal title="Создать отчёт" open={open} onCancel={onCancel} onOk={submit} okText="Создать отчёт" destroyOnHidden>
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label="Report name" rules={[{ required: true, message: 'Enter a report name' }]}>
-          <Input placeholder="e.g. Regression run" />
+        <Form.Item name="name" label="Название отчёта" rules={[{ required: true, message: 'Введите название отчёта' }]}>
+          <Input placeholder="например, Регрессионный прогон" />
         </Form.Item>
         <Form.Item
           name="period"
-          label="Test results period"
+          label="Период результатов тестов"
           rules={[
-            { required: true, message: 'Choose the test results period' },
-            { validator: (_, value) => (value?.[1]?.isBefore(value?.[0], 'day') ? Promise.reject(new Error('End date cannot be before start date')) : Promise.resolve()) },
+            { required: true, message: 'Выберите период результатов тестов' },
+            { validator: (_, value) => (value?.[1]?.isBefore(value?.[0], 'day') ? Promise.reject(new Error('Дата окончания не может быть раньше даты начала')) : Promise.resolve()) },
           ]}
         >
           <DatePicker.RangePicker className="full-width" />
         </Form.Item>
-        <div className="form-hint">Automated test runs overlapping this period will appear in the report.</div>
+        <div className="form-hint">Автоматические запуски тестов, пересекающиеся с этим периодом, попадут в отчёт.</div>
       </Form>
     </Modal>
   )

@@ -17,7 +17,7 @@ function Metric({ label, value, note, color }) {
 }
 
 function StatusChart({ counts, total }) {
-  return <Card title="Results overview" className="analytics-card"><div className="analytics-status-list">
+  return <Card title="Обзор результатов" className="analytics-card"><div className="analytics-status-list">
     {statuses.map(({ key, label, color }) => {
       const count = counts[key] || 0
       return <div className="analytics-status-row" key={key}><div className="analytics-status-label"><i style={{ background: color }} />{label}</div><Progress percent={total ? Math.round(count / total * 100) : 0} showInfo={false} strokeColor={color} trailColor="var(--result-track)"/><strong>{count}</strong></div>
@@ -27,7 +27,7 @@ function StatusChart({ counts, total }) {
 
 function DurationChart({ suites }) {
   const max = Math.max(...suites.map((suite) => suite.duration), 1)
-  return <Card title="Execution time by suite" className="analytics-card"><div className="analytics-bars">{suites.length ? suites.map((suite) => <div className="analytics-bar-row" key={suite.name}><Text ellipsis title={suite.name}>{suite.name}</Text><div className="analytics-bar-track"><span style={{ width: `${Math.max(suite.duration / max * 100, 2)}%` }} /></div><Text type="secondary">{formatDuration(suite.duration)}</Text></div>) : <Text type="secondary">No duration data available.</Text>}</div></Card>
+  return <Card title="Время выполнения по наборам" className="analytics-card"><div className="analytics-bars">{suites.length ? suites.map((suite) => <div className="analytics-bar-row" key={suite.name}><Text ellipsis title={suite.name}>{suite.name}</Text><div className="analytics-bar-track"><span style={{ width: `${Math.max(suite.duration / max * 100, 2)}%` }} /></div><Text type="secondary">{formatDuration(suite.duration)}</Text></div>) : <Text type="secondary">Нет данных о длительности.</Text>}</div></Card>
 }
 
 export default function ReportDashboard({ data, phase, report, navigate }) {
@@ -44,12 +44,12 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     for (const test of results) {
       counts[test.status] = (counts[test.status] || 0) + 1
       if (test.durationMs > 0) { duration += test.durationMs; timed += 1 }
-      const suiteName = test.suiteName || 'Unassigned suite'
+      const suiteName = test.suiteName || 'Без набора'
       const suite = groups.get(suiteName) || { name: suiteName, duration: 0, count: 0 }
       suite.duration += test.durationMs || 0
       suite.count += 1
       groups.set(suiteName, suite)
-      const owner = test.owner || 'Unassigned'
+      const owner = test.owner || 'Не назначен'
       const ownerStats = owners.get(owner) || { owner, counts: Object.fromEntries(statuses.map(({ key }) => [key, 0])), total: 0, failed: 0, needsAnalysis: 0 }
       ownerStats.counts[test.status] = (ownerStats.counts[test.status] || 0) + 1
       ownerStats.total += 1
@@ -81,7 +81,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
   const passedRate = metrics.total ? Math.round(metrics.counts.passed / metrics.total * 100) : 0
   const ownerColWidth = Math.min(Math.max(8, ...metrics.owners.map((row) => row.owner.length)) * 8 + 48, 360)
   const ownerColumns = [
-    { title: 'OWNER', dataIndex: 'owner', width: ownerColWidth, render: (owner) => owner === 'Unassigned' ? <Text type="secondary">{owner}</Text> : owner },
+    { title: 'ВЛАДЕЛЕЦ', dataIndex: 'owner', width: ownerColWidth, render: (owner) => owner === 'Не назначен' ? <Text type="secondary">{owner}</Text> : owner },
     ...statuses.filter(({ key }) => (metrics.counts[key] || 0) > 0).map(({ key, label, color }) => ({
       title: label.toUpperCase(),
       key,
@@ -95,48 +95,48 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
           : <Text type="secondary">—</Text>
       },
     })),
-    { title: 'TOTAL', dataIndex: 'total', width: 80, align: 'right', render: (total) => <Tag>{total}</Tag> },
+    { title: 'ВСЕГО', dataIndex: 'total', width: 80, align: 'right', render: (total) => <Tag>{total}</Tag> },
   ]
   const tableProps = metrics.owners.length
     ? { tableLayout: 'fixed' }
     : {}
-  const errorColumns = [{ title: 'ERROR MESSAGE', dataIndex: 'message', render: (message) => <Text>{message}</Text> }, { title: 'COUNT', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> }]
+  const errorColumns = [{ title: 'СООБЩЕНИЕ ОБ ОШИБКЕ', dataIndex: 'message', render: (message) => <Text>{message}</Text> }, { title: 'КОЛИЧЕСТВО', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> }]
   const reasonColumns = [
-    { title: 'ANALYSIS RESULT', dataIndex: 'reason', render: (reason) => reason === '(null)' ? <Text type="secondary">null (not specified)</Text> : <Text>{reason}</Text> },
-    { title: 'COUNT / %', key: 'countPercent', align: 'right', width: 160, render: (_, row) => {
+    { title: 'РЕЗУЛЬТАТ АНАЛИЗА', dataIndex: 'reason', render: (reason) => reason === '(null)' ? <Text type="secondary">null (не указано)</Text> : <Text>{reason}</Text> },
+    { title: 'КОЛ-ВО / %', key: 'countPercent', align: 'right', width: 160, render: (_, row) => {
       const percent = metrics.reasonTotal ? Math.round(row.count / metrics.reasonTotal * 100) : 0
       return <Tag color="red">{row.count} · {percent}%</Tag>
     } },
   ]
   const needsAnalysis = metrics.owners.filter((row) => row.needsAnalysis > 0).map((row) => ({ ...row, key: row.owner }))
   const needsAnalysisColumns = [
-    { title: 'OWNER', dataIndex: 'owner', width: ownerColWidth, render: (owner) => owner === 'Unassigned' ? <Text type="secondary">{owner}</Text> : owner },
-    { title: 'NEEDS ANALYSIS', key: 'needsAnalysis', align: 'right', width: 160, render: (_, row) => {
+    { title: 'ВЛАДЕЛЕЦ', dataIndex: 'owner', width: ownerColWidth, render: (owner) => owner === 'Не назначен' ? <Text type="secondary">{owner}</Text> : owner },
+    { title: 'НУЖЕН АНАЛИЗ', key: 'needsAnalysis', align: 'right', width: 160, render: (_, row) => {
       const percent = row.failed ? Math.round(row.needsAnalysis / row.failed * 100) : 0
       return <Tag color="orange">{row.needsAnalysis} · {percent}%</Tag>
     } },
   ]
   const feedbackColumns = [
-    { title: 'FAILURE REASON', dataIndex: 'reason', width: 220, render: (reason) => reason || <Text type="secondary">Not specified</Text> },
-    { title: 'COMMENT', dataIndex: 'comment', render: (comment) => comment || <Text type="secondary">No comment</Text> },
-    { title: 'COUNT', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> },
+    { title: 'ПРИЧИНА ПАДЕНИЯ', dataIndex: 'reason', width: 220, render: (reason) => reason || <Text type="secondary">Не указано</Text> },
+    { title: 'КОММЕНТАРИЙ', dataIndex: 'comment', render: (comment) => comment || <Text type="secondary">Нет комментария</Text> },
+    { title: 'КОЛИЧЕСТВО', dataIndex: 'count', width: 100, align: 'right', render: (count) => <Tag color="red">{count}</Tag> },
   ]
   const slowTests = [...results].filter((test) => test.durationMs > 0).sort((a, b) => b.durationMs - a.durationMs).slice(0, 8)
-  const slowColumns = [{ title: 'TEST', dataIndex: 'name', render: (name, test) => <div><Text strong>{name || test.caseName}</Text><div><Text type="secondary">{test.path}</Text></div></div> }, { title: 'STATUS', dataIndex: 'status', width: 110, render: (status) => <Tag color={status === 'passed' ? 'green' : status === 'failed' ? 'red' : 'default'}>{status.replace('_', ' ')}</Tag> }, { title: 'DURATION', dataIndex: 'durationMs', width: 120, render: formatDuration }]
+  const slowColumns = [{ title: 'ТЕСТ', dataIndex: 'name', render: (name, test) => <div><Text strong>{name || test.caseName}</Text><div><Text type="secondary">{test.path}</Text></div></div> }, { title: 'СТАТУС', dataIndex: 'status', width: 110, render: (status) => <Tag color={status === 'passed' ? 'green' : status === 'failed' ? 'red' : 'default'}>{status.replace('_', ' ')}</Tag> }, { title: 'ДЛИТЕЛЬНОСТЬ', dataIndex: 'durationMs', width: 120, render: formatDuration }]
   const showReport = () => navigate({ page: 'report', phaseId: phase.id, reportId: report.id, phase, report })
 
   return <>
-    <div className="back-link" onClick={showReport}><ArrowLeftOutlined /> Back to report</div>
-    <div className="report-header analytics-header"><div><Text className="eyebrow">REPORT ANALYTICS · {phase.name}</Text><Title level={1}>{report.name}</Title><Text type="secondary">A detailed quality and execution summary for this report</Text></div><Button icon={<BarChartOutlined />} onClick={showReport}>View test cases</Button></div>
+    <div className="back-link" onClick={showReport}><ArrowLeftOutlined /> Назад к отчёту</div>
+    <div className="report-header analytics-header"><div><Text className="eyebrow">АНАЛИТИКА ОТЧЁТА · {phase.name}</Text><Title level={1}>{report.name}</Title><Text type="secondary">Подробная сводка качества и выполнения для этого отчёта</Text></div><Button icon={<BarChartOutlined />} onClick={showReport}>Показать тест-кейсы</Button></div>
     <Row gutter={[12, 12]} className="analytics-metrics">
-      <Col xs={24} sm={12} xl={6}><Metric label="Total test cases" value={metrics.total} note={`${metrics.suites.length} suites`} /></Col>
-      <Col xs={24} sm={12} xl={6}><Metric label="Pass rate" value={`${passedRate}%`} note={`${metrics.counts.passed || 0} passed`} color="#4ade80" /></Col>
-      <Col xs={24} sm={12} xl={6}><Metric label="Failed / broken" value={(metrics.counts.failed || 0) + (metrics.counts.broken || 0)} note={`${metrics.counts.failed || 0} failed · ${metrics.counts.broken || 0} broken`} color="#fb7185" /></Col>
-      <Col xs={24} sm={12} xl={6}><Metric label="Execution time" value={formatDuration(metrics.duration)} note={metrics.timed ? `Average ${formatDuration(metrics.duration / metrics.timed)}` : 'No timing data'} /></Col>
+      <Col xs={24} sm={12} xl={6}><Metric label="Всего тест-кейсов" value={metrics.total} note={`${metrics.suites.length} наборов`} /></Col>
+      <Col xs={24} sm={12} xl={6}><Metric label="Процент прохождения" value={`${passedRate}%`} note={`${metrics.counts.passed || 0} пройдено`} color="#4ade80" /></Col>
+      <Col xs={24} sm={12} xl={6}><Metric label="Упавшие / сломанные" value={(metrics.counts.failed || 0) + (metrics.counts.broken || 0)} note={`${metrics.counts.failed || 0} упало · ${metrics.counts.broken || 0} сломано`} color="#fb7185" /></Col>
+      <Col xs={24} sm={12} xl={6}><Metric label="Время выполнения" value={formatDuration(metrics.duration)} note={metrics.timed ? `В среднем ${formatDuration(metrics.duration / metrics.timed)}` : 'Нет данных о времени'} /></Col>
     </Row>
-    <Row gutter={[12, 12]} className="analytics-charts"><Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col><Col xs={24} lg={12}><Card title="Tests by owner" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" {...tableProps} /></Card></Col></Row>
-    <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}><Col xs={24} lg={12}><DurationChart suites={metrics.suites} /></Col><Col xs={24} lg={12}><Card title="Slowest test cases" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'No timing data available' }} /></Card></Col></Row>
-    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Unique errors" className="analytics-card"><Table rowKey="key" columns={errorColumns} dataSource={metrics.errors} pagination={false} size="small" locale={{ emptyText: 'No error messages in failed tests' }} /></Card></Col></Row>
-    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24} lg={8}><Card title="Analysis results" className="analytics-card"><Table rowKey="key" columns={reasonColumns} dataSource={metrics.reasons} pagination={false} size="small" locale={{ emptyText: 'No analysis results in failed tests' }} /></Card></Col><Col xs={24} lg={8}><Card title="Needs analysis" className="analytics-card"><Table rowKey="key" columns={needsAnalysisColumns} dataSource={needsAnalysis} pagination={false} size="small" locale={{ emptyText: 'All failed tests are analyzed' }} /></Card></Col><Col xs={24} lg={8}><Card title="Unique failure feedback" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'No failure reasons or comments in failed tests' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]} className="analytics-charts"><Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col><Col xs={24} lg={12}><Card title="Тесты по владельцам" className="analytics-card"><Table rowKey="owner" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" {...tableProps} /></Card></Col></Row>
+    <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}><Col xs={24} lg={12}><DurationChart suites={metrics.suites} /></Col><Col xs={24} lg={12}><Card title="Самые медленные тест-кейсы" className="analytics-card"><Table rowKey={(test) => test.rowKey || test.key || test.path} columns={slowColumns} dataSource={slowTests} pagination={false} size="small" locale={{ emptyText: 'Нет данных о времени' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24}><Card title="Уникальные ошибки" className="analytics-card"><Table rowKey="key" columns={errorColumns} dataSource={metrics.errors} pagination={false} size="small" locale={{ emptyText: 'Нет сообщений об ошибках в упавших тестах' }} /></Card></Col></Row>
+    <Row gutter={[12, 12]} style={{ marginTop: 12 }}><Col xs={24} lg={8}><Card title="Результаты анализа" className="analytics-card"><Table rowKey="key" columns={reasonColumns} dataSource={metrics.reasons} pagination={false} size="small" locale={{ emptyText: 'Нет результатов анализа в упавших тестах' }} /></Card></Col><Col xs={24} lg={8}><Card title="Требует анализа" className="analytics-card"><Table rowKey="key" columns={needsAnalysisColumns} dataSource={needsAnalysis} pagination={false} size="small" locale={{ emptyText: 'Все упавшие тесты проанализированы' }} /></Card></Col><Col xs={24} lg={8}><Card title="Уникальная обратная связь по падениям" className="analytics-card"><Table rowKey="key" columns={feedbackColumns} dataSource={metrics.failureFeedback} pagination={false} size="small" locale={{ emptyText: 'Нет причин падения или комментариев в упавших тестах' }} /></Card></Col></Row>
   </>
 }

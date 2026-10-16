@@ -29,7 +29,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     try {
       setCatalog(await getAutomatedTests(environment))
     } catch (error) {
-      message.error(error.message || 'Failed to load test catalog')
+      message.error(error.message || 'Не удалось загрузить каталог тестов')
     } finally {
       setLoading(false)
     }
@@ -55,12 +55,12 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     setHarvesting(true)
     try {
       const result = await harvestAutomatedTests(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'), environment)
-      message.success(`Harvested from runs: ${result.created} added, ${result.skipped} already in catalog`)
+      message.success(`Собрано из запусков: добавлено ${result.created}, уже в каталоге ${result.skipped}`)
       setHarvestOpen(false)
       form.resetFields(['harvestPeriod'])
       refresh()
     } catch (error) {
-      message.error(error.message || 'Harvest failed')
+      message.error(error.message || 'Сбор не удался')
     } finally {
       setHarvesting(false)
     }
@@ -72,12 +72,12 @@ export default function TestCatalogModal({ open, onClose, environment }) {
       const text = await file.text()
       const parsed = parseTestsFile(file.name, text)
       if (parsed.tests.length === 0) {
-        message.warning(`No tests found in ${file.name}`)
+        message.warning(`В файле ${file.name} тесты не найдены`)
         return
       }
       setPreview({ ...parsed, filename: file.name })
     } catch (error) {
-      message.error(`Could not read ${file.name}: ${error.message}`)
+      message.error(`Не удалось прочитать ${file.name}: ${error.message}`)
     } finally {
       setImporting(false)
     }
@@ -88,11 +88,11 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     setImporting(true)
     try {
       const result = await createAutomatedTestsBulk(preview.tests)
-      message.success(`Imported ${result.created} tests${result.updated ? `, ${result.updated} updated` : ''}`)
+      message.success(`Импортировано тестов: ${result.created}${result.updated ? `, обновлено ${result.updated}` : ''}`)
       setPreview(null)
       refresh()
     } catch (error) {
-      message.error(error.message || 'Import failed')
+      message.error(error.message || 'Импорт не удался')
     } finally {
       setImporting(false)
     }
@@ -102,10 +102,10 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     setDeletingId(test.id)
     try {
       await deleteAutomatedTest(test.id)
-      message.success(`Test "${(test.defaultCaseName || test.resultPath)}" removed from catalog`)
+      message.success(`Тест «${(test.defaultCaseName || test.resultPath)}» удалён из каталога`)
       refresh()
     } catch (error) {
-      message.error(error.message || 'Failed to delete test')
+      message.error(error.message || 'Не удалось удалить тест')
     } finally {
       setDeletingId(null)
     }
@@ -115,10 +115,10 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     setTogglingId(test.id)
     try {
       await createAutomatedTest({ ...toDtoPayload(test), visible })
-      message.success(visible ? `"${(test.defaultCaseName || test.resultPath)}" shows in reports` : `"${(test.defaultCaseName || test.resultPath)}" hidden from reports`)
+      message.success(visible ? `«${(test.defaultCaseName || test.resultPath)}» отображается в отчётах` : `«${(test.defaultCaseName || test.resultPath)}» скрыт из отчётов`)
       await refresh()
     } catch (error) {
-      message.error(error.message || 'Failed to update visibility')
+      message.error(error.message || 'Не удалось обновить видимость')
     } finally {
       setTogglingId(null)
     }
@@ -130,11 +130,11 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     setBulkUpdating(true)
     try {
       await updateAutomatedTestsVisibility(selectedTests.map((test) => test.resultPath), visible)
-      message.success(`${selectedTests.length} tests ${visible ? 'enabled' : 'hidden'} in reports`)
+      message.success(`${selectedTests.length} тестов ${visible ? 'включено' : 'скрыто'} в отчётах`)
       setSelectedRowKeys([])
       await refresh()
     } catch (error) {
-      message.error(error.message || 'Failed to update visibility')
+      message.error(error.message || 'Не удалось обновить видимость')
     } finally {
       setBulkUpdating(false)
     }
@@ -143,7 +143,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
   const groupedCatalog = useMemo(() => {
     const groups = new Map()
     for (const test of catalog) {
-      const suiteName = test.defaultSuiteName || 'Unassigned suite'
+      const suiteName = test.defaultSuiteName || 'Без набора'
       if (!groups.has(suiteName)) groups.set(suiteName, [])
       groups.get(suiteName).push(test)
     }
@@ -161,7 +161,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     setBulkUpdating(true)
     try {
       await updateAutomatedTestsVisibility(suite.tests.map((test) => test.resultPath), visible)
-      message.success(`${suite.tests.length} tests in ${suite.suiteName} ${visible ? 'enabled' : 'hidden'} in reports`)
+      message.success(`${suite.tests.length} тестов в наборе ${suite.suiteName} ${visible ? 'включено' : 'скрыто'} в отчётах`)
       setSelectedRowKeys((keys) => keys.filter((key) => !suite.tests.some((test) => test.id === key)))
       await refresh()
     } catch (error) {
@@ -178,27 +178,26 @@ export default function TestCatalogModal({ open, onClose, environment }) {
 
   return (
     <Modal
-      title="Automated test catalog"
+      title="Каталог автоматических тестов"
       open={open}
       onCancel={onClose}
-      footer={<Button onClick={onClose}>Close</Button>}
+      footer={<Button onClick={onClose}>Закрыть</Button>}
       width="min(1100px, calc(100vw - 32px))"
       destroyOnHidden
     >
       <Paragraph type="secondary">
-        Catalog tests appear in every report with status <Text code>No run</Text> until the automation
-        posts a run for their <Text code>resultPath</Text> via <Text code>POST /api/results</Text>.
-        Runs are matched to reports by date window and by the phase environment: only tests whose
-        runs were posted with a matching <Text code>Circuit</Text> (<Text code>{environment}</Text>)
-        are shown here and in this phase's reports.
+        Тесты каталога появляются в каждом отчёте со статусом <Text code>No run</Text>, пока автоматизация
+        не отправит запуск для их <Text code>resultPath</Text> через <Text code>POST /api/results</Text>.
+        Запуски сопоставляются с отчётами по окну дат и окружению фазы: здесь и в отчётах этой фазы
+        отображаются только те тесты, чьи запуски были отправлены с совпадающим <Text code>Circuit</Text> (<Text code>{environment}</Text>).
       </Paragraph>
 
       <Space style={{ marginBottom: 12 }} wrap>
         <Upload accept=".json" showUploadList={false} beforeUpload={(file) => { handleFile(file); return false }}>
-          <Button icon={<UploadOutlined />} loading={importing && !preview}>Import JSON</Button>
+          <Button icon={<UploadOutlined />} loading={importing && !preview}>Импортировать JSON</Button>
         </Upload>
-        <Tooltip title="Register distinct test paths from stored runs">
-          <Button icon={<ImportOutlined />} onClick={() => setHarvestOpen(true)}>Harvest from runs</Button>
+        <Tooltip title="Зарегистрировать уникальные пути тестов из сохранённых запусков">
+          <Button icon={<ImportOutlined />} onClick={() => setHarvestOpen(true)}>Собрать из запусков</Button>
         </Tooltip>
       </Space>
 
@@ -212,27 +211,27 @@ export default function TestCatalogModal({ open, onClose, environment }) {
       />
 
       <div className="form-hint" style={{ marginBottom: 12 }}>
-        <Text code>.json</Text> file contract: an array of{' '}
+        Контракт файла <Text code>.json</Text>: массив из{' '}
         <Text code>{'{ resultPath, defaultCaseName, fullResponsibility?, defaultSuiteName?, defaultOwner?, tags?, visible? }'}</Text>.
-        Entries whose <Text code>resultPath</Text> already exists are updated, not duplicated.
-        Tests with the <Text code>SHOW IN REPORT</Text> flag off are hidden from report views.
+        Записи, у которых <Text code>resultPath</Text> уже существует, обновляются, а не дублируются.
+        Тесты с выключенным флагом <Text code>ПОКАЗ В ОТЧЁТЕ</Text> скрыты из просмотра отчётов.
       </div>
 
       <Space style={{ marginBottom: 12 }} wrap>
-        <Text type="secondary">Selected: <strong>{selectedRowKeys.length}</strong></Text>
-        <Button size="small" danger disabled={!selectedRowKeys.length} loading={bulkUpdating} onClick={() => toggleSelectedVisibility(false)}>Hide selected</Button>
-        <Button size="small" disabled={!selectedRowKeys.length} loading={bulkUpdating} onClick={() => toggleSelectedVisibility(true)}>Show selected</Button>
-        {selectedRowKeys.length ? <Button size="small" type="link" onClick={() => setSelectedRowKeys([])}>Clear selection</Button> : null}
+        <Text type="secondary">Выбрано: <strong>{selectedRowKeys.length}</strong></Text>
+        <Button size="small" danger disabled={!selectedRowKeys.length} loading={bulkUpdating} onClick={() => toggleSelectedVisibility(false)}>Скрыть выбранные</Button>
+        <Button size="small" disabled={!selectedRowKeys.length} loading={bulkUpdating} onClick={() => toggleSelectedVisibility(true)}>Показать выбранные</Button>
+        {selectedRowKeys.length ? <Button size="small" type="link" onClick={() => setSelectedRowKeys([])}>Снять выбор</Button> : null}
       </Space>
 
       {preview ? (
         <Space style={{ marginBottom: 12 }} wrap>
           <Text>
-            <FileAddOutlined /> Parsed <strong>{preview.tests.length}</strong> tests from{' '}
-            <Text code>{preview.filename}</Text>{preview.skipped ? ` (${preview.skipped} rows skipped)` : ''}
+            <FileAddOutlined /> Разобрано <strong>{preview.tests.length}</strong> тестов из{' '}
+            <Text code>{preview.filename}</Text>{preview.skipped ? ` (пропущено строк: ${preview.skipped})` : ''}
           </Text>
-          <Button type="primary" loading={importing} onClick={confirmImport}>Import into catalog</Button>
-          <Button onClick={() => setPreview(null)}>Cancel</Button>
+          <Button type="primary" loading={importing} onClick={confirmImport}>Импортировать в каталог</Button>
+          <Button onClick={() => setPreview(null)}>Отмена</Button>
         </Space>
       ) : null}
 

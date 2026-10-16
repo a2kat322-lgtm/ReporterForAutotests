@@ -24,15 +24,15 @@ export default function ReportsSummaryChart({ reports, summaries }) {
   const maxTotal = Math.max(...orderedReports.map((report) => summaryById.get(String(report.id))?.total || 0), 1)
 
   return (
-    <Card title="Results across reports" className="reports-summary-card">
+    <Card title="Результаты по отчётам" className="reports-summary-card">
       {summaries.length ? (
-        <div className="reports-summary-chart" role="img" aria-label="Test result counts for each report">
+        <div className="reports-summary-chart" role="img" aria-label="Количество результатов тестов по каждому отчёту">
           {orderedReports.map((report) => {
             const summary = summaryById.get(String(report.id)) || { counts: {}, total: 0 }
             return (
               <div className="reports-summary-row" key={report.id}>
                 <div className="reports-summary-label" title={report.name}>{report.name}</div>
-                <div className="reports-summary-bar" title={`${summary.total} total tests`}>
+                <div className="reports-summary-bar" title={`${summary.total} тестов всего`}>
                   {segments.map(({ key, color, label }) => {
                     const value = summary.counts[key] || 0
                     if (!value) return null
@@ -54,7 +54,7 @@ export default function ReportsSummaryChart({ reports, summaries }) {
             )
           })}
         </div>
-      ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No result data yet" />}
+      ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Пока нет данных о результатах" />}
       <div className="reports-summary-legend">
         {segments.map(({ label, color }) => <span key={label}><i style={{ backgroundColor: color }} />{label}</span>)}
       </div>

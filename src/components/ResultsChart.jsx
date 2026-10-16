@@ -22,17 +22,17 @@ export default function ResultsChart({ counts, total }) {
   return (
     <Card className="results-chart-card">
       <div className="results-chart">
-        <div className="results-donut" role="img" aria-label={`Test results: ${resultSegments.map(({ label, key }) => `${label} ${counts[key]}`).join(', ')}`}>
+        <div className="results-donut" role="img" aria-label={`Результаты тестов: ${resultSegments.map(({ label, key }) => `${label} ${counts[key]}`).join(', ')}`}>
           <svg viewBox="0 0 120 120" aria-hidden="true">
             <circle className="results-donut-track" cx="60" cy="60" r="48" />
             {segments.map(({ key, color, dash, offset: dashOffset }) => (
               <circle key={key} cx="60" cy="60" r="48" fill="none" stroke={color} strokeWidth="12" strokeDasharray={dash} strokeDashoffset={dashOffset} pathLength="100" />
             ))}
           </svg>
-          <div className="results-donut-center"><strong>{passedRate}%</strong><span>passed</span></div>
+          <div className="results-donut-center"><strong>{passedRate}%</strong><span>пройдено</span></div>
         </div>
         <div className="results-legend">
-          <div className="results-legend-title">Test results <span>{total} total</span></div>
+          <div className="results-legend-title">Результаты тестов <span>всего {total}</span></div>
           {segments.map(({ key, label, color, value }) => (
             <div className="results-legend-row" key={key}>
               <span className="results-legend-label"><i style={{ backgroundColor: color }} />{label}</span>

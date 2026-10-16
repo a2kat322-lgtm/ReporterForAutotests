@@ -11,7 +11,7 @@ import { createReport, deleteReport } from '../services/dataService'
 const { Text } = Typography
 
 const cardBody = { padding: 0 }
-const emptyText = <Empty description="No reports yet" />
+const emptyText = <Empty description="Пока нет отчётов" />
 
 export default function ReportsPage({ data, phase, navigate, reload }) {
   const [modalOpen, setModalOpen] = useState(false)
@@ -24,11 +24,11 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
     try {
       await createReport({ ...values, phaseId: phase.id })
       setModalOpen(false)
-      message.success('Report created')
+      message.success('Отчёт создан')
       reload()
       return true
     } catch (error) {
-      message.error(error.message || 'Failed to create report')
+      message.error(error.message || 'Не удалось создать отчёт')
       return false
     }
   }
@@ -37,10 +37,10 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
     setDeletingId(report.id)
     try {
       await deleteReport(report.id)
-      message.success(`Report "${report.name}" deleted`)
+      message.success(`Отчёт «${report.name}» удалён`)
       reload()
     } catch (error) {
-      message.error(error.message || 'Failed to delete report')
+      message.error(error.message || 'Не удалось удалить отчёт')
     } finally {
       setDeletingId(null)
     }
@@ -49,7 +49,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
   // Action column closes over remove(), so columns are built per component instance.
   const columns = useMemo(() => [
     {
-      title: 'REPORT',
+      title: 'ОТЧЁТ',
       dataIndex: 'name',
       render: (name, report) => (
         <div className="report-cell">
@@ -58,24 +58,24 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         </div>
       ),
     },
-    { title: 'CREATED', dataIndex: 'createdAt', render: (value) => formatDate(value, true) },
-    { title: 'CREATED BY', dataIndex: 'author', render: (value) => <Text type="secondary">{value}</Text> },
+    { title: 'СОЗДАН', dataIndex: 'createdAt', render: (value) => formatDate(value, true) },
+    { title: 'СОЗДАЛ', dataIndex: 'author', render: (value) => <Text type="secondary">{value}</Text> },
     {
       title: '',
       width: 96,
       render: (_, report) => (
         <span onClick={(event) => event.stopPropagation()}>
           <Popconfirm
-            title="Delete this report?"
-            description="Stored automation runs are kept; only the report itself is deleted."
-            okText="Delete"
+            title="Удалить этот отчёт?"
+            description="Сохранённые запуски автоматизации остаются; удаляется только сам отчёт."
+            okText="Удалить"
             okButtonProps={{ danger: true, loading: deletingId === report.id }}
-            cancelText="Cancel"
+            cancelText="Отмена"
             onConfirm={() => remove(report)}
           >
-            <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Delete report ${report.name}`} />
+            <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Удалить отчёт ${report.name}`} />
           </Popconfirm>
-          <Button type="text" icon={<RightOutlined />} aria-label={`Open report ${report.name}`} />
+          <Button type="text" icon={<RightOutlined />} aria-label={`Открыть отчёт ${report.name}`} />
         </span>
       ),
     },
@@ -83,21 +83,21 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
 
   return (
     <>
-      <div className="back-link" onClick={() => navigate({ page: 'phases' })}><ArrowLeftOutlined /> Back to phases</div>
+      <div className="back-link" onClick={() => navigate({ page: 'phases' })}><ArrowLeftOutlined /> Назад к фазам</div>
       <PageHeading
         eyebrow={`${phase.environment.toUpperCase()} · ${formatDate(phase.startedAt)} — ${formatDate(phase.endedAt)}`}
         title={phase.name}
-        description="Reports and automated test runs for this testing phase."
+        description="Отчёты и автоматические запуски тестов для этой тестовой фазы."
         action={
           <Space>
-            <Button size="large" icon={<ExperimentOutlined />} onClick={() => setCatalogOpen(true)}>Test catalog</Button>
-            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>New report</Button>
+            <Button size="large" icon={<ExperimentOutlined />} onClick={() => setCatalogOpen(true)}>Каталог тестов</Button>
+            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>Новый отчёт</Button>
           </Space>
         }
       />
       <div className="toolbar">
-        <Text type="secondary"><strong className="toolbar-count">{reports.length}</strong> reports</Text>
-        <Button icon={<ReloadOutlined />} onClick={reload}>Refresh</Button>
+        <Text type="secondary"><strong className="toolbar-count">{reports.length}</strong> отчётов</Text>
+        <Button icon={<ReloadOutlined />} onClick={reload}>Обновить</Button>
       </div>
       <ReportsSummaryChart reports={reports} summaries={data.reportSummaries || []} />
       <Card className="table-card" styles={{ body: cardBody }}>

@@ -4,26 +4,26 @@ import { BulbOutlined, ClockCircleOutlined, CodeOutlined, DownOutlined, FolderOp
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
 
-const pageTitles = { phases: 'Test phases' }
+const pageTitles = { phases: 'Тестовые фазы' }
 
 export default function Shell({ children, route, navigate, colorMode, onToggleTheme }) {
   return (
     <Layout className="app-shell">
       <Sider width={232} className="sidebar" breakpoint="lg" collapsedWidth="0">
-        <div className="brand"><img src={colorMode === 'light' ? '/reporter-logo-light.svg' : '/reporter-logo.svg'} alt="Reporter for autotests" /></div>
-        <div className="workspace"><div className="workspace-avatar">QA</div><div className="workspace-copy"><Text strong>Quality workspace</Text><Text type="secondary" className="workspace-sub">Acme engineering</Text></div><DownOutlined className="workspace-arrow" /></div>
-        <div className="nav-section-label">Workspace</div>
-        <nav className="nav-list" aria-label="Workspace navigation">
-          <button className={route.page === 'phases' ? 'nav-item active' : 'nav-item'} onClick={() => navigate({ page: 'phases' })}><FolderOpenOutlined /> Test phases</button>
-          <button className="nav-item muted" disabled aria-disabled="true"><CodeOutlined /> Test suites <span className="soon">Soon</span></button>
-          <button className="nav-item muted" disabled aria-disabled="true"><ClockCircleOutlined /> Run history <span className="soon">Soon</span></button>
+        <div className="brand"><img src={colorMode === 'light' ? '/reporter-logo-light.svg' : '/reporter-logo.svg'} alt="Репортер автотестов" /></div>
+        <div className="workspace"><div className="workspace-avatar">QA</div><div className="workspace-copy"><Text strong>Рабочее пространство качества</Text><Text type="secondary" className="workspace-sub">Инженерия Acme</Text></div><DownOutlined className="workspace-arrow" /></div>
+        <div className="nav-section-label">Рабочее пространство</div>
+        <nav className="nav-list" aria-label="Навигация по рабочему пространству">
+          <button className={route.page === 'phases' ? 'nav-item active' : 'nav-item'} onClick={() => navigate({ page: 'phases' })}><FolderOpenOutlined /> Тестовые фазы</button>
+          <button className="nav-item muted" disabled aria-disabled="true"><CodeOutlined /> Тестовые наборы <span className="soon">Скоро</span></button>
+          <button className="nav-item muted" disabled aria-disabled="true"><ClockCircleOutlined /> История запусков <span className="soon">Скоро</span></button>
         </nav>
-        <div className="sidebar-bottom"><button className="nav-item muted" disabled aria-disabled="true"><SettingOutlined /> Settings <span className="soon">Soon</span></button></div>
+        <div className="sidebar-bottom"><button className="nav-item muted" disabled aria-disabled="true"><SettingOutlined /> Настройки <span className="soon">Скоро</span></button></div>
       </Sider>
       <Layout>
         <Header className="topbar">
           <div className="topbar-left">
-            <span className="breadcrumb-muted">Workspace</span>
+            <span className="breadcrumb-muted">Рабочее пространство</span>
             <RightOutlined />
             <span>{pageTitles[route.page] ?? route.phase?.name ?? route.report?.name}</span>
           </div>

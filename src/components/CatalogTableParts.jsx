@@ -18,7 +18,7 @@ export function toDtoPayload(test) {
 
 const staticColumns = [
   {
-    title: 'TEST',
+    title: 'ТЕСТ',
     dataIndex: 'defaultCaseName',
     render: (caseName, test) => (
       <div className="catalog-test-cell">
@@ -27,9 +27,9 @@ const staticColumns = [
       </div>
     ),
   },
-  { title: 'OWNER', dataIndex: 'defaultOwner', width: 110, ellipsis: true, render: (value) => (value ? <Text type="secondary">{value}</Text> : <Text type="secondary">—</Text>) },
+  { title: 'ВЛАДЕЛЕЦ', dataIndex: 'defaultOwner', width: 110, ellipsis: true, render: (value) => (value ? <Text type="secondary">{value}</Text> : <Text type="secondary">—</Text>) },
   {
-    title: 'TAGS',
+    title: 'ТЕГИ',
     dataIndex: 'tags',
     width: 140,
     render: (tags) => (Array.isArray(tags) && tags.length
@@ -37,21 +37,21 @@ const staticColumns = [
       : <Text type="secondary">—</Text>),
   },
   {
-    title: 'SOURCE',
+    title: 'ИСТОЧНИК',
     dataIndex: 'source',
     width: 90,
     render: (value) => <Tag color={sourceColors[value] ?? 'default'}>{value}</Tag>,
   },
 ]
 
-export const caseEmptyText = <Empty description="No tests in this suite" />
-export const catalogEmptyText = <Empty description="Catalog is empty — import a JSON file or harvest from stored runs" />
+export const caseEmptyText = <Empty description="В этом наборе нет тестов" />
+export const catalogEmptyText = <Empty description="Каталог пуст — импортируйте JSON-файл или соберите из сохранённых запусков" />
 
 export function getCaseColumns({ togglingId, deletingId, onToggleVisible, onRemove }) {
   return [
     ...staticColumns,
     {
-      title: <Tooltip title="Off — the test is hidden from reports"><span>SHOW</span></Tooltip>,
+      title: <Tooltip title="Выкл — тест скрыт из отчётов"><span>ПОКАЗ</span></Tooltip>,
       dataIndex: 'visible',
       width: 70,
       align: 'center',
@@ -63,7 +63,7 @@ export function getCaseColumns({ togglingId, deletingId, onToggleVisible, onRemo
           unCheckedChildren="N"
           loading={togglingId === test.id}
           onChange={(checked) => onToggleVisible(test, checked)}
-          aria-label={`Show ${(test.defaultCaseName || test.resultPath)} in reports`}
+          aria-label={`Показывать ${(test.defaultCaseName || test.resultPath)} в отчётах`}
         />
       ),
     },
@@ -72,14 +72,14 @@ export function getCaseColumns({ togglingId, deletingId, onToggleVisible, onRemo
       width: 52,
       render: (_, test) => (
         <Popconfirm
-          title="Remove from catalog?"
-          description="Stored run results are kept; the test just stops appearing as 'No run'."
-          okText="Remove"
+          title="Удалить из каталога?"
+          description="Сохранённые результаты запусков остаются; тест просто перестаёт отображаться как «No run»."
+          okText="Удалить"
           okButtonProps={{ danger: true, loading: deletingId === test.id }}
-          cancelText="Cancel"
+          cancelText="Отмена"
           onConfirm={() => onRemove(test)}
         >
-          <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Remove ${(test.defaultCaseName || test.resultPath)}`} />
+          <Button type="text" danger size="small" icon={<DeleteOutlined />} aria-label={`Удалить ${(test.defaultCaseName || test.resultPath)}`} />
         </Popconfirm>
       ),
     },
@@ -88,7 +88,7 @@ export function getCaseColumns({ togglingId, deletingId, onToggleVisible, onRemo
 
 export function getSuiteColumns({ bulkUpdating, suiteIsVisible, onToggleSuiteVisibility }) {
   return [{
-    title: 'SUITE',
+    title: 'НАБОР',
     dataIndex: 'suiteName',
     render: (suiteName, suite) => (
       <Space>
@@ -101,7 +101,7 @@ export function getSuiteColumns({ bulkUpdating, suiteIsVisible, onToggleSuiteVis
           loading={bulkUpdating}
           onClick={(_, event) => event.stopPropagation()}
           onChange={(visible) => onToggleSuiteVisibility(suite, visible)}
-          aria-label={`Show ${suiteName} suite in reports`}
+          aria-label={`Показывать набор ${suiteName} в отчётах`}
         />
       </Space>
     ),

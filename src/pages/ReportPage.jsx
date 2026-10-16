@@ -9,7 +9,7 @@ import { formatDate } from '../utils/format'
 const { Title, Text } = Typography
 
 const cardBody = { padding: 0 }
-const suiteFallback = 'Unassigned suite'
+const suiteFallback = 'Без набора'
 
 // GET /reports/:id/results returns visible catalog tests plus the latest run
 // overlapping the report date range (`no_run` otherwise). A run is shown only
@@ -54,27 +54,27 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
 
   return (
     <>
-      <div className="back-link" onClick={() => navigate({ page: 'reports', phaseId: phase.id, phase })}><ArrowLeftOutlined /> Back to {phase.name}</div>
+      <div className="back-link" onClick={() => navigate({ page: 'reports', phaseId: phase.id, phase })}><ArrowLeftOutlined /> Назад к {phase.name}</div>
       <div className="report-header">
         <div>
-          <Text className="eyebrow">REPORT · {formatDate(report.startDate)} — {formatDate(report.endDate)}</Text>
+          <Text className="eyebrow">ОТЧЁТ · {formatDate(report.startDate)} — {formatDate(report.endDate)}</Text>
           <Title level={1}>{report.name}</Title>
           <Space>
             <Tag color={envColors[phase.environment]}>{phase.environment}</Tag>
             <Text type="secondary">{phase.name}</Text>
             <span className="dot-separator">·</span>
-            <Text type="secondary">Created by {report.author}</Text>
+            <Text type="secondary">Создал {report.author}</Text>
           </Space>
         </div>
         <Space>
-          <Button icon={<BarChartOutlined />} onClick={() => navigate({ page: 'analytics', phaseId: phase.id, reportId: report.id, phase, report })}>Open analytics</Button>
-          <Button icon={<ReloadOutlined />} onClick={reload}>Refresh results</Button>
+          <Button icon={<BarChartOutlined />} onClick={() => navigate({ page: 'analytics', phaseId: phase.id, reportId: report.id, phase, report })}>Открыть аналитику</Button>
+          <Button icon={<ReloadOutlined />} onClick={reload}>Обновить результаты</Button>
         </Space>
       </div>
       <ResultsChart counts={counts} total={tests.length} />
       <div className="toolbar report-toolbar">
-        <Input prefix={<SearchOutlined />} placeholder="Search tests by name or result path" value={query} onChange={(event) => setQuery(event.target.value)} allowClear />
-        <Text type="secondary">Showing <strong>{tests.length}</strong> cases in <strong>{suites.length}</strong> suites</Text>
+        <Input prefix={<SearchOutlined />} placeholder="Поиск тестов по названию или пути результата" value={query} onChange={(event) => setQuery(event.target.value)} allowClear />
+        <Text type="secondary">Показано <strong>{tests.length}</strong> кейсов в <strong>{suites.length}</strong> наборах</Text>
       </div>
       <Card className="table-card test-table-card" styles={{ body: cardBody }}>
         <SuiteTable suites={suites} reload={reload} />

@@ -11,7 +11,7 @@ import { createPhase, deletePhase } from '../services/dataService'
 const { Text } = Typography
 
 const cardBody = { padding: 0 }
-const emptyText = <Empty description="No test phases yet" />
+const emptyText = <Empty description="Пока нет тестовых фаз" />
 
 export default function PhasesPage({ data, navigate, reload }) {
   const [modalOpen, setModalOpen] = useState(false)
@@ -32,7 +32,7 @@ export default function PhasesPage({ data, navigate, reload }) {
   const create = async (values) => {
     await createPhase(values)
     setModalOpen(false)
-    message.success('Phase created')
+    message.success('Фаза создана')
     reload()
   }
 
@@ -40,10 +40,10 @@ export default function PhasesPage({ data, navigate, reload }) {
     setDeletingId(phase.id)
     try {
       await deletePhase(phase.id)
-      message.success(`Phase "${phase.name}" deleted`)
+      message.success(`Фаза «${phase.name}» удалена`)
       reload()
     } catch (error) {
-      message.error(error.message || 'Failed to delete phase')
+      message.error(error.message || 'Не удалось удалить фазу')
     } finally {
       setDeletingId(null)
     }
@@ -54,14 +54,14 @@ export default function PhasesPage({ data, navigate, reload }) {
     {
       title: (
         <div className="phase-table-heading">
-          <span>PHASE</span>
+          <span>ФАЗА</span>
           <label className="phase-current-filter">
-            <Text type="secondary">Active today</Text>
+            <Text type="secondary">Активна сегодня</Text>
             <Switch
               size="small"
               checked={onlyCurrentPhases}
               onChange={setOnlyCurrentPhases}
-              aria-label="Show only phases active today"
+              aria-label="Показывать только фазы, активные сегодня"
             />
           </label>
         </div>
@@ -75,12 +75,12 @@ export default function PhasesPage({ data, navigate, reload }) {
         </div>
       ),
     },
-    { title: 'ENVIRONMENT', dataIndex: 'environment', render: (value) => <Tag color={envColors[value]}>{value}</Tag> },
+    { title: 'ОКРУЖЕНИЕ', dataIndex: 'environment', render: (value) => <Tag color={envColors[value]}>{value}</Tag> },
     {
-      title: 'TESTING PERIOD',
+      title: 'ПЕРИОД ТЕСТИРОВАНИЯ',
       render: (_, phase) => <Text>{formatDate(phase.startedAt)} <span className="period-arrow">→</span> {formatDate(phase.endedAt)}</Text>,
     },
-    { title: 'RESULTS', render: () => <Text type="secondary">Open phase for reports</Text> },
+    { title: 'РЕЗУЛЬТАТЫ', render: () => <Text type="secondary">Откройте фазу для просмотра отчётов</Text> },
     {
       title: (
         <div className="phase-actions-heading">
@@ -90,7 +90,7 @@ export default function PhasesPage({ data, navigate, reload }) {
             icon={<PlusOutlined />}
             onClick={(event) => { event.stopPropagation(); setModalOpen(true) }}
           >
-            Add phase
+            Добавить фазу
           </Button>
         </div>
       ),
@@ -98,16 +98,16 @@ export default function PhasesPage({ data, navigate, reload }) {
       render: (_, phase) => (
         <span onClick={(event) => event.stopPropagation()}>
           <Popconfirm
-            title="Delete this phase?"
-            description="All reports in this phase will be deleted too. Stored automation runs are kept."
-            okText="Delete"
+            title="Удалить эту фазу?"
+            description="Все отчёты в этой фазе также будут удалены. Сохранённые запуски автоматизации останутся."
+            okText="Удалить"
             okButtonProps={{ danger: true, loading: deletingId === phase.id }}
-            cancelText="Cancel"
+            cancelText="Отмена"
             onConfirm={() => remove(phase)}
           >
-            <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Delete phase ${phase.name}`} />
+            <Button type="text" danger icon={<DeleteOutlined />} aria-label={`Удалить фазу ${phase.name}`} />
           </Popconfirm>
-          <Button type="text" icon={<RightOutlined />} aria-label={`Open phase ${phase.name}`} />
+          <Button type="text" icon={<RightOutlined />} aria-label={`Открыть фазу ${phase.name}`} />
         </span>
       ),
     },
@@ -116,12 +116,12 @@ export default function PhasesPage({ data, navigate, reload }) {
   return (
     <>
       <PageHeading
-        eyebrow="TEST MANAGEMENT"
-        title="Test phases"
-        description="Organize test runs by release, environment, or any testing cycle."
+        eyebrow="УПРАВЛЕНИЕ ТЕСТИРОВАНИЕМ"
+        title="Тестовые фазы"
+        description="Организуйте запуски тестов по релизу, окружению или любому циклу тестирования."
       />
       <div className="toolbar">
-        <Text type="secondary"><strong className="toolbar-count">{visiblePhases.length}</strong> of {data.phases.length} phases</Text>
+        <Text type="secondary"><strong className="toolbar-count">{visiblePhases.length}</strong> из {data.phases.length} фаз</Text>
       </div>
       <Card className="table-card" styles={{ body: cardBody }}>
         <Table

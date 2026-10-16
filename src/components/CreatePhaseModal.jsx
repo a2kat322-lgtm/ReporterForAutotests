@@ -20,20 +20,20 @@ export default function CreatePhaseModal({ open, onCancel, onCreate }) {
   }
 
   return (
-    <Modal title="Create test phase" open={open} onCancel={onCancel} onOk={submit} okText="Create phase" destroyOnHidden>
+    <Modal title="Создать тестовую фазу" open={open} onCancel={onCancel} onOk={submit} okText="Создать фазу" destroyOnHidden>
       <Form form={form} layout="vertical">
-        <Form.Item name="name" label="Phase name" rules={[{ required: true, message: 'Enter a phase name' }]}>
-          <Input placeholder="e.g. Release 2.5.0" />
+        <Form.Item name="name" label="Название фазы" rules={[{ required: true, message: 'Введите название фазы' }]}>
+          <Input placeholder="например, Релиз 2.5.0" />
         </Form.Item>
-        <Form.Item name="environment" label="Environment" rules={[{ required: true, message: 'Enter an environment' }]}>
-          <Input placeholder="e.g. staging" />
+        <Form.Item name="environment" label="Окружение" rules={[{ required: true, message: 'Введите окружение' }]}>
+          <Input placeholder="например, staging" />
         </Form.Item>
         <Form.Item
           name="period"
-          label="Testing period"
+          label="Период тестирования"
           rules={[
-            { required: true, message: 'Choose the testing period' },
-            { validator: (_, value) => (value?.[1]?.isBefore(value?.[0], 'day') ? Promise.reject(new Error('End date cannot be before start date')) : Promise.resolve()) },
+            { required: true, message: 'Выберите период тестирования' },
+            { validator: (_, value) => (value?.[1]?.isBefore(value?.[0], 'day') ? Promise.reject(new Error('Дата окончания не может быть раньше даты начала')) : Promise.resolve()) },
           ]}
         >
           <DatePicker.RangePicker className="full-width" />

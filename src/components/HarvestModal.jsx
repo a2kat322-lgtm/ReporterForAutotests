@@ -6,31 +6,31 @@ const { Paragraph, Text } = Typography
 export default function HarvestModal({ open, form, environment, onClose, onHarvest, harvesting }) {
   return (
     <Modal
-      title="Harvest tests from runs"
+      title="Собрать тесты из запусков"
       open={open}
       onCancel={onClose}
       footer={null}
       destroyOnHidden
     >
       <Paragraph type="secondary">
-        Choose the run date range. Distinct test paths found in overlapping runs will be added to the catalog.
-        {environment ? <> Only runs whose <Text code>Circuit</Text> matches this phase's environment (<Text code>{environment}</Text>) are harvested.</> : null}
+        Выберите диапазон дат запуска. Уникальные пути тестов, найденные в пересекающихся запусках, будут добавлены в каталог.
+        {environment ? <> Собираются только запуски, у которых <Text code>Circuit</Text> совпадает с окружением этой фазы (<Text code>{environment}</Text>).</> : null}
       </Paragraph>
       <Form form={form} layout="vertical" onFinish={onHarvest}>
         <Form.Item
           name="harvestPeriod"
-          label="Run date range"
-          rules={[{ required: true, message: 'Choose the run date range to harvest' }]}
+          label="Диапазон дат запуска"
+          rules={[{ required: true, message: 'Выберите диапазон дат запуска для сбора' }]}
         >
           <DatePicker.RangePicker
             style={{ width: '100%' }}
-            aria-label="Run date range for harvesting tests"
-            placeholder={['From date', 'To date']}
+            aria-label="Диапазон дат запуска для сбора тестов"
+            placeholder={['Дата начала', 'Дата окончания']}
           />
         </Form.Item>
         <Space style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" htmlType="submit" icon={<ImportOutlined />} loading={harvesting}>Start harvest</Button>
+          <Button onClick={onClose}>Отмена</Button>
+          <Button type="primary" htmlType="submit" icon={<ImportOutlined />} loading={harvesting}>Начать сбор</Button>
         </Space>
       </Form>
     </Modal>

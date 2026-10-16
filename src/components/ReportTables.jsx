@@ -8,8 +8,8 @@ import { formatDuration } from '../utils/format'
 
 const { Text } = Typography
 
-const emptyText = <Empty description="No matching tests" />
-const suiteFallback = 'Unassigned suite'
+const emptyText = <Empty description="Нет подходящих тестов" />
+const suiteFallback = 'Без набора'
 
 const statusOrder = ['passed', 'failed', 'broken', 'skipped', 'no_run']
 
@@ -57,29 +57,29 @@ function getDurationMs(test) {
 }
 
 const expandedRowRender = (test, reload) => (test.status === 'no_run'
-  ? <Text type="secondary">No run covers this report date yet.</Text>
+  ? <Text type="secondary">Этот отчёт пока не покрыт ни одним запуском.</Text>
   : <RunDetails test={test} reload={reload} />)
 
 const getCaseColumns = (reload) => [
   {
-    title: 'CASE NAME',
+    title: 'НАЗВАНИЕ КЕЙСА',
     dataIndex: 'caseName',
     render: (caseName, test) => (
       <div className="test-name">
         <span className="test-status-dot" data-status={test.status}></span>
         <div>
           <Text strong>{caseName || test.name}</Text>
-          {!test.inCatalog ? <Tag color="orange" style={{ marginLeft: 8 }}>unregistered</Tag> : null}
+          {!test.inCatalog ? <Tag color="orange" style={{ marginLeft: 8 }}>не зарегистрирован</Tag> : null}
           <div><Text type="secondary" className="phase-id">{test.path}</Text></div>
         </div>
       </div>
     ),
   },
-  { title: 'STATUS', dataIndex: 'status', width: 110, render: (status) => <StatusTag status={status} /> },
-  { title: 'OWNER', dataIndex: 'owner', width: 130, render: (value) => <Text type="secondary">{value || '—'}</Text> },
-  { title: 'DURATION', dataIndex: 'durationMs', width: 110, render: (value, test) => <Text type="secondary">{formatDuration(getDurationMs(test))}</Text> },
+  { title: 'СТАТУС', dataIndex: 'status', width: 110, render: (status) => <StatusTag status={status} /> },
+  { title: 'ВЛАДЕЛЕЦ', dataIndex: 'owner', width: 130, render: (value) => <Text type="secondary">{value || '—'}</Text> },
+  { title: 'ДЛИТЕЛЬНОСТЬ', dataIndex: 'durationMs', width: 110, render: (value, test) => <Text type="secondary">{formatDuration(getDurationMs(test))}</Text> },
   {
-    title: 'FAILURE FEEDBACK',
+    title: 'ОБРАТНАЯ СВЯЗЬ ПО ПАДЕНИЮ',
     width: 390,
     render: (_, test) => (test.status === 'failed' || test.status === 'broken'
       ? <FailureFeedbackFields test={test} reload={reload} compact />
@@ -90,7 +90,7 @@ const getCaseColumns = (reload) => [
 
 const suiteColumns = [
   {
-    title: 'SUITE',
+    title: 'НАБОР',
     dataIndex: 'suiteName',
     render: (suiteName, suite) => (
       <Space size={12} wrap>

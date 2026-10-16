@@ -28,7 +28,7 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme })
     let cancelled = false
     getData({ page, phaseId, reportId })
       .then((loaded) => { if (!cancelled) setData(loaded) })
-      .catch((loadError) => { if (!cancelled) setError(loadError.message || 'Unable to load test data. Please try again.') })
+      .catch((loadError) => { if (!cancelled) setError(loadError.message || 'Не удалось загрузить данные тестирования. Попробуйте ещё раз.') })
     return () => { cancelled = true }
   }, [page, phaseId, reportId, loadToken])
 
@@ -39,15 +39,15 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme })
 
   let content = null
   if (error) {
-    content = <Alert type="error" showIcon message={error} action={<Button onClick={() => { setError(null); reload() }}>Retry</Button>} />
+    content = <Alert type="error" showIcon message={error} action={<Button onClick={() => { setError(null); reload() }}>Повторить</Button>} />
   } else if (data) {
     if (page === 'reports' && phase) content = <ReportsPage data={data} phase={phase} navigate={navigate} reload={reload} />
     else if (page === 'report' && phase && report) content = <ReportPage data={data} phase={phase} report={report} navigate={navigate} reload={reload} />
     else if (page === 'analytics' && phase && report) content = <ReportDashboard data={data} phase={phase} report={report} navigate={navigate} />
-    else if (page !== 'phases' && !phase) content = <Alert type="warning" showIcon message="Phase not found" description="The requested phase may have been removed." action={<Button onClick={() => navigate({ page: 'phases' })}>Back to phases</Button>} />
+    else if (page !== 'phases' && !phase) content = <Alert type="warning" showIcon message="Фаза не найдена" description="Возможно, запрошенная фаза была удалена." action={<Button onClick={() => navigate({ page: 'phases' })}>Назад к фазам</Button>} />
     else content = <PhasesPage data={data} navigate={navigate} reload={reload} />
   } else {
-    content = <div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Loading workspace…</Text></div>
+    content = <div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка рабочего пространства…</Text></div>
   }
 
   const shellRoute = { ...route, phase: phase ?? route.phase, report: report ?? route.report }
