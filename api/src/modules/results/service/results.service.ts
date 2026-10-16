@@ -67,7 +67,7 @@ export class ResultsService {
       caseName: truncate(firstString(body?.caseName), 300),
       status: status as TestStatus,
       owner: truncate(firstString(body?.owner), 120),
-      circuit: truncate(firstString(body?.circuit), 120),
+      circuit: truncate(firstString(body?.circuit)?.toLowerCase() ?? null, 120),
       message: firstString(body?.message),
       startDate,
       endDate,

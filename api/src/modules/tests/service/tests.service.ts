@@ -25,8 +25,8 @@ export class TestsService {
   }
 
   /**
-   * Catalog scoped to one environment (circuit): a test belongs to the phase's
-   * environment when at least one of its runs was posted with a matching circuit.
+   * Catalog scoped to one environment: a test belongs to a phase's environment
+   * when it is explicitly assigned to it via `AutomatedTestEnvironment` (Harvest).
    * Blank environment falls back to the full catalog.
    */
   async findForEnvironment(environment?: string) {

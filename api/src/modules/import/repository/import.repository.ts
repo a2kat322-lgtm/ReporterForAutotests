@@ -54,7 +54,7 @@ export class ImportRepository {
         const endedAt = new Date(`${phase?.endedAt}T00:00:00.000Z`)
         if (!phase?.name || typeof environment !== 'string' || !environment.trim() || Number.isNaN(startedAt.valueOf()) || Number.isNaN(endedAt.valueOf()) || endedAt < startedAt) throw new BadRequestException('Invalid legacy phase')
         const existing = await tx.phase.findFirst({ where: { name: phase.name, startedAt } })
-        const saved = existing ?? await tx.phase.create({ data: { name: phase.name, environment, startedAt, endedAt } })
+        const saved = existing ?? await tx.phase.create({ data: { name: phase.name, environment: environment.trim().toLowerCase(), startedAt, endedAt } })
         phaseIds.set(phase.id, saved.id)
       }
 

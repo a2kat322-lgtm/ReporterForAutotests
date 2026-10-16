@@ -18,10 +18,12 @@ enum TestStatus {
 model Phase {
   id          BigInt        @id @default(autoincrement())
   name        String        @db.VarChar(200)
+  /// Canonical form: lowercase and whitespace-trimmed (enforced by a CHECK constraint).
   environment String
   startedAt   DateTime      @db.Date
   endedAt     DateTime      @db.Date
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
   reports     Report[]
 
   @@index([createdAt])
@@ -34,9 +36,11 @@ model Report {
   startDate DateTime @db.Date
   endDate   DateTime @db.Date
   createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
   author    String   @default("You") @db.VarChar(120)
   phase     Phase    @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
+  @@unique([phaseId, name])
   @@index([phaseId, createdAt])
   @@index([phaseId, startDate, endDate])
 }
@@ -73,11 +77,13 @@ model AutomatedTestEnvironment {
 // [startDate, endDate] window overlaps its inclusive [startDate, endDate] period.
 model TestResult {
   id        BigInt     @id @default(autoincrement())
+  /// Matches `AutomatedTest.resultPath`. Logical join (no FK): uncatalogued runs are allowed.
   path      String     @db.VarChar(300)
   suiteName String?    @db.VarChar(200)
   caseName  String?    @db.VarChar(300)
   status    TestStatus
   owner     String?    @db.VarChar(120)
+  /// Canonical form: lowercase (enforced by a CHECK constraint). Compared against Phase.environment.
   circuit   String?    @db.VarChar(120)
   message        String?
   failureReason  String?    @db.VarChar(120)
@@ -86,7 +92,9 @@ model TestResult {
   endDate   DateTime   @db.Timestamptz(3)
   tags      Json       @default("[]") @db.JsonB
   createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime   @updatedAt @db.Timestamptz(3)
 
   @@index([path, startDate])
   @@index([startDate, endDate])
+  @@index([circuit])
 }

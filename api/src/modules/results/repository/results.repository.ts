@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { Prisma, TestResult } from '@prisma/client'
 import { PrismaService } from '../../../common/database/prisma.service'
 import { NormalizedRun } from '../dto/run-payload'
 
@@ -19,20 +20,24 @@ export class ResultsRepository {
   }
 
   /**
-   * Runs whose [startDate, endDate] window overlaps the inclusive report period.
-   * Overlap condition: startDate <= periodEnd AND endDate >= periodStart.
-   * When `environment` is set, only runs whose circuit matches it (case-insensitive) are returned.
+   * Runs whose [startDate, endDate] window overlaps the inclusive report period,
+   * using an interval-overlap (&&) scan backed by the GiST index on
+   * tstzrange(startDate, endDate). When `environment` is set, only runs whose
+   * canonical (lowercase) circuit matches it are returned.
    */
   findRunsCoveringWindow(periodStart: Date, periodEnd: Date, environment?: string) {
-    return this.prisma.testResult.findMany({
-      where: { startDate: { lte: periodEnd }, endDate: { gte: periodStart }, ...this.circuitFilter(environment) },
-      orderBy: { startDate: 'desc' },
-    })
+    const circuit = environment?.trim().toLowerCase()
+    return this.prisma.$queryRaw<TestResult[]>`
+      SELECT * FROM "TestResult"
+      WHERE tstzrange("startDate", "endDate", '[]') && tstzrange(${periodStart}, ${periodEnd}, '[]')
+        ${circuit ? Prisma.sql`AND "circuit" = ${circuit}` : Prisma.empty}
+      ORDER BY "startDate" DESC
+    `
   }
 
   /**
    * Distinct paths seen in runs overlapping the inclusive harvest period.
-   * When `environment` is set, only runs whose circuit matches it (case-insensitive) count.
+   * When `environment` is set, only runs whose circuit matches it (exact, lowercase) count.
    */
   findDistinctPaths(periodStart?: Date, periodEnd?: Date, environment?: string) {
     const periodFilter = periodStart && periodEnd
@@ -56,10 +61,9 @@ export class ResultsRepository {
     })
   }
 
-  /** Case-insensitive circuit equality; empty when no environment is supplied. */
+  /** Exact lowercase circuit equality; empty when no environment is supplied. */
   private circuitFilter(environment?: string) {
-    return environment
-      ? { circuit: { equals: environment, mode: 'insensitive' as const } }
-      : {}
+    const circuit = environment?.trim().toLowerCase()
+    return circuit ? { circuit } : {}
   }
 }

@@ -23,7 +23,8 @@ export class PhasesService {
     if (Number.isNaN(startedAt.valueOf()) || Number.isNaN(endedAt.valueOf()) || endedAt < startedAt) {
       throw new BadRequestException('End date cannot be before start date')
     }
-    return this.phasesRepository.create(dto, startedAt, endedAt)
+    const environment = dto.environment.trim().toLowerCase()
+    return this.phasesRepository.create({ ...dto, environment }, startedAt, endedAt)
   }
 
   async ensureExists(id: bigint) {
