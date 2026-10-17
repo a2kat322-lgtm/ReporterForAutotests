@@ -13,8 +13,10 @@ Copy-Item api/.env.example api/.env
 npm run db:up
 npm --prefix api run prisma:generate
 npm --prefix api run prisma:migrate:deploy
-npm --prefix api run prisma:seed
 ```
+
+The database starts empty: there is no seed script and no demo data. After the first launch,
+create a workspace in the UI (or post a run with `projectName`).
 
 Run the API and frontend in separate terminals:
 

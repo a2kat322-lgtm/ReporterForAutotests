@@ -10,8 +10,8 @@
 | --- | ---: | ---: | --- |
 | `src/` (frontend) | 24 | ~1 870 | React-компоненты, страницы, сервис, утилиты, стили |
 | `api/src/` (backend) | 40 | ~1 570 | 6 модулей, 7 контроллеров, 6 сервисов, 6 репозиториев |
-| `api/prisma/` | 21 | ~570 | схема, seed, 18 миграций, lock-файл |
-| **Итого** | **85** | **~4 000** | плюс `scripts/`, конфиги и документация |
+| `api/prisma/` | 21 | ~495 | схема, 19 миграций, lock-файл |
+| **Итого** | **85** | **~3 930** | плюс `scripts/`, конфиги и документация |
 
 Дополнительно: `scripts/send-test-runs.ps1` (136 строк) — демо-генератор запусков;
 `vite.config.js`, `docker-compose.yml`, `index.html`, `package.json`, `api/package.json`,
@@ -138,8 +138,7 @@ TestsService    → ResultsRepository (findDistinctPaths, findLatestRunPerPath)
 | Путь | Роль |
 | --- | --- |
 | `api/prisma/schema.prisma` | модели `Workspace`, `Phase`, `Report`, `AutomatedTest`, `AutomatedTestEnvironment`, `TestResult`; enum `TestStatus` |
-| `api/prisma/seed.ts` | идемпотентные демо-данные: workspace, 3 фазы, 4 отчёта, 5 тестов, 8 запусков |
-| `api/prisma/migrations/` | 18 миграций (описание — в [06-data-model.md](06-data-model.md#история-миграций)) |
+| `api/prisma/migrations/` | 19 миграций (описание — в [06-data-model.md](06-data-model.md#история-миграций)) |
 | `api/prisma/migrations/migration_lock.toml` | провайдер `postgresql` |
 
 ---
@@ -172,7 +171,7 @@ TestsService    → ResultsRepository (findDistinctPaths, findLatestRunPerPath)
 | `@nestjs/common`, `core`, `platform-express` | каркас API |
 | `@nestjs/config` | `appConfig`, `ConfigModule` |
 | `@nestjs/throttler` | глобальный guard и `@Throttle` |
-| `@prisma/client`, `prisma` | доступ к БД, миграции, seed |
+| `@prisma/client`, `prisma` | доступ к БД и миграции |
 | `class-validator`, `class-transformer` | DTO и трансформация query/body |
 | `reflect-metadata`, `rxjs` | обязательные зависимости Nest |
 | `jest`, `ts-jest`, `@nestjs/testing` | заявлены в `api/package.json`, тестов и конфигов нет |
@@ -181,13 +180,10 @@ TestsService    → ResultsRepository (findDistinctPaths, findLatestRunPerPath)
 
 ## Состояние репозитория
 
-- Ветка `master`, последний коммит — `d3d70aa «Перевести интерфейс на русский язык»`.
-- Рабочее дерево содержит незакоммиченную функциональность **workspace**:
-  - изменены `schema.prisma`, `seed.ts`, `app.module.ts`, `parse-bigint.pipe.ts`;
-  - изменены модули `import`, `phases`, `reports`, `results`, `tests`;
-  - изменены `App.jsx`, `Shell.jsx`, `TestCatalogModal.jsx`, `Dashboard.jsx`, `PhasesPage.jsx`,
-    `ReportsPage.jsx`, `dataService.js`, `styles.css`;
-  - новые: `api/src/modules/workspaces/` и миграция `20261021000000_workspaces/`.
+- Ветка `master`; актуальный список коммитов — `git log --oneline`.
+- Workspace, документация и deployment-настройки закоммичены; рабочее дерево должно быть чистым.
+- `api/prisma/seed.ts` удалён: установка пустая, демо-данных нет. Workspace создаётся в UI или
+  автоматически при приёме запуска с `projectName`.
 - `.dsh-code-index/` — служебный индекс IDE/агента, в git не входит.
 - `dist/` и `api/dist/` — результаты сборки, в git не входят.
 

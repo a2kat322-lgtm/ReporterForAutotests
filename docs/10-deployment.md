@@ -1,7 +1,7 @@
 # 10. Запуск на удалённом сервере
 
 Инструкция для развёртывания проекта на одном Linux-сервере (VPS) с доступом по домену и HTTPS.
-Проверена логика миграций, seed и запуск API на чистой PostgreSQL; конфигурации Nginx/systemd
+Проверена логика миграций и запуск API на чистой PostgreSQL; конфигурации Nginx/systemd
 приведены как рабочий шаблон для Ubuntu 24.04 LTS.
 
 ## Схема размещения
@@ -44,7 +44,7 @@
 3. Склонировать репозиторий в `/srv/reporter` от пользователя `reporter`.
 4. Поднять PostgreSQL, создать БД и пароль.
 5. Заполнить `/srv/reporter/api/.env`.
-6. Выполнить `prisma generate` и `prisma migrate deploy` (seed — только для демо).
+6. Выполнить `prisma generate` и `prisma migrate deploy` (база останется пустой).
 7. Собрать API и фронтенд (`VITE_API_URL=https://<домен>`).
 8. Запустить API через systemd, раздать статику через Nginx, выпустить TLS.
 9. Проверить API, UI и приём запусков.
@@ -286,7 +286,7 @@ chmod 600 /srv/reporter/api/.env
 `X-Forwarded-For`. Без этого флага за Nginx все запросы выглядят как `127.0.0.1`, и общий лимит
 10 запросов/сек применяется ко всем пользователям сразу.
 
-## 6. Миграции и seed
+## 6. Миграции
 
 От пользователя `reporter`:
 
@@ -298,24 +298,23 @@ npm --prefix api run prisma:migrate:deploy
 ```
 
 Ожидаемый результат: `All migrations have been successfully applied.` На чистой БД применяются все
-18 миграций, включая `20261021000000_workspaces`.
+19 миграций, включая `20261021000000_workspaces` и
+`20261022000000_remove_empty_default_workspace`.
 
-Проверка таблиц:
+Проверка таблиц и пустоты базы:
 
 ```bash
 sudo docker exec -it reporter-postgres psql -U reporter -d reporter -c '\dt'
+sudo docker exec -it reporter-postgres psql -U reporter -d reporter -c 'SELECT count(*) FROM "Workspace";'
+# 0
 ```
 
-Seed **необязателен** и содержит демо-данные (`default` workspace, фазы, отчёты, тесты). Для
-боевого контура его запускать не нужно:
+**База после установки пустая:** seed-скрипта и демо-данных нет. Служебный workspace `default`
+создаётся миграцией workspaces для бэкфилла и удаляется, если пуст; если в нём уже есть данные, он
+сохраняется. Первый workspace, созданный в UI, получает `id = 1`.
 
-```bash
-# Только для демо/стенда:
-npm --prefix api run prisma:seed
-```
-
-Seed требует `ts-node` (devDependency), поэтому выполняется до возможной очистки dev-зависимостей.
-На пустой БД seed проверен вместе с миграциями.
+Дальше workspace появляется при создании в интерфейсе или автоматически при `POST /api/results`
+с `projectName`. Запуск без `projectName` (и legacy-импорт) создаёт `default` по требованию.
 
 ### Если миграции уже применялись старой версией
 
@@ -514,7 +513,7 @@ auth_basic_user_file /etc/nginx/.htpasswd;
 
    ```bash
    curl -fsS http://127.0.0.1:3001/api/workspaces
-   # [{"id":1,"name":"default",...}] или []
+   # на чистой установке: []
    ```
 
 2. **API через Nginx:**
@@ -708,8 +707,9 @@ sudo mv /var/www/reporter.prev /var/www/reporter
 - [ ] PostgreSQL 16 запущен, БД и пользователь созданы, порт доступен только локально.
 - [ ] `api/.env` заполнен, права `600`, `TRUST_PROXY=true`, `API_HOST=127.0.0.1`.
 - [ ] `prisma generate` и `prisma migrate deploy` прошли, таблицы созданы.
+- [ ] База пустая (0 workspace), демо-данных нет; первый workspace создаётся в UI.
 - [ ] API собран (`npm run api:build`), systemd-сервис активен.
-- [ ] `curl http://127.0.0.1:3001/api/workspaces` отвечает.
+- [ ] `curl http://127.0.0.1:3001/api/workspaces` отвечает `[]` на чистой установке.
 - [ ] Фронтенд собран с `VITE_API_URL=https://<домен>`, статика в `/var/www/reporter`.
 - [ ] Nginx проксирует `/api/`, SPA-fallback работает, `nginx -t` успешен.
 - [ ] TLS выпущен, HTTP редиректит на HTTPS.

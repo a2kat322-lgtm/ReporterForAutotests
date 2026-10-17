@@ -44,7 +44,7 @@
 │   │   ├── common/         # PrismaModule, ParseBigIntPipe
 │   │   ├── config/         # app.config.ts (env)
 │   │   └── modules/        # phases, reports, results, tests, workspaces, import
-│   ├── prisma/             # schema.prisma, seed.ts, migrations/
+│   ├── prisma/             # schema.prisma, migrations/
 │   └── .env.example
 ├── scripts/
 │   └── send-test-runs.ps1  # генератор реалистичных запусков в API
@@ -65,13 +65,13 @@ Copy-Item api/.env.example api/.env
 npm run db:up
 npm --prefix api run prisma:generate
 npm --prefix api run prisma:migrate:deploy
-npm --prefix api run prisma:seed
 npm run api:dev     # http://localhost:3001/api
 npm run dev         # http://localhost:5173
 ```
 
-Для продакшена (VPS, Nginx, systemd, TLS, бэкапы) — отдельная инструкция:
-[10-deployment.md](10-deployment.md).
+База после установки пустая: seed-скрипта нет. Создайте workspace в интерфейсе или отправьте запуск
+с `projectName` — workspace появится автоматически. Для продакшена (VPS, Nginx, systemd, TLS,
+бэкапы) — отдельная инструкция: [10-deployment.md](10-deployment.md).
 
 ## Соглашения документации
 

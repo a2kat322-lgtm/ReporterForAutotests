@@ -213,6 +213,7 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | `20261020020000_add_updated_at` | `updatedAt` в `Phase`, `Report`, `TestResult` |
 | `20261020030000_gist_overlap_index` | GiST-индекс по `tstzrange(startDate, endDate)` |
 | `20261021000000_workspaces` | `Workspace`, сквозной `workspaceId`, `projectName`, FK, скоуп-индексы |
+| `20261022000000_remove_empty_default_workspace` | удаляет пустой служебный workspace `default` на чистой установке (создан для бэкфилла) |
 
 ### Порядок миграций
 
@@ -227,7 +228,7 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 - каталог переименован в `20261013130000_add_failure_feedback` — сразу после `automation_contract`;
 - SQL использует `ADD COLUMN IF NOT EXISTS`, поэтому миграция безопасна и для БД, где старая
   версия уже была применена;
-- проверено на пустой БД: `prisma migrate deploy` и `prisma db seed` проходят.
+- проверено на пустой БД: `prisma migrate deploy` проходит.
 
 Что делать с существующими БД:
 
@@ -240,20 +241,29 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 
 Других нарушений порядка нет; остальные миграции идут по возрастанию и согласованы со схемой.
 
-## Сиды
+## Пустая установка
 
-`api/prisma/seed.ts` (запуск: `npm --prefix api run prisma:seed`) идемпотентно создаёт:
+В проекте **нет seed-скрипта** и демо-данных. После `prisma migrate deploy` база пустая:
 
-- workspace `default`;
-- 3 фазы: `Release 2.4.0` (stage), `Nightly regression · 17 Apr` (test),
-  `Payments hotfix` (production);
-- 4 отчёта с окнами, совпадающими с датами фаз;
-- 5 записей каталога (одна скрыта — `CsvExportTest`);
-- 8 запусков, включая повторные прогоны одного пути и «сиротский» `com.acme.legacy.OrphanProbeTest`
-  без записи в каталоге.
+```text
+Workspace = 0, Phase = 0, Report = 0, AutomatedTest = 0, TestResult = 0
+```
 
-Повторный запуск сида обновляет фазы/отчёты/каталог по бизнес-ключам и не дублирует запуски
-(проверка по `path + startDate`).
+Служебный workspace `default` создаётся миграцией `20261021000000_workspaces` только для бэкфилла
+существующих строк, а затем удаляется миграцией `20261022000000_remove_empty_default_workspace`,
+если в нём нет данных. На чистой БД последовательность `Workspace` сбрасывается, поэтому первый
+созданный workspace получает `id = 1`.
+
+Дальше workspace появляется одним из способов:
+
+- пользователь создаёт его в интерфейсе (кнопка «Новое пространство»);
+- `POST /api/results` с `projectName` создаёт workspace автоматически;
+- запуск без `projectName` или legacy-импорт создают workspace `default` по требованию.
+
+Если `default` уже содержит фазы, каталог или запуски, миграция очистки его **не удаляет**.
+
+Для наполнения стенда используйте `scripts/send-test-runs.ps1` (отправляет запуски) и создайте
+фазу/отчёт в интерфейсе; каталог наполняется через Harvest.
 
 ## Работа со схемой
 
@@ -262,14 +272,13 @@ npm --prefix api run prisma:validate
 npm --prefix api run prisma:generate
 npm --prefix api run prisma:migrate:dev     # разработка: создать миграцию
 npm --prefix api run prisma:migrate:deploy  # применение готовых миграций
-npm --prefix api run prisma:seed
 ```
 
 Правила проекта:
 
 - API **не** применяет миграции при старте;
 - `db push`/`synchronize` не используются — ограничения (CHECK, GiST) живут только в миграциях;
-- изменения схемы сопровождаются новой миграцией и, при необходимости, правкой `seed.ts`.
+- изменения схемы сопровождаются новой миграцией; демо-данные в репозиторий не добавляются.
 
 ## Связанные документы
 

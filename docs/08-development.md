@@ -17,8 +17,10 @@ Copy-Item api/.env.example api/.env
 npm run db:up                   # docker compose up -d postgres
 npm --prefix api run prisma:generate
 npm --prefix api run prisma:migrate:deploy
-npm --prefix api run prisma:seed
 ```
+
+База после миграций пустая: seed-скрипта и демо-данных нет. Создайте workspace в интерфейсе или
+отправьте запуск с `projectName` — workspace появится автоматически.
 
 `api/.env`:
 
@@ -80,7 +82,6 @@ npm run dev         # Vite,     http://localhost:5173
 | `prisma:validate` | проверка схемы |
 | `prisma:migrate:dev` | создать/применить миграцию в разработке |
 | `prisma:migrate:deploy` | применить готовые миграции |
-| `prisma:seed` | `ts-node prisma/seed.ts` |
 
 ## Проверки состояния
 
@@ -111,18 +112,12 @@ npm run dev         # Vite,     http://localhost:5173
 
 ## Git и состояние репозитория
 
-- Основная ветка — `master`.
-- В рабочем дереве есть **незакоммиченная** функциональность workspace:
-
-  ```text
-  M  api/prisma/schema.prisma, api/prisma/seed.ts, api/src/app.module.ts, ...
-  M  src/App.jsx, src/components/Shell.jsx, src/pages/*.jsx, src/services/dataService.js
-  ?? api/prisma/migrations/20261021000000_workspaces/
-  ?? api/src/modules/workspaces/
-  ```
-
-  То есть `master` описывает версию без workspace, а документация — рабочее дерево. Перед
-  коммитом проверьте, что миграция и схема согласованы.
+- Основная ветка — `master`, рабочее дерево должно быть чистым.
+- Функциональность workspace и документация уже закоммичены; новые изменения делайте отдельными
+  коммитами с осмысленным сообщением.
+- Миграции не редактируются после применения: изменения схемы оформляются новым каталогом в
+  `api/prisma/migrations/`.
+- `api/.env` в репозиторий не попадает.
 - `.gitignore`: `node_modules/`, `dist/`, `.dsh-code-index/`, `.env`, `.env.*` (кроме
   `.env.example`), `node-compile-cache/`.
 - Правило `dist/` действует на любом уровне вложенности, поэтому и корневой `dist/`, и `api/dist/`
@@ -255,7 +250,7 @@ harvest — 1/10 сек; import — 1/мин. Для массовых прого
 4. Сервис — бизнес-правила, преобразование ошибок Prisma (`P2025` → `404`).
 5. Репозиторий — Prisma-запросы; при необходимости транзакция.
 6. Зарегистрируйте модуль в `app.module.ts`; если сервис нужен другим модулям — `exports`.
-7. При изменении схемы: миграция + `prisma:generate` + обновление seed.
+7. При изменении схемы: миграция + `prisma:generate` (демо-данные в репозиторий не добавляются).
 
 ### Frontend
 
