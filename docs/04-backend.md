@@ -15,7 +15,8 @@ API — приложение NestJS 10 на TypeScript, работающее с 
    второй нужен контракту автоматизации.
 5. Глобальный `ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true })`.
 6. `enableCors({ origin: CORS_ORIGIN })`, `enableShutdownHooks()`.
-7. `listen(API_PORT ?? 3001)`.
+7. `listen(API_PORT ?? 3001)`; если задан `API_HOST`, сервер биндится на этот адрес (например,
+   `127.0.0.1` за reverse proxy).
 
 Скрипты (`api/package.json`): `start:dev` (nest watch), `build` (nest build), `start` (node dist/main.js),
 `test` (jest, тестов сейчас нет), `prisma:*`.
@@ -28,11 +29,18 @@ API — приложение NestJS 10 на TypeScript, работающее с 
 | --- | --- | --- |
 | `DATABASE_URL` | — (обязательна) | строка подключения Prisma, читается самой Prisma |
 | `API_PORT` | `3001` | порт HTTP-сервера |
+| `API_HOST` | не задан (все интерфейсы) | адрес привязки; в продакшене рекомендуется `127.0.0.1` |
 | `CORS_ORIGIN` | `http://localhost:5173` | единственный разрешённый origin |
 | `ENABLE_LEGACY_IMPORT` | `false` | включает `POST /api/import` только при `true` |
+| `TRUST_PROXY` | `false` | доверять одному хопу `X-Forwarded-For` (включать только за reverse proxy) |
 
 `ConfigModule.forRoot({ isGlobal: true, load: [appConfig] })` — конфигурация доступна во всех
 модулях; `ImportService` получает её через `@Inject(appConfig.KEY)`.
+
+`TRUST_PROXY=true` обязателен при работе за Nginx/балансировщиком: без него `req.ip` для всех
+запросов равен адресу прокси, и глобальный throttle (10/сек) становится общим для всех
+пользователей. Включать флаг можно только тогда, когда API недоступен напрямую (firewall,
+`API_HOST=127.0.0.1`), иначе клиент сможет подделать `X-Forwarded-For`.
 
 ## Корневой модуль
 
@@ -144,7 +152,9 @@ DTO — классы `class-validator`; глобальный pipe включён
 | `POST /api/tests/harvest` | 1 / 10 с | 10 / 1 мин |
 | `POST /api/import` | 1 / 1 мин | 3 / 1 час |
 
-`@Throttle` переопределяет **оба** именованных окна. Лимиты считаются по IP.
+`@Throttle` переопределяет **оба** именованных окна. Лимиты считаются по IP клиента; за прокси
+клиентский IP берётся из `X-Forwarded-For` только при `TRUST_PROXY=true` (см. раздел
+«Конфигурация»).
 
 ## Ключевые реализации
 

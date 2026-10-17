@@ -25,8 +25,10 @@ npm --prefix api run prisma:seed
 ```dotenv
 DATABASE_URL="postgresql://test_insights:test_insights_dev@localhost:5432/test_insights?schema=public"
 API_PORT=3001
+API_HOST=
 CORS_ORIGIN="http://localhost:5173"
 ENABLE_LEGACY_IMPORT=false
+TRUST_PROXY=false
 ```
 
 ## Запуск
@@ -187,11 +189,16 @@ npm run build
 
 Либо добавьте каталог `%TEMP%` в исключения антивируса. Не коммитьте `.tmp-build`.
 
-### `prisma migrate deploy` на пустой БД
+### `prisma migrate deploy` падает на пустой БД
 
-См. [06-data-model.md](06-data-model.md#порядок-миграций): миграция `20260309000000_add_failure_feedback`
-идёт раньше `init`. Если развёртывание с нуля падает на `ALTER TABLE "TestResult"`, примените
-описанный там обход (переименование + `migrate resolve`).
+Историческая проблема с порядком миграций исправлена: миграция `add_failure_feedback` перенесена
+в `20261013130000` (после `automation_contract`, который пересоздаёт `TestResult`) и использует
+`ADD COLUMN IF NOT EXISTS`. Свежая БД разворачивается штатно (проверено).
+
+Если на существующей БД осталась запись о неудачной миграции (`P3009`), посмотрите
+`_prisma_migrations`, исправьте причину и выполните
+`cd api; npx prisma migrate resolve --rolled-back <migration_name>`, затем повторите
+`prisma migrate deploy`. Подробности — в [06-data-model.md](06-data-model.md#порядок-миграций).
 
 ### `429 Too Many Requests`
 
@@ -288,3 +295,4 @@ pwsh -File scripts/send-test-runs.ps1 -DryRun
 - Архитектура — [02-architecture.md](02-architecture.md)
 - API — [05-api.md](05-api.md)
 - Модель данных — [06-data-model.md](06-data-model.md)
+- Развёртывание на сервере — [10-deployment.md](10-deployment.md)

@@ -75,7 +75,7 @@ main.jsx → App.jsx → Dashboard.jsx
 | --- | ---: | --- | --- |
 | `main.ts` | 24 | bootstrap | `bootstrap`; глобальные pipe/CORS/BigInt |
 | `app.module.ts` | 31 | корневой модуль | `AppModule` |
-| `config/app.config.ts` | 7 | env-конфиг | `appConfig` (`port`, `corsOrigin`, `enableLegacyImport`) |
+| `config/app.config.ts` | 13 | env-конфиг | `appConfig` (`port`, `host`, `corsOrigin`, `enableLegacyImport`, `trustProxy`) |
 | `common/database/prisma.module.ts` | 6 | глобальный Prisma-модуль | `PrismaModule` |
 | `common/database/prisma.service.ts` | 8 | lifecycle Prisma | `PrismaService` (`$connect`, `$disconnect`) |
 | `common/pipes/parse-bigint.pipe.ts` | 14 | валидация числового path-параметра | `ParseBigIntPipe` |
@@ -206,3 +206,4 @@ TestsService    → ResultsRepository (findDistinctPaths, findLatestRunPerPath)
 - [02-architecture.md](02-architecture.md) — потоки и слои
 - [05-api.md](05-api.md) — контракты
 - [06-data-model.md](06-data-model.md) — схема и миграции
+- [10-deployment.md](10-deployment.md) — развёртывание на сервере

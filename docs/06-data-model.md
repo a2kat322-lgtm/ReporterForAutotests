@@ -195,11 +195,11 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 
 | Миграция | Что делает |
 | --- | --- |
-| `20260309000000_add_failure_feedback` | добавляет `TestResult.failureReason`, `failureComment` |
 | `20260501000000_init` | начальная схема: enum `Environment`, `TestStatus` (с `running`), `Phase`, `Report`, `TestResult` с `steps`, привязкой к отчёту и FK |
 | `20261013104649_add_automated_tests` | первая версия каталога (`name`, `description`, `suite`) |
 | `20261013110000_automated_tests_external_id` | `automatedTestId`, уникальность вместо `name` |
 | `20261013120000_automation_contract` | новый контракт: `broken` вместо `running`; `TestResult` — самостоятельный запуск без FK на отчёт; каталог по `resultPath` |
+| `20261013130000_add_failure_feedback` | добавляет `TestResult.failureReason`, `failureComment` (после пересоздания таблицы; `IF NOT EXISTS`) |
 | `20261013200000_automated_tests_visible_flag` | флаг `visible` |
 | `20261013210000_report_integer_id` | `Report.id` → autoincrement integer, перенумерация |
 | `20261013220000_remove_automated_test_display` | `display` → `defaultCaseName`, удаление колонки |
@@ -216,23 +216,29 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 
 ### Порядок миграций
 
-`20260309000000_add_failure_feedback` имеет **более ранний** timestamp, чем `20260501000000_init`,
-хотя добавляет колонки к таблице, создаваемой в `init`. Prisma применяет неприменённые миграции
-в лексикографическом порядке, поэтому на **пустой** БД `prisma migrate deploy` попытается выполнить
-`ALTER TABLE "TestResult"` до создания таблицы и завершится ошибкой.
+Ранее миграция с полями `failureReason`/`failureComment` была датирована `20260309000000` — раньше
+`init`, хотя изменяет таблицу, создаваемую в `init`. Prisma применяет миграции в лексикографическом
+порядке, поэтому на чистой БД `prisma migrate deploy` падал с `P3018` («отношение TestResult не
+существует»). Дополнительно `20261013120000_automation_contract` пересоздаёт `TestResult`, так что
+добавление колонок сразу после `init` всё равно потерялось бы.
 
-Что делать:
+Исправление:
 
-- на уже развёрнутой БД ничего менять не нужно, если обе миграции числятся применёнными
-  в `_prisma_migrations`;
-- для воспроизводимого развёртывания с нуля переименуйте каталог в монотонный timestamp после
-  `init` (например, `20260501000001_add_failure_feedback`) и для существующих БД выполните
-  `prisma migrate resolve --applied 20260501000001_add_failure_feedback`;
-- альтернатива — слить добавление колонок в `init` и удалить отдельную миграцию (потребует
-  аккуратной работы с историей).
+- каталог переименован в `20261013130000_add_failure_feedback` — сразу после `automation_contract`;
+- SQL использует `ADD COLUMN IF NOT EXISTS`, поэтому миграция безопасна и для БД, где старая
+  версия уже была применена;
+- проверено на пустой БД: `prisma migrate deploy` и `prisma db seed` проходят.
 
-Это единственное известное нарушение порядка; остальные миграции идут по возрастанию и
-согласованы со схемой.
+Что делать с существующими БД:
+
+- если старая миграция уже применена, новая применится как no-op — ручные действия не нужны;
+- запись старого имени (`20260309000000_add_failure_feedback`) остаётся в `_prisma_migrations`,
+  `migrate deploy` она не мешает;
+- если в `_prisma_migrations` есть **неудачная** миграция (`finished_at IS NULL`, ошибка `P3009`),
+  устраните причину и выполните `cd api && npx prisma migrate resolve --rolled-back <migration_name>`,
+  затем повторите deploy.
+
+Других нарушений порядка нет; остальные миграции идут по возрастанию и согласованы со схемой.
 
 ## Сиды
 
