@@ -59,7 +59,6 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
       ),
     },
     { title: 'СОЗДАН', dataIndex: 'createdAt', render: (value) => formatDate(value, true) },
-    { title: 'СОЗДАЛ', dataIndex: 'author', render: (value) => <Text type="secondary">{value}</Text> },
     {
       title: '',
       width: 96,
