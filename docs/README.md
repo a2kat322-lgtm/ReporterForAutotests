@@ -19,6 +19,7 @@
 | [07-ingestion-and-import.md](07-ingestion-and-import.md) | Приём запусков, Harvest, импорт каталога и legacy-данных |
 | [08-development.md](08-development.md) | Запуск, скрипты, проверки, troubleshooting |
 | [09-code-index.md](09-code-index.md) | Индекс кода: файлы, символы, эндпоинты, точки входа |
+| [10-deployment.md](10-deployment.md) | Развёртывание на удалённом сервере: Nginx, systemd, TLS, бэкапы |
 
 ## Технологический стек
 
@@ -68,6 +69,9 @@ npm --prefix api run prisma:seed
 npm run api:dev     # http://localhost:3001/api
 npm run dev         # http://localhost:5173
 ```
+
+Для продакшена (VPS, Nginx, systemd, TLS, бэкапы) — отдельная инструкция:
+[10-deployment.md](10-deployment.md).
 
 ## Соглашения документации
 

@@ -23,6 +23,9 @@ flowchart LR
 `api/dist/` и запускается `node dist/main.js`. Отдельного Dockerfile для приложений нет — контейнером
 поставляется только PostgreSQL.
 
+Продакшен-схема (VPS + Nginx + systemd + PostgreSQL, TLS, бэкапы) описана в
+[10-deployment.md](10-deployment.md).
+
 ## Frontend: слои и поток данных
 
 ```text
