@@ -80,3 +80,9 @@ Legacy data can be imported only when the API process explicitly has `ENABLE_LEG
 ## Checks
 
 Run `npm run build` for the frontend and `npm run api:build` for the API. PostgreSQL integration tests require Docker and a running database; do not treat schema generation alone as an integration test.
+
+## Documentation
+
+Full project documentation (in Russian) lives in [`docs/`](docs/README.md): overview and glossary, architecture, frontend, backend, HTTP API reference, data model and migrations, ingestion contracts, and the development guide.
+
+> The API/model sections above predate workspaces and the current run contract. Treat `docs/05-api.md` and `docs/06-data-model.md` as the source of truth.
