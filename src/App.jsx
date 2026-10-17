@@ -21,9 +21,17 @@ function getInitialTheme() {
   try { return localStorage.getItem('reporter-for-autotests-theme') === 'light' ? 'light' : 'dark' } catch { return 'dark' }
 }
 
+function getInitialWorkspaceId() {
+  try {
+    const raw = localStorage.getItem('reporter-for-autotests-workspace')
+    return raw ? Number(raw) : null
+  } catch { return null }
+}
+
 export default function App() {
   const [route, setRoute] = useState(getRoute)
   const [colorMode, setColorMode] = useState(getInitialTheme)
+  const [workspaceId, setWorkspaceId] = useState(getInitialWorkspaceId)
   const navigate = useCallback((nextRoute) => {
     window.history.pushState({}, '', getPath(nextRoute))
     setRoute(nextRoute)
@@ -34,6 +42,12 @@ export default function App() {
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
+
+  const selectWorkspace = useCallback((id) => {
+    setWorkspaceId(id == null ? null : Number(id))
+    try { localStorage.setItem('reporter-for-autotests-workspace', id == null ? '' : String(id)) } catch { /* Storage may be unavailable. */ }
+    navigate({ page: 'phases' })
+  }, [navigate])
 
   const isLight = colorMode === 'light'
   useEffect(() => {
@@ -48,7 +62,7 @@ export default function App() {
   return (
     <ConfigProvider theme={{ algorithm: isLight ? theme.defaultAlgorithm : theme.darkAlgorithm, token: tokens }}>
       <AntApp>
-        <Dashboard route={route} navigate={navigate} colorMode={colorMode} onToggleTheme={() => setColorMode((mode) => mode === 'dark' ? 'light' : 'dark')} />
+        <Dashboard route={route} navigate={navigate} colorMode={colorMode} onToggleTheme={() => setColorMode((mode) => mode === 'dark' ? 'light' : 'dark')} workspaceId={workspaceId} onSelectWorkspace={selectWorkspace} />
       </AntApp>
     </ConfigProvider>
   )

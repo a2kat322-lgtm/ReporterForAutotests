@@ -23,13 +23,15 @@ export class ResultsRepository {
    * Runs whose [startDate, endDate] window overlaps the inclusive report period,
    * using an interval-overlap (&&) scan backed by the GiST index on
    * tstzrange(startDate, endDate). When `environment` is set, only runs whose
-   * canonical (lowercase) circuit matches it are returned.
+   * canonical (lowercase) circuit matches it are returned. Runs are always
+   * scoped to `workspaceId`.
    */
-  findRunsCoveringWindow(periodStart: Date, periodEnd: Date, environment?: string) {
+  findRunsCoveringWindow(workspaceId: bigint, periodStart: Date, periodEnd: Date, environment?: string) {
     const circuit = environment?.trim().toLowerCase()
     return this.prisma.$queryRaw<TestResult[]>`
       SELECT * FROM "TestResult"
-      WHERE tstzrange("startDate", "endDate", '[]') && tstzrange(${periodStart}, ${periodEnd}, '[]')
+      WHERE "workspaceId" = ${workspaceId}
+        AND tstzrange("startDate", "endDate", '[]') && tstzrange(${periodStart}, ${periodEnd}, '[]')
         ${circuit ? Prisma.sql`AND "circuit" = ${circuit}` : Prisma.empty}
       ORDER BY "startDate" DESC
     `
@@ -39,24 +41,24 @@ export class ResultsRepository {
    * Distinct paths seen in runs overlapping the inclusive harvest period.
    * When `environment` is set, only runs whose circuit matches it (exact, lowercase) count.
    */
-  findDistinctPaths(periodStart?: Date, periodEnd?: Date, environment?: string) {
+  findDistinctPaths(workspaceId: bigint, periodStart?: Date, periodEnd?: Date, environment?: string) {
     const periodFilter = periodStart && periodEnd
       ? { startDate: { lte: periodEnd }, endDate: { gte: periodStart } }
       : {}
     return this.prisma.testResult.groupBy({
       by: ['path'],
-      where: { ...periodFilter, ...this.circuitFilter(environment) },
+      where: { workspaceId, ...periodFilter, ...this.circuitFilter(environment) },
       _count: { _all: true },
       _max: { startDate: true },
     })
   }
 
-  findLatestRunPerPath(paths: string[], periodStart?: Date, periodEnd?: Date, environment?: string) {
+  findLatestRunPerPath(workspaceId: bigint, paths: string[], periodStart?: Date, periodEnd?: Date, environment?: string) {
     const periodFilter = periodStart && periodEnd
       ? { startDate: { lte: periodEnd }, endDate: { gte: periodStart } }
       : {}
     return this.prisma.testResult.findMany({
-      where: { path: { in: paths }, ...periodFilter, ...this.circuitFilter(environment) },
+      where: { workspaceId, path: { in: paths }, ...periodFilter, ...this.circuitFilter(environment) },
       orderBy: { startDate: 'desc' },
     })
   }

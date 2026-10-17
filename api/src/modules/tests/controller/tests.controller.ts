@@ -12,8 +12,11 @@ export class TestsController {
 
   /** Full catalog, or — with `?environment=` — only tests whose runs' circuit matches it. */
   @Get()
-  findAll(@Query('environment') environment?: string) {
-    return this.testsService.findForEnvironment(environment)
+  findAll(
+    @Query('environment') environment?: string,
+    @Query('workspaceId') workspaceId?: string,
+  ) {
+    return this.testsService.findForEnvironment(environment, workspaceId ? BigInt(workspaceId) : undefined)
   }
 
   @Post()
@@ -35,8 +38,9 @@ export class TestsController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
     @Query('environment') environment?: string,
+    @Query('workspaceId') workspaceId?: string,
   ) {
-    return this.testsService.harvestFromResults(startDate, endDate, environment)
+    return this.testsService.harvestFromResults(startDate, endDate, environment, workspaceId)
   }
 
   @Delete(':testId')

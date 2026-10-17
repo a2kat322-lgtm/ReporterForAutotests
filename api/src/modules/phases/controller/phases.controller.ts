@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Query } from '@nestjs/common'
 import { ParseBigIntPipe } from '../../../common/pipes/parse-bigint.pipe'
 import { CreatePhaseDto } from '../dto/create-phase.dto'
 import { PhasesService } from '../service/phases.service'
@@ -8,7 +8,9 @@ export class PhasesController {
   constructor(private readonly phasesService: PhasesService) {}
 
   @Get()
-  findAll() { return this.phasesService.findAll() }
+  findAll(@Query('workspaceId') workspaceId?: string) {
+    return this.phasesService.findAll(workspaceId ? BigInt(workspaceId) : undefined)
+  }
 
   @Post()
   create(@Body() dto: CreatePhaseDto) { return this.phasesService.create(dto) }

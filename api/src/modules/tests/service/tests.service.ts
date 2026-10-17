@@ -20,31 +20,32 @@ export class TestsService {
     private readonly resultsRepository: ResultsRepository,
   ) {}
 
-  findAll() {
-    return this.testsRepository.findAll()
+  findAll(workspaceId?: bigint) {
+    return this.testsRepository.findAll(workspaceId)
   }
 
   /**
-   * Catalog scoped to one environment: a test belongs to a phase's environment
-   * when it is explicitly assigned to it via `AutomatedTestEnvironment` (Harvest).
-   * Blank environment falls back to the full catalog.
+   * Catalog scoped to one workspace (and optionally one environment): a test belongs
+   * to a phase's environment when it is explicitly assigned to it via
+   * `AutomatedTestEnvironment` (Harvest). Blank environment falls back to the workspace catalog.
    */
-  async findForEnvironment(environment?: string) {
+  async findForEnvironment(environment?: string, workspaceId?: bigint) {
     const normalized = environment?.trim()
-    if (!normalized) return this.testsRepository.findAll()
-    return this.testsRepository.findForEnvironment(normalized)
+    if (!normalized) return this.testsRepository.findAll(workspaceId)
+    return this.testsRepository.findForEnvironment(normalized, workspaceId)
   }
 
-  /** Idempotent upsert keyed by resultPath: re-importing a file updates entries. */
+  /** Idempotent upsert keyed by (workspaceId, resultPath): re-importing a file updates entries. */
   async create(dto: CreateAutomatedTestDto, source = 'manual') {
     const resultPath = dto.resultPath.trim()
     if (!resultPath) throw new NotFoundException('resultPath is required')
-    const existing = await this.testsRepository.findByResultPath(resultPath)
+    const workspaceId = BigInt(dto.workspaceId)
+    const existing = await this.testsRepository.findByResultPath(resultPath, workspaceId)
     if (existing) {
-      const updated = await this.testsRepository.update(resultPath, dto)
+      const updated = await this.testsRepository.update(resultPath, dto, workspaceId)
       return { test: updated, created: false }
     }
-    const test = await this.testsRepository.create({ ...dto, resultPath }, source)
+    const test = await this.testsRepository.create({ ...dto, resultPath }, source, workspaceId)
     return { test, created: true }
   }
 
@@ -62,7 +63,7 @@ export class TestsService {
   updateVisibility(dto: UpdateVisibilityDto) {
     const resultPaths = [...new Set(dto.resultPaths.map((path) => path.trim()).filter(Boolean))]
     if (!resultPaths.length) throw new BadRequestException('At least one resultPath is required')
-    return this.testsRepository.updateVisibility(resultPaths, dto.visible)
+    return this.testsRepository.updateVisibility(resultPaths, dto.visible, BigInt(dto.workspaceId))
       .then(({ count }) => ({ updated: count, total: resultPaths.length }))
   }
 
@@ -71,7 +72,7 @@ export class TestsService {
    * When `environment` is supplied, only runs whose circuit matches it are considered,
    * so harvested tests stay scoped to the environment of the phase that opened the catalog.
    */
-  async harvestFromResults(startDateValue?: string, endDateValue?: string, environment?: string) {
+  async harvestFromResults(startDateValue?: string, endDateValue?: string, environment?: string, workspaceIdValue?: string) {
     if (Boolean(startDateValue) !== Boolean(endDateValue)) {
       throw new BadRequestException('Both startDate and endDate are required')
     }
@@ -80,6 +81,9 @@ export class TestsService {
     if (normalizedEnvironment === '') {
       throw new BadRequestException('environment must not be blank when provided')
     }
+
+    if (!workspaceIdValue) throw new BadRequestException('workspaceId is required')
+    const workspaceId = BigInt(workspaceIdValue)
 
     let periodStart: Date
     let periodEnd: Date
@@ -97,9 +101,10 @@ export class TestsService {
       periodEnd = new Date('9999-12-31T23:59:59.999Z')
     }
 
-    const groups = await this.resultsRepository.findDistinctPaths(periodStart, periodEnd, normalizedEnvironment)
+    const groups = await this.resultsRepository.findDistinctPaths(workspaceId, periodStart, periodEnd, normalizedEnvironment)
     const paths = groups.map((group) => group.path)
     const latestRuns = await this.resultsRepository.findLatestRunPerPath(
+      workspaceId,
       paths,
       periodStart,
       periodEnd,
@@ -120,7 +125,7 @@ export class TestsService {
         tags: Array.isArray(run?.tags) ? (run.tags as unknown[]).map(String) : [],
       }
     })
-    const { created } = await this.testsRepository.harvestBatch(entries, normalizedEnvironment ?? '')
+    const { created } = await this.testsRepository.harvestBatch(entries, normalizedEnvironment ?? '', workspaceId)
     return { created, skipped: paths.length - created, paths: paths.length }
   }
 

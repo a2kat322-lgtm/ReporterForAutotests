@@ -75,3 +75,17 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 :root[data-theme="light"] .ant-table-wrapper .ant-table-tbody > tr > td {
   border-color: #e5e7eb !important;
 }
+
+/* Phase and report table icons follow the light palette. */
+:root[data-theme="light"] .phase-icon {
+  background: #f1eafe !important;
+  color: #5b21b6 !important;
+}
+:root[data-theme="light"] .report-icon {
+  background: #e8f0fe !important;
+  color: #1d4ed8 !important;
+}
+
+/* Workspace dropdown menu item: name + delete action. */
+.workspace-menu-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:160px}
+.workspace-menu-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}

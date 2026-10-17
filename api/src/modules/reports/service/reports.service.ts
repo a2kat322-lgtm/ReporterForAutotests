@@ -38,8 +38,8 @@ export class ReportsService {
     const periodEnd = dayEnd(new Date(Math.max(...reports.map((report) => report.endDate.getTime()))))
     const environment = phase.environment.trim()
     const [catalog, runs] = await Promise.all([
-      this.testsRepository.findForEnvironment(environment),
-      this.resultsRepository.findRunsCoveringWindow(periodStart, periodEnd, environment),
+      this.testsRepository.findForEnvironment(environment, phase.workspaceId),
+      this.resultsRepository.findRunsCoveringWindow(phase.workspaceId, periodStart, periodEnd, environment),
     ])
     const visibleCatalog = catalog.filter((test) => test.visible)
 
@@ -112,8 +112,8 @@ export class ReportsService {
     const report = await this.findById(id)
     const environment = report.phase.environment.trim()
     const [catalog, runs] = await Promise.all([
-      this.testsRepository.findForEnvironment(environment),
-      this.resultsRepository.findRunsCoveringWindow(dayStart(report.startDate), dayEnd(report.endDate), environment),
+      this.testsRepository.findForEnvironment(environment, report.phase.workspaceId),
+      this.resultsRepository.findRunsCoveringWindow(report.phase.workspaceId, dayStart(report.startDate), dayEnd(report.endDate), environment),
     ])
 
     const latestRunByPath = new Map<string, TestResult>()

@@ -47,14 +47,18 @@ export class ImportRepository {
 
   executeImport(body: LegacyImportPayload) {
     return this.prisma.$transaction(async (tx) => {
+      // Legacy imports have no project identity: they land in the default workspace.
+      const defaultWorkspace = await tx.workspace.findUnique({ where: { name: 'default' } })
+      const workspaceId = defaultWorkspace?.id ?? (await tx.workspace.create({ data: { name: 'default' } })).id
+
       const phaseIds = new Map<unknown, bigint>()
       for (const phase of body.phases) {
         const environment = phase?.environment
         const startedAt = new Date(`${phase?.startedAt}T00:00:00.000Z`)
         const endedAt = new Date(`${phase?.endedAt}T00:00:00.000Z`)
         if (!phase?.name || typeof environment !== 'string' || !environment.trim() || Number.isNaN(startedAt.valueOf()) || Number.isNaN(endedAt.valueOf()) || endedAt < startedAt) throw new BadRequestException('Invalid legacy phase')
-        const existing = await tx.phase.findFirst({ where: { name: phase.name, startedAt } })
-        const saved = existing ?? await tx.phase.create({ data: { name: phase.name, environment: environment.trim().toLowerCase(), startedAt, endedAt } })
+        const existing = await tx.phase.findFirst({ where: { name: phase.name, startedAt, workspaceId } })
+        const saved = existing ?? await tx.phase.create({ data: { workspaceId, name: phase.name, environment: environment.trim().toLowerCase(), startedAt, endedAt } })
         phaseIds.set(phase.id, saved.id)
       }
 
@@ -81,10 +85,12 @@ export class ImportRepository {
         const ranAt = result.lastRunAt ? new Date(result.lastRunAt) : report.createdAt
         if (Number.isNaN(ranAt.valueOf())) { skippedResults += 1; continue }
         const path = result.automatedTestId.slice(0, 300)
-        const existing = await tx.testResult.findFirst({ where: { path, startDate: ranAt } })
+        const existing = await tx.testResult.findFirst({ where: { workspaceId, path, startDate: ranAt } })
         if (existing) { skippedResults += 1; continue }
         await tx.testResult.create({
           data: {
+            workspaceId,
+            projectName: 'default',
             path,
             caseName: result.name?.slice(0, 300) ?? null,
             status,

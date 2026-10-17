@@ -7,8 +7,8 @@ import { PhasesRepository } from '../repository/phases.repository'
 export class PhasesService {
   constructor(private readonly phasesRepository: PhasesRepository) {}
 
-  findAll() {
-    return this.phasesRepository.findAll()
+  findAll(workspaceId?: bigint) {
+    return this.phasesRepository.findAll(workspaceId)
   }
 
   async findById(id: bigint) {

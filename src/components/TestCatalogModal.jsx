@@ -10,7 +10,7 @@ const { Text, Paragraph } = Typography
 
 const compareCatalogNames = (left, right) => left.localeCompare(right, undefined, { sensitivity: 'base', numeric: true })
 
-export default function TestCatalogModal({ open, onClose, environment }) {
+export default function TestCatalogModal({ open, onClose, environment, workspaceId }) {
   const [form] = Form.useForm()
   const [catalog, setCatalog] = useState([])
   const [loading, setLoading] = useState(false)
@@ -27,13 +27,13 @@ export default function TestCatalogModal({ open, onClose, environment }) {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      setCatalog(await getAutomatedTests(environment))
+      setCatalog(await getAutomatedTests(environment, workspaceId))
     } catch (error) {
       message.error(error.message || 'Не удалось загрузить каталог тестов')
     } finally {
       setLoading(false)
     }
-  }, [environment])
+  }, [environment, workspaceId])
 
   useEffect(() => {
     if (open) refresh()
@@ -54,7 +54,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     const [startDate, endDate] = period.harvestPeriod
     setHarvesting(true)
     try {
-      const result = await harvestAutomatedTests(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'), environment)
+      const result = await harvestAutomatedTests(startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'), environment, workspaceId)
       message.success(`Собрано из запусков: добавлено ${result.created}, уже в каталоге ${result.skipped}`)
       setHarvestOpen(false)
       form.resetFields(['harvestPeriod'])
@@ -87,7 +87,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     if (!preview) return
     setImporting(true)
     try {
-      const result = await createAutomatedTestsBulk(preview.tests)
+      const result = await createAutomatedTestsBulk(preview.tests.map((test) => ({ ...test, workspaceId })))
       message.success(`Импортировано тестов: ${result.created}${result.updated ? `, обновлено ${result.updated}` : ''}`)
       setPreview(null)
       refresh()
@@ -114,7 +114,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
   const toggleVisible = async (test, visible) => {
     setTogglingId(test.id)
     try {
-      await createAutomatedTest({ ...toDtoPayload(test), visible })
+      await createAutomatedTest({ ...toDtoPayload(test), visible, workspaceId })
       message.success(visible ? `«${(test.defaultCaseName || test.resultPath)}» отображается в отчётах` : `«${(test.defaultCaseName || test.resultPath)}» скрыт из отчётов`)
       await refresh()
     } catch (error) {
@@ -129,7 +129,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
     if (!selectedTests.length) return
     setBulkUpdating(true)
     try {
-      await updateAutomatedTestsVisibility(selectedTests.map((test) => test.resultPath), visible)
+      await updateAutomatedTestsVisibility(selectedTests.map((test) => test.resultPath), visible, workspaceId)
       message.success(`${selectedTests.length} тестов ${visible ? 'включено' : 'скрыто'} в отчётах`)
       setSelectedRowKeys([])
       await refresh()
@@ -160,7 +160,7 @@ export default function TestCatalogModal({ open, onClose, environment }) {
   const toggleSuiteVisibility = async (suite, visible) => {
     setBulkUpdating(true)
     try {
-      await updateAutomatedTestsVisibility(suite.tests.map((test) => test.resultPath), visible)
+      await updateAutomatedTestsVisibility(suite.tests.map((test) => test.resultPath), visible, workspaceId)
       message.success(`${suite.tests.length} тестов в наборе ${suite.suiteName} ${visible ? 'включено' : 'скрыто'} в отчётах`)
       setSelectedRowKeys((keys) => keys.filter((key) => !suite.tests.some((test) => test.id === key)))
       await refresh()

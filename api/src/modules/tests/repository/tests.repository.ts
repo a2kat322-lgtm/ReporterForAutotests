@@ -7,14 +7,17 @@ import { CreateAutomatedTestDto } from '../dto/create-automated-test.dto'
 export class TestsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.automatedTest.findMany({ orderBy: { createdAt: 'asc' } })
+  findAll(workspaceId?: bigint) {
+    return this.prisma.automatedTest.findMany({ where: workspaceId == null ? {} : { workspaceId }, orderBy: { createdAt: 'asc' } })
   }
 
-  /** Catalog entries are scoped by environments explicitly assigned during Harvest. */
-  findForEnvironment(environment: string) {
+  /** Catalog entries scoped by workspace, then by environments explicitly assigned during Harvest. */
+  findForEnvironment(environment: string, workspaceId?: bigint) {
     return this.prisma.automatedTest.findMany({
-      where: { environments: { some: { environment: environment.trim().toLowerCase() } } },
+      where: {
+        ...(workspaceId == null ? {} : { workspaceId }),
+        environments: { some: { environment: environment.trim().toLowerCase() } },
+      },
       orderBy: { createdAt: 'asc' },
     })
   }
@@ -26,16 +29,17 @@ export class TestsRepository {
     defaultSuiteName?: string
     defaultOwner?: string
     tags: string[]
-  }>, environment: string) {
+  }>, environment: string, workspaceId: bigint) {
     if (!entries.length) return { created: 0 }
     const canonicalEnvironment = environment.trim().toLowerCase()
     return this.prisma.$transaction(async (tx) => {
       const before = await tx.automatedTest.findMany({
-        where: { resultPath: { in: entries.map((entry) => entry.resultPath) } },
+        where: { workspaceId, resultPath: { in: entries.map((entry) => entry.resultPath) } },
         select: { resultPath: true },
       })
       await tx.automatedTest.createMany({
         data: entries.map((entry) => ({
+          workspaceId,
           resultPath: entry.resultPath,
           defaultCaseName: entry.defaultCaseName,
           defaultSuiteName: entry.defaultSuiteName,
@@ -46,7 +50,7 @@ export class TestsRepository {
         skipDuplicates: true,
       })
       const tests = await tx.automatedTest.findMany({
-        where: { resultPath: { in: entries.map((entry) => entry.resultPath) } },
+        where: { workspaceId, resultPath: { in: entries.map((entry) => entry.resultPath) } },
         select: { id: true },
       })
       await tx.automatedTestEnvironment.createMany({
@@ -58,8 +62,11 @@ export class TestsRepository {
   }
 
   /** Add one membership; lowercase canonicalization makes this case-insensitive. */
-  async addEnvironment(resultPath: string, environment: string) {
-    const test = await this.prisma.automatedTest.findUnique({ where: { resultPath }, select: { id: true } })
+  async addEnvironment(resultPath: string, environment: string, workspaceId?: bigint) {
+    const test = await this.prisma.automatedTest.findFirst({
+      where: { resultPath, ...(workspaceId == null ? {} : { workspaceId }) },
+      select: { id: true },
+    })
     if (!test) return false
     const result = await this.prisma.automatedTestEnvironment.createMany({
       data: [{ automatedTestId: test.id, environment: environment.trim().toLowerCase() }],
@@ -68,15 +75,17 @@ export class TestsRepository {
     return result.count > 0
   }
 
-  findByResultPath(resultPath: string) {
-    return this.prisma.automatedTest.findUnique({ where: { resultPath } })
+  findByResultPath(resultPath: string, workspaceId?: bigint) {
+    if (workspaceId == null) return this.prisma.automatedTest.findFirst({ where: { resultPath } })
+    return this.prisma.automatedTest.findUnique({ where: { workspaceId_resultPath: { workspaceId, resultPath } } })
   }
 
-  create(dto: CreateAutomatedTestDto, source: string, environment?: string) {
+  create(dto: CreateAutomatedTestDto, source: string, workspaceId: bigint, environment?: string) {
     return this.prisma.$transaction(async (tx) => {
       const test = await tx.automatedTest.create({
         data: {
-          ...dto,
+          workspaceId,
+          resultPath: dto.resultPath,
           tags: (dto.tags ?? []) as unknown as Prisma.InputJsonValue,
           source,
         },
@@ -90,16 +99,16 @@ export class TestsRepository {
     })
   }
 
-  updateVisibility(resultPaths: string[], visible: boolean) {
+  updateVisibility(resultPaths: string[], visible: boolean, workspaceId: bigint) {
     return this.prisma.automatedTest.updateMany({
-      where: { resultPath: { in: resultPaths } },
+      where: { workspaceId, resultPath: { in: resultPaths } },
       data: { visible },
     })
   }
 
-  update(resultPath: string, dto: CreateAutomatedTestDto) {
+  update(resultPath: string, dto: CreateAutomatedTestDto, workspaceId: bigint) {
     return this.prisma.automatedTest.update({
-      where: { resultPath },
+      where: { workspaceId_resultPath: { workspaceId, resultPath } },
       data: {
         fullResponsibility: dto.fullResponsibility ?? null,
         defaultSuiteName: dto.defaultSuiteName ?? null,

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { TestStatus } from '@prisma/client'
+import { WorkspacesService } from '../../workspaces/service/workspaces.service'
 import { ResultsRepository } from '../repository/results.repository'
 import { NormalizedRun, RunPayload } from '../dto/run-payload'
 
@@ -43,10 +44,13 @@ function truncate(value: string | null, max: number): string | null {
 
 @Injectable()
 export class ResultsService {
-  constructor(private readonly resultsRepository: ResultsRepository) {}
+  constructor(
+    private readonly resultsRepository: ResultsRepository,
+    private readonly workspacesService: WorkspacesService,
+  ) {}
 
   /** Accepts the raw form body (urlencoded may yield string|string[]) and validates it by hand. */
-  normalize(body: Record<string, unknown>): NormalizedRun {
+  normalize(body: Record<string, unknown>): Omit<NormalizedRun, 'workspaceId'> {
     const path = firstString(body?.path)
     if (!path) throw new BadRequestException('path is required')
 
@@ -61,7 +65,13 @@ export class ResultsService {
     const endDate = parseDate(body?.endDate) ?? startDate
     if (endDate < startDate) throw new BadRequestException('endDate cannot be before startDate')
 
+    // A missing/blank project falls back to the "default" workspace so existing
+    // automation contracts keep working without a project identifier.
+    const rawProject = firstString(body?.projectName) ?? 'default'
+    const projectName = truncate(rawProject, 200) as string
+
     return {
+      projectName: projectName.trim().toLowerCase(),
       path: truncate(path, 300) as string,
       suiteName: truncate(firstString(body?.suiteName), 200),
       caseName: truncate(firstString(body?.caseName), 300),
@@ -77,7 +87,8 @@ export class ResultsService {
 
   async ingestRun(body: Record<string, unknown>) {
     const run = this.normalize(body)
-    const saved = await this.resultsRepository.create(run)
-    return { received: true, id: saved.id, path: saved.path, status: saved.status }
+    const workspace = await this.workspacesService.findOrCreateByName(run.projectName)
+    const saved = await this.resultsRepository.create({ ...run, workspaceId: workspace.id })
+    return { received: true, id: saved.id, path: saved.path, status: saved.status, workspaceId: workspace.id, projectName: workspace.name }
   }
 }

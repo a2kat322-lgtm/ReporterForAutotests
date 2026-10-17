@@ -1,8 +1,11 @@
-import { IsDateString, IsString, Matches, MaxLength, MinLength } from 'class-validator'
+import { IsDateString, IsInt, IsString, Matches, MaxLength, MinLength } from 'class-validator'
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
 
 export class CreatePhaseDto {
+  @IsInt()
+  workspaceId: number
+
   @IsString()
   @MinLength(1)
   @MaxLength(200)

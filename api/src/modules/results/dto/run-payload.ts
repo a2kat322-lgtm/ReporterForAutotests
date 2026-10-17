@@ -16,9 +16,13 @@ export interface RunPayload {
   startDate: string
   endDate: string
   tags?: unknown
+  /** Project identity posted by the automation system; resolves to a workspace. */
+  projectName?: string
 }
 
 export interface NormalizedRun {
+  workspaceId: bigint
+  projectName: string
   path: string
   suiteName: string | null
   caseName: string | null

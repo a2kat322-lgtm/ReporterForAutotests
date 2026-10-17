@@ -7,6 +7,7 @@ import { PhasesModule } from './modules/phases/phases.module'
 import { ReportsModule } from './modules/reports/reports.module'
 import { ResultsModule } from './modules/results/results.module'
 import { TestsModule } from './modules/tests/tests.module'
+import { WorkspacesModule } from './modules/workspaces/workspaces.module'
 import { PrismaModule } from './common/database/prisma.module'
 import { appConfig } from './config/app.config'
 
@@ -22,6 +23,7 @@ import { appConfig } from './config/app.config'
     ReportsModule,
     ResultsModule,
     TestsModule,
+    WorkspacesModule,
     ImportModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

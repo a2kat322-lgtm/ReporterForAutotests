@@ -1,7 +1,10 @@
-import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator'
+import { ArrayMaxSize, IsArray, IsBoolean, IsInt, IsOptional, IsString, MaxLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class CreateAutomatedTestDto {
+  @IsInt()
+  workspaceId: number
+
   @IsString()
   @MaxLength(300)
   resultPath: string

@@ -19,14 +19,19 @@ function run(path: string, status: TestStatus, startDate: string, durationMs: nu
 }
 
 async function main() {
+  const workspace = await prisma.workspace.upsert({
+    where: { name: 'default' },
+    create: { name: 'default' },
+    update: {},
+  })
   const phases = [
-    { name: 'Release 2.4.0', environment: 'stage', startedAt: new Date('2025-04-18'), endedAt: new Date('2025-04-21') },
-    { name: 'Nightly regression · 17 Apr', environment: 'test', startedAt: new Date('2025-04-17'), endedAt: new Date('2025-04-17') },
-    { name: 'Payments hotfix', environment: 'production', startedAt: new Date('2025-04-12'), endedAt: new Date('2025-04-13') },
+    { workspaceId: workspace.id, name: 'Release 2.4.0', environment: 'stage', startedAt: new Date('2025-04-18'), endedAt: new Date('2025-04-21') },
+    { workspaceId: workspace.id, name: 'Nightly regression · 17 Apr', environment: 'test', startedAt: new Date('2025-04-17'), endedAt: new Date('2025-04-17') },
+    { workspaceId: workspace.id, name: 'Payments hotfix', environment: 'production', startedAt: new Date('2025-04-12'), endedAt: new Date('2025-04-13') },
   ]
   const ids: bigint[] = []
   for (const phase of phases) {
-    const existing = await prisma.phase.findFirst({ where: { name: phase.name } })
+    const existing = await prisma.phase.findFirst({ where: { workspaceId: workspace.id, name: phase.name } })
     const saved = existing ? await prisma.phase.update({ where: { id: existing.id }, data: phase }) : await prisma.phase.create({ data: phase })
     ids.push(saved.id)
   }
@@ -47,15 +52,15 @@ async function main() {
   // Catalog entries mirroring the JSON file contract; resultPath links runs to
   // definitions. By convention resultPath is the fully qualified Java test class.
   const catalog = [
-    { resultPath: 'com.acme.shop.checkout.PaymentFlowTest', fullResponsibility: 'Payments squad', defaultSuiteName: 'Checkout IT', defaultCaseName: 'paymentSucceedsWithValidCard', defaultOwner: 'alex.kim', tags: ['checkout', 'smoke'] },
-    { resultPath: 'com.acme.shop.auth.LoginValidCredentialsTest', defaultSuiteName: 'Auth', defaultCaseName: 'loginWithValidCredentials', defaultOwner: 'maria.petrova', tags: ['auth', 'smoke'] },
-    { resultPath: 'com.acme.shop.payments.RefundPermissionTest', defaultSuiteName: 'Payments', defaultCaseName: 'viewerCannotRefund', defaultOwner: 'alex.kim', tags: ['payments', 'rbac'] },
-    { resultPath: 'com.acme.shop.search.GlobalSearchTest', defaultSuiteName: 'Search', tags: ['search'] },
-    { resultPath: 'com.acme.shop.export.CsvExportTest', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'], visible: false },
+    { workspaceId: workspace.id, resultPath: 'com.acme.shop.checkout.PaymentFlowTest', fullResponsibility: 'Payments squad', defaultSuiteName: 'Checkout IT', defaultCaseName: 'paymentSucceedsWithValidCard', defaultOwner: 'alex.kim', tags: ['checkout', 'smoke'] },
+    { workspaceId: workspace.id, resultPath: 'com.acme.shop.auth.LoginValidCredentialsTest', defaultSuiteName: 'Auth', defaultCaseName: 'loginWithValidCredentials', defaultOwner: 'maria.petrova', tags: ['auth', 'smoke'] },
+    { workspaceId: workspace.id, resultPath: 'com.acme.shop.payments.RefundPermissionTest', defaultSuiteName: 'Payments', defaultCaseName: 'viewerCannotRefund', defaultOwner: 'alex.kim', tags: ['payments', 'rbac'] },
+    { workspaceId: workspace.id, resultPath: 'com.acme.shop.search.GlobalSearchTest', defaultSuiteName: 'Search', tags: ['search'] },
+    { workspaceId: workspace.id, resultPath: 'com.acme.shop.export.CsvExportTest', defaultSuiteName: 'Export', tags: ['export', 'feature-flag'], visible: false },
   ]
   for (const test of catalog) {
     await prisma.automatedTest.upsert({
-      where: { resultPath: test.resultPath },
+      where: { workspaceId_resultPath: { workspaceId: workspace.id, resultPath: test.resultPath } },
       create: { ...test, tags: test.tags as unknown as Prisma.InputJsonValue, source: 'file' },
       update: { ...test, tags: test.tags as unknown as Prisma.InputJsonValue },
     })
@@ -75,8 +80,8 @@ async function main() {
     run('com.acme.legacy.OrphanProbeTest', TestStatus.passed, '2025-04-21T11:10:00Z', 1200, { caseName: 'probeResponds', tags: ['legacy'] }),
   ]
   for (const data of runs) {
-    const existing = await prisma.testResult.findFirst({ where: { path: data.path, startDate: data.startDate } })
-    if (!existing) await prisma.testResult.create({ data })
+    const existing = await prisma.testResult.findFirst({ where: { workspaceId: workspace.id, path: data.path, startDate: data.startDate } })
+    if (!existing) await prisma.testResult.create({ data: { ...data, workspaceId: workspace.id, projectName: 'default' } })
   }
 }
 

@@ -111,7 +111,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         />
       </Card>
       <CreateReportModal open={modalOpen} onCancel={() => setModalOpen(false)} onCreate={create} />
-      <TestCatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} environment={phase.environment} />
+      <TestCatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} environment={phase.environment} workspaceId={phase.workspaceId} />
     </>
   )
 }

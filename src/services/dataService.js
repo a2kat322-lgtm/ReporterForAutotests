@@ -14,8 +14,10 @@ async function request(path, options = {}) {
 }
 
 export async function getData(route = { page: 'phases' }) {
+  const workspaceId = route.workspaceId
+  const params = workspaceId != null ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''
   if (route.page === 'phases') {
-    const phases = await request('/phases')
+    const phases = await request(`/phases${params}`)
     return { phases, reports: [], results: [] }
   }
   const phaseId = route.phaseId || route.phase?.id
@@ -33,6 +35,18 @@ export async function getData(route = { page: 'phases' }) {
     request(`/reports/${reportId}/results`),
   ])
   return { phases: [report.phase], reports: [report], results }
+}
+
+export async function getWorkspaces() {
+  return request('/workspaces')
+}
+
+export async function createWorkspace(values) {
+  return request('/workspaces', { method: 'POST', body: JSON.stringify(values) })
+}
+
+export async function deleteWorkspace(workspaceId) {
+  return request(`/workspaces/${workspaceId}`, { method: 'DELETE' })
 }
 
 export async function createPhase(values) {
@@ -56,9 +70,10 @@ export async function updateResultFeedback(resultId, values) {
   return request(`/reports/results/${resultId}/feedback`, { method: 'PATCH', body: JSON.stringify(values) })
 }
 
-export async function getAutomatedTests(environment) {
+export function getAutomatedTests(environment, workspaceId) {
   const params = new URLSearchParams()
   if (environment) params.set('environment', environment)
+  if (workspaceId != null) params.set('workspaceId', workspaceId)
   const query = params.toString()
   return request(`/tests${query ? `?${query}` : ''}`)
 }
@@ -71,17 +86,18 @@ export async function createAutomatedTestsBulk(tests) {
   return request('/tests/bulk', { method: 'POST', body: JSON.stringify({ tests }) })
 }
 
-export async function updateAutomatedTestsVisibility(resultPaths, visible) {
-  return request('/tests/visibility', { method: 'POST', body: JSON.stringify({ resultPaths, visible }) })
+export async function updateAutomatedTestsVisibility(resultPaths, visible, workspaceId) {
+  return request('/tests/visibility', { method: 'POST', body: JSON.stringify({ resultPaths, visible, workspaceId }) })
 }
 
 export async function deleteAutomatedTest(testId) {
   return request(`/tests/${testId}`, { method: 'DELETE' })
 }
 
-export async function harvestAutomatedTests(startDate, endDate, environment) {
+export async function harvestAutomatedTests(startDate, endDate, environment, workspaceId) {
   const params = new URLSearchParams({ startDate, endDate })
   if (environment) params.set('environment', environment)
+  if (workspaceId != null) params.set('workspaceId', workspaceId)
   return request(`/tests/harvest?${params}`, { method: 'POST' })
 }
 

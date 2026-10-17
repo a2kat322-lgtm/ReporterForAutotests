@@ -15,8 +15,24 @@ enum TestStatus {
   skipped
 }
 
+// A workspace isolates phases, reports, catalog entries and runs for one
+// project. Its name is the `projectName` the automation system posts.
+model Workspace {
+  id        BigInt   @id @default(autoincrement())
+  /// Canonical form: lowercase and whitespace-trimmed; matches TestResult.projectName.
+  name      String   @unique @db.VarChar(200)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  phases    Phase[]
+  tests     AutomatedTest[]
+  runs      TestResult[]
+
+  @@index([createdAt])
+}
+
 model Phase {
   id          BigInt        @id @default(autoincrement())
+  workspaceId BigInt
   name        String        @db.VarChar(200)
   /// Canonical form: lowercase and whitespace-trimmed (enforced by a CHECK constraint).
   environment String
@@ -24,9 +40,11 @@ model Phase {
   endedAt     DateTime      @db.Date
   createdAt   DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime      @updatedAt @db.Timestamptz(3)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   reports     Report[]
 
   @@index([createdAt])
+  @@index([workspaceId])
 }
 
 model Report {
@@ -48,9 +66,11 @@ model Report {
 // Catalog of automated tests. `resultPath` is a unique business key, not a row ID.
 model AutomatedTest {
   id                 BigInt   @id @default(autoincrement())
-  resultPath         String   @unique @db.VarChar(300)
+  workspaceId        BigInt
+  resultPath         String   @db.VarChar(300)
   // Environments explicitly associated with this test by Harvest.
   environments       AutomatedTestEnvironment[]
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   fullResponsibility String?  @db.VarChar(200)
   defaultSuiteName   String?  @db.VarChar(200)
   defaultCaseName    String?  @db.VarChar(300)
@@ -60,6 +80,8 @@ model AutomatedTest {
   source             String   @default("manual") @db.VarChar(30)
   createdAt          DateTime @default(now()) @db.Timestamptz(3)
   updatedAt          DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([workspaceId, resultPath])
 }
 
 // Canonical environment names are lowercase; composite PK prevents duplicates.
@@ -77,6 +99,9 @@ model AutomatedTestEnvironment {
 // [startDate, endDate] window overlaps its inclusive [startDate, endDate] period.
 model TestResult {
   id        BigInt     @id @default(autoincrement())
+  workspaceId BigInt
+  /// Canonical form of the `projectName` the automation system posted; lowercased and trimmed.
+  projectName String   @db.VarChar(200)
   /// Matches `AutomatedTest.resultPath`. Logical join (no FK): uncatalogued runs are allowed.
   path      String     @db.VarChar(300)
   suiteName String?    @db.VarChar(200)
@@ -93,8 +118,9 @@ model TestResult {
   tags      Json       @default("[]") @db.JsonB
   createdAt DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt DateTime   @updatedAt @db.Timestamptz(3)
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@index([path, startDate])
-  @@index([startDate, endDate])
-  @@index([circuit])
+  @@index([workspaceId, path, startDate])
+  @@index([workspaceId, startDate, endDate])
+  @@index([workspaceId, circuit])
 }

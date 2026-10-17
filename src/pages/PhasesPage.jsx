@@ -13,7 +13,7 @@ const { Text } = Typography
 const cardBody = { padding: 0 }
 const emptyText = <Empty description="Пока нет тестовых фаз" />
 
-export default function PhasesPage({ data, navigate, reload }) {
+export default function PhasesPage({ data, navigate, reload, workspaceId }) {
   const [modalOpen, setModalOpen] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [onlyCurrentPhases, setOnlyCurrentPhases] = useState(true)
@@ -30,7 +30,7 @@ export default function PhasesPage({ data, navigate, reload }) {
   }, [data.phases, onlyCurrentPhases])
 
   const create = async (values) => {
-    await createPhase(values)
+    await createPhase({ ...values, workspaceId })
     setModalOpen(false)
     message.success('Фаза создана')
     reload()

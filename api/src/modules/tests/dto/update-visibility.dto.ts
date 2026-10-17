@@ -1,7 +1,10 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsString, MaxLength } from 'class-validator'
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsInt, IsString, MaxLength } from 'class-validator'
 import { Transform } from 'class-transformer'
 
 export class UpdateVisibilityDto {
+  @IsInt()
+  workspaceId: number
+
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(2000)
