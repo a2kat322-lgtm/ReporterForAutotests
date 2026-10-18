@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Button, Card, Input, Space, Tag, Typography } from 'antd'
-import { ArrowLeftOutlined, BarChartOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'
+import { Button, Card, Select, Space, Tag, Typography } from 'antd'
+import { ArrowLeftOutlined, BarChartOutlined, ReloadOutlined } from '@ant-design/icons'
 import ResultsChart from '../components/ResultsChart'
 import { SuiteTable } from '../components/ReportTables'
 import { envColors } from '../constants'
@@ -14,14 +14,15 @@ const suiteFallback = 'Без набора'
 // GET /reports/:id/results returns visible catalog tests plus the latest run
 // overlapping the report date range (`no_run` otherwise). A run is shown only
 // after its path has been registered in the catalog through Harvest.
-function buildReportView(results, query) {
-  const normalized = query.toLowerCase()
+function buildReportView(results, filters) {
   const matched = []
   const tally = { passed: 0, failed: 0, broken: 0, skipped: 0, no_run: 0 }
   for (const row of results) {
-    if (normalized
-      && !row.name.toLowerCase().includes(normalized)
-      && !row.path.toLowerCase().includes(normalized)) continue
+    const owner = row.owner || 'Не назначен'
+    const tags = Array.isArray(row.tags) ? row.tags : []
+    if (filters.statuses.length && !filters.statuses.includes(row.status)) continue
+    if (filters.owners.length && !filters.owners.includes(owner)) continue
+    if (filters.tags.length && !filters.tags.some((tag) => tags.includes(tag))) continue
     matched.push(row)
     if (tally[row.status] !== undefined) tally[row.status] += 1
   }
@@ -44,13 +45,29 @@ function buildReportView(results, query) {
   return { tests: matched, suites, counts: tally }
 }
 
+const statusOptions = [
+  { value: 'passed', label: 'Пройден' },
+  { value: 'failed', label: 'Упал' },
+  { value: 'broken', label: 'Ошибка' },
+  { value: 'skipped', label: 'Пропущен' },
+  { value: 'no_run', label: 'Нет запуска' },
+]
+
 export default function ReportPage({ data, phase, report, navigate, reload }) {
-  const [query, setQuery] = useState('')
+  const [statuses, setStatuses] = useState([])
+  const [owners, setOwners] = useState([])
+  const [tags, setTags] = useState([])
+  const filters = { statuses, owners, tags }
 
   const { tests, suites, counts } = useMemo(
-    () => buildReportView(data.results, query),
-    [data.results, query],
+    () => buildReportView(data.results, filters),
+    [data.results, statuses, owners, tags],
   )
+
+  const ownerOptions = useMemo(() => [...new Set(data.results.map((row) => row.owner || 'Не назначен'))]
+    .sort((a, b) => a.localeCompare(b, 'ru')).map((value) => ({ value, label: value })), [data.results])
+  const tagOptions = useMemo(() => [...new Set(data.results.flatMap((row) => Array.isArray(row.tags) ? row.tags : []))]
+    .sort((a, b) => a.localeCompare(b, 'ru')).map((value) => ({ value, label: value })), [data.results])
 
   return (
     <>
@@ -72,8 +89,37 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
         </Space>
       </div>
       <ResultsChart counts={counts} total={tests.length} />
-      <div className="toolbar report-toolbar">
-        <Input prefix={<SearchOutlined />} placeholder="Поиск тестов по названию или пути результата" value={query} onChange={(event) => setQuery(event.target.value)} allowClear />
+      <div className="toolbar report-toolbar" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) auto', width: '100%' }}>
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount="responsive"
+          placeholder="Результат прохождения"
+          options={statusOptions}
+          value={statuses}
+          onChange={setStatuses}
+          style={{ width: '100%', minWidth: 0 }}
+        />
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount="responsive"
+          placeholder="Владелец теста"
+          options={ownerOptions}
+          value={owners}
+          onChange={setOwners}
+          style={{ width: '100%', minWidth: 0 }}
+        />
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount="responsive"
+          placeholder="Теги теста"
+          options={tagOptions}
+          value={tags}
+          onChange={setTags}
+          style={{ width: '100%', minWidth: 0 }}
+        />
         <Text type="secondary">Показано <strong>{tests.length}</strong> кейсов в <strong>{suites.length}</strong> наборах</Text>
       </div>
       <Card className="table-card test-table-card" styles={{ body: cardBody }}>
