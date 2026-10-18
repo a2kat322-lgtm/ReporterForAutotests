@@ -46,11 +46,11 @@ function buildReportView(results, filters) {
 }
 
 const statusOptions = [
-  { value: 'passed', label: 'Пройден' },
-  { value: 'failed', label: 'Упал' },
-  { value: 'broken', label: 'Ошибка' },
-  { value: 'skipped', label: 'Пропущен' },
-  { value: 'no_run', label: 'Нет запуска' },
+  { value: 'passed', label: 'Passed' },
+  { value: 'failed', label: 'Failed' },
+  { value: 'broken', label: 'Broken' },
+  { value: 'skipped', label: 'Skipped' },
+  { value: 'no_run', label: 'No run' },
 ]
 
 export default function ReportPage({ data, phase, report, navigate, reload }) {

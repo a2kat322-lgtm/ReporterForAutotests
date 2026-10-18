@@ -3,11 +3,11 @@ import { Input, Select, Space, message } from 'antd'
 import { updateResultFeedback } from '../services/dataService'
 
 export const failureReasons = [
-  { value: 'Сбой проверки', label: 'Сбой проверки' },
-  { value: 'Таймаут', label: 'Таймаут' },
-  { value: 'Проблема окружения', label: 'Проблема окружения' },
-  { value: 'Проблема тестовых данных', label: 'Проблема тестовых данных' },
-  { value: 'Ошибка приложения', label: 'Ошибка приложения' },
+  { value: 'Неисправность АТ', label: 'Неисправность АТ' },
+  { value: 'Недоступность контура', label: 'Недоступность контура' },
+  { value: 'Дефект', label: 'Дефект' },
+  { value: 'Ошибка интеграции', label: 'Ошибка интеграции' },
+  { value: 'Ошибка тд', label: 'Ошибка тд' },
   { value: 'Другое', label: 'Другое' },
 ]
 
