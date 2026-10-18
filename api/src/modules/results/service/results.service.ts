@@ -81,7 +81,7 @@ export class ResultsService {
       message: firstString(body?.message),
       startDate,
       endDate,
-      tags: parseTags(body?.tags),
+      tags: parseTags(body?.tag),
     }
   }
 

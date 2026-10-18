@@ -1,9 +1,6 @@
 import { useState } from 'react'
-import { Descriptions, Input, Select, Space, Tag, Typography, message } from 'antd'
+import { Input, Select, Space, message } from 'antd'
 import { updateResultFeedback } from '../services/dataService'
-import { formatDate } from '../utils/format'
-
-const { Text } = Typography
 
 export const failureReasons = [
   { value: 'Сбой проверки', label: 'Сбой проверки' },
@@ -60,31 +57,3 @@ export function FailureFeedbackFields({ test, reload, compact = false }) {
   )
 }
 
-function FailureFeedback({ test, reload }) {
-  return (
-    <Descriptions.Item label="Обратная связь по падению" span={2}>
-      <FailureFeedbackFields test={test} reload={reload} />
-    </Descriptions.Item>
-  )
-}
-
-export default function RunDetails({ test, reload }) {
-  return (
-    <Descriptions size="small" column={2} className="run-details">
-      <Descriptions.Item label="Путь результата"><Text code>{test.path}</Text></Descriptions.Item>
-      <Descriptions.Item label="Владелец">{test.owner || '—'}</Descriptions.Item>
-      <Descriptions.Item label="Circuit">{test.circuit || '—'}</Descriptions.Item>
-      <Descriptions.Item label="Ответственность">{test.fullResponsibility || '—'}</Descriptions.Item>
-      <Descriptions.Item label="Окно">{formatDate(test.startDate, true)} → {formatDate(test.endDate, true)}</Descriptions.Item>
-      <Descriptions.Item label="Теги">
-        {test.tags?.length ? <Space size={4} wrap>{test.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}</Space> : '—'}
-      </Descriptions.Item>
-      {test.message ? (
-        <Descriptions.Item label="Сообщение" span={2}>
-          <Text type={test.status === 'passed' ? 'secondary' : 'danger'}>{test.message}</Text>
-        </Descriptions.Item>
-      ) : null}
-      {test.status === 'failed' || test.status === 'broken' ? <FailureFeedback test={test} reload={reload} /> : null}
-    </Descriptions>
-  )
-}

@@ -1,4 +1,4 @@
-import { Card, Empty, Typography } from 'antd'
+import { Card, Empty, Progress, Typography } from 'antd'
 
 const segments = [
   { key: 'passed', label: 'Passed', color: '#4ade80' },
@@ -10,7 +10,7 @@ const segments = [
 
 const { Text } = Typography
 
-export default function ReportsSummaryChart({ reports, summaries }) {
+export default function ReportsSummaryChart({ reports, summaries, cumulative }) {
   if (!reports.length) return null
 
   const summaryById = new Map(summaries.map((item) => [String(item.reportId), item]))
@@ -25,6 +25,20 @@ export default function ReportsSummaryChart({ reports, summaries }) {
 
   return (
     <Card title="Результаты по отчётам" className="reports-summary-card">
+      {cumulative && (
+        <div className="reports-summary-cumulative" aria-label="Накопительный результат по всем отчётам">
+          <div className="reports-summary-cumulative-heading">
+            <Text strong>Накопительный результат</Text>
+            <Text type="secondary">{cumulative.passed} из {cumulative.total} тестов успешно хотя бы раз</Text>
+          </div>
+          <Progress
+            percent={cumulative.total ? Math.round(cumulative.passed / cumulative.total * 100) : 0}
+            strokeColor="#4ade80"
+            trailColor="var(--track)"
+            showInfo
+          />
+        </div>
+      )}
       {summaries.length ? (
         <div className="reports-summary-chart" role="img" aria-label="Количество результатов тестов по каждому отчёту">
           {orderedReports.map((report) => {

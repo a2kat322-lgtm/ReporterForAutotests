@@ -1,4 +1,5 @@
 import { DatePicker, Form, Input, Modal } from 'antd'
+import ruRU from 'antd/locale/ru_RU'
 
 export default function CreatePhaseModal({ open, onCancel, onCreate }) {
   const [form] = Form.useForm()
@@ -36,7 +37,7 @@ export default function CreatePhaseModal({ open, onCancel, onCreate }) {
             { validator: (_, value) => (value?.[1]?.isBefore(value?.[0], 'day') ? Promise.reject(new Error('Дата окончания не может быть раньше даты начала')) : Promise.resolve()) },
           ]}
         >
-          <DatePicker.RangePicker className="full-width" />
+          <DatePicker.RangePicker className="full-width" locale={ruRU.DatePicker} />
         </Form.Item>
       </Form>
     </Modal>

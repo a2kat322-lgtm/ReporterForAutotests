@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { Empty, Space, Table, Tag, Tooltip, Typography } from 'antd'
-import { DownOutlined } from '@ant-design/icons'
+import { Empty, Popover, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import StatusTag from './StatusTag'
-import RunDetails from './RunDetails'
 import { FailureFeedbackFields } from './RunDetails'
 import { formatDuration } from '../utils/format'
 
@@ -56,14 +54,21 @@ function getDurationMs(test) {
   return Number.isFinite(start) && Number.isFinite(end) && end >= start ? end - start : null
 }
 
-const expandedRowRender = (test, reload) => (test.status === 'no_run'
-  ? <Text type="secondary">Этот отчёт пока не покрыт ни одним запуском.</Text>
-  : <RunDetails test={test} reload={reload} />)
+function formatInlineErrorMessage(message) {
+  const maxLineLength = 40
+  const maxLength = maxLineLength * 3
+  const truncated = message.length > maxLength
+    ? `${message.slice(0, maxLength).trimEnd()}...`
+    : message
+
+  return truncated.match(new RegExp(`.{1,${maxLineLength}}`, 'g')) || []
+}
 
 const getCaseColumns = (reload) => [
   {
     title: 'НАЗВАНИЕ КЕЙСА',
     dataIndex: 'caseName',
+    width: 280,
     render: (caseName, test) => (
       <div className="test-name">
         <span className="test-status-dot" data-status={test.status}></span>
@@ -71,6 +76,20 @@ const getCaseColumns = (reload) => [
           <Text strong>{caseName || test.name}</Text>
           {!test.inCatalog ? <Tag color="orange" style={{ marginLeft: 8 }}>не зарегистрирован</Tag> : null}
           <div><Text type="secondary" className="phase-id">{test.path}</Text></div>
+          {test.message ? (
+            <Popover
+              title="Сообщение об ошибке"
+              content={<div className="test-message-popover">{test.message}</div>}
+              trigger="click"
+              placement="bottomLeft"
+            >
+              <span className="test-inline-message" title="Нажмите, чтобы посмотреть сообщение целиком">
+                {formatInlineErrorMessage(test.message).map((line, index) => (
+                  <span key={`${line}-${index}`} className="test-inline-message-line">{line}</span>
+                ))}
+              </span>
+            </Popover>
+          ) : null}
         </div>
       </div>
     ),
@@ -79,13 +98,28 @@ const getCaseColumns = (reload) => [
   { title: 'ВЛАДЕЛЕЦ', dataIndex: 'owner', width: 130, render: (value) => <Text type="secondary">{value || '—'}</Text> },
   { title: 'ДЛИТЕЛЬНОСТЬ', dataIndex: 'durationMs', width: 110, render: (value, test) => <Text type="secondary">{formatDuration(getDurationMs(test))}</Text> },
   {
+    title: 'ТЕГИ',
+    dataIndex: 'tags',
+    width: 190,
+    render: (tags = []) => {
+      if (!tags.length) return <Text type="secondary">—</Text>
+      const visibleTags = tags.slice(0, 2)
+      const hiddenCount = tags.length - visibleTags.length
+      return (
+        <Space size={4} wrap>
+          {visibleTags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+          {hiddenCount > 0 ? <Tooltip title={tags.slice(2).join(', ')}><Tag>+{hiddenCount}</Tag></Tooltip> : null}
+        </Space>
+      )
+    },
+  },
+  {
     title: 'ОБРАТНАЯ СВЯЗЬ ПО ПАДЕНИЮ',
     width: 390,
     render: (_, test) => (test.status === 'failed' || test.status === 'broken'
-      ? <FailureFeedbackFields test={test} reload={reload} compact />
+      ? <div className="failure-feedback-cell"><FailureFeedbackFields test={test} reload={reload} compact /></div>
       : null),
   },
-  { title: '', width: 50, render: () => <DownOutlined className="expand-icon" /> },
 ]
 
 const suiteColumns = [
@@ -102,8 +136,6 @@ const suiteColumns = [
 ]
 
 export function CaseTable({ tests, reload }) {
-  const [expandedKeys, setExpandedKeys] = useState([])
-
   return (
     <Table
       className="suite-cases-table"
@@ -111,16 +143,6 @@ export function CaseTable({ tests, reload }) {
       columns={getCaseColumns(reload)}
       dataSource={tests}
       pagination={false}
-      onRow={(test) => ({
-        onClick: (event) => {
-          if (event.target.closest('.ant-table-row-expand-icon')) return
-          setExpandedKeys((keys) => keys.includes(test.rowKey)
-            ? keys.filter((key) => key !== test.rowKey)
-            : [...keys, test.rowKey])
-        },
-        style: { cursor: 'pointer' },
-      })}
-      expandable={{ expandedRowKeys: expandedKeys, onExpandedRowsChange: setExpandedKeys, expandedRowRender: (test) => expandedRowRender(test, reload) }}
       locale={{ emptyText }}
     />
   )

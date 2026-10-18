@@ -43,7 +43,8 @@ export class ReportsService {
     ])
     const visibleCatalog = catalog.filter((test) => test.visible)
 
-    return reports.map((report) => {
+    const passedAcrossReports = new Set<string>()
+    const reportSummaries = reports.map((report) => {
       const start = dayStart(report.startDate)
       const end = dayEnd(report.endDate)
       const latestRunByPath = new Map<string, TestResult>()
@@ -58,9 +59,15 @@ export class ReportsService {
       for (const test of visibleCatalog) {
         const status = latestRunByPath.get(test.resultPath)?.status ?? 'no_run'
         if (counts[status] !== undefined) counts[status] += 1
+        if (status === 'passed') passedAcrossReports.add(test.resultPath)
       }
       return { reportId: report.id, counts, total: visibleCatalog.length }
     })
+
+    return {
+      reportSummaries,
+      cumulative: { passed: passedAcrossReports.size, total: visibleCatalog.length },
+    }
   }
 
   async createForPhase(phaseId: bigint, dto: CreateReportDto) {

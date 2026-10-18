@@ -15,7 +15,7 @@ export interface RunPayload {
   message?: string
   startDate: string
   endDate: string
-  tags?: unknown
+  tag?: unknown
   /** Project identity posted by the automation system; resolves to a workspace. */
   projectName?: string
 }

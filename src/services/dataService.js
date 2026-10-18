@@ -27,7 +27,12 @@ export async function getData(route = { page: 'phases' }) {
       request(`/phases/${phaseId}/reports`),
       request(`/phases/${phaseId}/reports/results-summary`),
     ])
-    return { phases: [phase], reports, reportSummaries, results: [] }
+    return {
+      phases: [phase], reports,
+      reportSummaries: reportSummaries.reportSummaries || reportSummaries,
+      cumulative: reportSummaries.cumulative || null,
+      results: [],
+    }
   }
   const reportId = route.reportId || route.report?.id
   const [report, results] = await Promise.all([

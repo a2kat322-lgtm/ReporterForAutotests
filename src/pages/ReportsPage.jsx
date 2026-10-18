@@ -98,7 +98,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         <Text type="secondary"><strong className="toolbar-count">{reports.length}</strong> отчётов</Text>
         <Button icon={<ReloadOutlined />} onClick={reload}>Обновить</Button>
       </div>
-      <ReportsSummaryChart reports={reports} summaries={data.reportSummaries || []} />
+      <ReportsSummaryChart reports={reports} summaries={data.reportSummaries || []} cumulative={data.cumulative} />
       <Card className="table-card" styles={{ body: cardBody }}>
         <Table
           rowKey="id"

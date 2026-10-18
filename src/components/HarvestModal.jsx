@@ -1,5 +1,10 @@
 import { Button, DatePicker, Form, Modal, Space, Typography } from 'antd'
+import ruRU from 'antd/locale/ru_RU'
+import dayjs from 'dayjs'
+import 'dayjs/locale/ru'
 import { ImportOutlined } from '@ant-design/icons'
+
+dayjs.locale('ru')
 
 const { Paragraph, Text } = Typography
 
@@ -23,6 +28,7 @@ export default function HarvestModal({ open, form, environment, onClose, onHarve
           rules={[{ required: true, message: 'Выберите диапазон дат запуска для сбора' }]}
         >
           <DatePicker.RangePicker
+            locale={ruRU.DatePicker}
             style={{ width: '100%' }}
             aria-label="Диапазон дат запуска для сбора тестов"
             placeholder={['Дата начала', 'Дата окончания']}

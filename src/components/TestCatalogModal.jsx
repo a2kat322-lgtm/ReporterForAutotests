@@ -178,6 +178,7 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
 
   return (
     <Modal
+      className="test-catalog-modal"
       title="Каталог автоматических тестов"
       open={open}
       onCancel={onClose}
