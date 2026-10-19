@@ -190,3 +190,20 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 .donut-total{fill:var(--text);font-size:24px;font-weight:700;font-family:inherit}
 @media(max-width:700px){.simple-chart-legend{gap:9px;font-size:10px}.chart-axis,.chart-value{font-size:9px}}
 
+/* Light theme: matrix toolbar controls (Select + search Input). */
+:root[data-theme="light"] .phase-matrix-toolbar .ant-select-selector,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-input,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-input-affix-wrapper{background:#fff!important;border-color:#d9dce5!important;color:#20212a!important;box-shadow:none!important}
+:root[data-theme="light"] .phase-matrix-toolbar .ant-select-selection-item,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-select-selection-placeholder,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-select-arrow,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-select-clear,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-input::placeholder{color:#555866!important}
+:root[data-theme="light"] .phase-matrix-toolbar .ant-select-focused .ant-select-selector,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-input:focus,
+:root[data-theme="light"] .phase-matrix-toolbar .ant-input-affix-wrapper-focused{border-color:#8b5cf6!important;box-shadow:0 0 0 2px rgba(139,92,246,.12)!important}
+:root[data-theme="light"] .ant-select-dropdown{background:#fff!important;border:1px solid #e5e7eb!important;box-shadow:0 8px 24px rgba(32,33,42,.12)!important}
+:root[data-theme="light"] .ant-select-dropdown .ant-select-item{color:#20212a!important}
+:root[data-theme="light"] .ant-select-dropdown .ant-select-item-option-active{background:#f5f6fa!important}
+:root[data-theme="light"] .ant-select-dropdown .ant-select-item-option-selected{background:#f1eafe!important;color:#5b21b6!important;font-weight:600}
+
