@@ -218,7 +218,19 @@ curl -X POST http://localhost:3001/api/phases/1/reports \
 | `inCatalog` | boolean | сейчас всегда `true` |
 | `catalogId` | number \| null | ID записи каталога |
 | `fullResponsibility` | string \| null | ответственность из каталога |
-| `resultId` | number \| null | ID запуска |
+| `resultId` | number \| null | ID выбранного запуска |
+| `runCount` | number | сколько запусков пути попало в окно отчёта |
+| `firstStatus`, `latestStatus` | enum \| null | хронологически первый и последний статус запуска |
+| `firstStartDate`, `latestStartDate` | ISO \| null | окно первого и последнего запуска |
+| `firstFailedStartDate`, `latestFailedStartDate` | ISO \| null | первое и последнее падение |
+| `latestResultId` | number \| null | ID последнего запуска (для drill-down) |
+| `passedRuns`, `failedRuns` | number | число успешных и упавших/сломанных запусков |
+| `everPassed`, `everFailed`, `flaky` | boolean | были ли успехи/падения и оба одновременно |
+| `staleGreen` | boolean | отчёт показывает `passed`, но последний запуск — `failed/broken` |
+| `retryFixed` | boolean | первый запуск упал, последний прошёл |
+| `regressed` | boolean | первый запуск прошёл, последний упал |
+| `recentStatuses` | enum[] | до пяти последних статусов, новые первыми |
+| `latestMessage`, `latestFailureReason` | string \| null | сообщение последнего запуска и причина последнего падения |
 
 Правила выборки:
 
@@ -229,6 +241,10 @@ curl -X POST http://localhost:3001/api/phases/1/reports \
    (`00:00:00.000` первого дня … `23:59:59.999` последнего).
 4. Для пути выбирается последний успешный запуск; если успешных нет — последний запуск.
 5. Нет запуска → строка со статусом `no_run` и `null`-полями запуска.
+
+Поля `runCount`…`latestFailureReason` считаются по **всем** запускам пути в окне, поэтому
+позволяют отличить `status` отчёта (правило «passed побеждает») от фактического последнего
+результата (`latestStatus`), увидеть флаки, ретраи и `staleGreen`.
 
 ### `PATCH /reports/results/:resultId/feedback`
 

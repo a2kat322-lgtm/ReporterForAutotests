@@ -8,10 +8,10 @@
 
 | Область | Файлов | Строк | Комментарий |
 | --- | ---: | ---: | --- |
-| `src/` (frontend) | 25 | ~2 600 | React-компоненты, страницы, сервис, утилиты, стили |
-| `api/src/` (backend) | 45 | ~2 160 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
+| `src/` (frontend) | 26 | ~3 010 | React-компоненты, страницы, сервис, утилиты, стили |
+| `api/src/` (backend) | 45 | ~2 240 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
 | `api/prisma/` | 3 | ~280 | схема, одна baseline-миграция, lock-файл |
-| **Итого** | **73** | **~5 040** | плюс `scripts/`, конфиги и документация |
+| **Итого** | **74** | **~5 520** | плюс `scripts/`, конфиги и документация |
 
 Дополнительно: `scripts/send-test-runs.ps1` (136 строк) — демо-генератор запусков;
 `vite.config.js`, `docker-compose.yml`, `index.html`, `package.json`, `api/package.json`,
@@ -32,15 +32,16 @@
 | `main.jsx` | 5 | точка входа React | монтирует `<App />` в `#root`, `StrictMode` |
 | `App.jsx` | 76 | провайдеры, тема, роутинг | `default App`; внутренние `getRoute`, `getPath`, `getInitialTheme`, `getInitialWorkspaceId` |
 | `constants.js` | 6 | константы UI | `envColors`, `environmentOptions` |
-| `styles.css` | 152 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
+| `styles.css` | 177 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
 | `services/dataService.js` | 126 | HTTP-клиент | `getData`, `getPhaseAnalytics`, `getWorkspaces`, `createWorkspace`, `deleteWorkspace`, `createPhase`, `deletePhase`, `createReport`, `deleteReport`, `updateResultFeedback`, `getAutomatedTests`, `createAutomatedTest`, `createAutomatedTestsBulk`, `updateAutomatedTestsVisibility`, `deleteAutomatedTest`, `harvestAutomatedTests`, `importLegacyData` |
 | `utils/format.js` | 16 | форматирование | `formatDate`, `formatDuration` |
+| `utils/errorSignature.js` | 27 | нормализация ошибок | `normalizeErrorMessage` (id, line numbers, URL, числа) |
 | `utils/testFileParser.js` | 79 | парсер JSON-каталога | `parseTestsFile`; внутренние `cleanString`, `cleanTags`, `normalizeEntry` |
 | `pages/Dashboard.jsx` | 73 | загрузка данных и выбор страницы | `default Dashboard`; ленивый `PhaseAnalytics` |
 | `pages/PhasesPage.jsx` | 139 | список фаз | `default PhasesPage` |
 | `pages/ReportsPage.jsx` | 117 | отчёты фазы | `default ReportsPage`; внутри `create`, `remove`, колонки |
 | `pages/ReportPage.jsx` | 133 | результаты отчёта | `default ReportPage`; внутри `buildReportView`, фильтры статус/владелец/тег |
-| `pages/ReportDashboard.jsx` | 142 | аналитика отчёта | `default ReportDashboard`; внутри `Metric`, `StatusChart`, `DurationChart` |
+| `pages/ReportDashboard.jsx` | 499 | аналитика отчёта | `default ReportDashboard`; внутри `Metric`, `StatusChart`, `DurationStats`, `SuiteTable`, `SignatureTable`, `StaleGreenTable`, `FlakyTable` |
 | `pages/PhaseAnalytics.jsx` | 469 | аналитика фазы | `default PhaseAnalytics`; внутри `PassRateTrend`, `PhaseMatrix`, `ReportComparison`, `FailureSignatures`, `FailureReasons`, `OwnerTable`, `SuiteTable`, `Hygiene` |
 | `components/Shell.jsx` | 141 | каркас, workspace switcher, тема | `default Shell` |
 | `components/PageHeading.jsx` | 16 | заголовок страницы | `default PageHeading` |
@@ -72,12 +73,13 @@ main.jsx → App.jsx → Dashboard.jsx
 
 ### Аналитика: где считается
 
-`ReportDashboard` считает метрики отчёта в `useMemo` по `data.results` (один ответ
-`GET /reports/:id/results`): статусы, владельцев, длительности, ошибки, `failureReason`,
-долг анализа. `PhaseAnalytics` получает готовый серверный агрегат
-`GET /phases/:id/analytics`: KPI, тренд, сравнение отчётов, матрицу, ошибки, владельцев, наборы,
-гигиену; клиент только фильтрует и сортирует. Подробный каталог метрик — в
-[11-analytics.md](11-analytics.md).
+`ReportDashboard` считает метрики отчёта в `useMemo` по `data.results`: статусы, эффективный
+pass rate и покрытие, длительности, нормализованные подписи ошибок, владельцев, stale green,
+флаки/ретраи и долг анализа. Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`,
+`recentStatuses`, …) приходят в строке `GET /reports/:id/results`. `PhaseAnalytics` получает
+готовый серверный агрегат `GET /phases/:id/analytics`: KPI, тренд, сравнение отчётов, матрицу,
+ошибки, владельцев, наборы, гигиену; клиент только фильтрует и сортирует. Подробный каталог
+метрик — в [11-analytics.md](11-analytics.md).
 
 ---
 
@@ -103,7 +105,7 @@ main.jsx → App.jsx → Dashboard.jsx
 | --- | --- | --- |
 | `workspaces` | 5: `workspaces.module.ts`, `controller`, `service`, `repository`, `dto/create-workspace.dto.ts` | `findAll`, `findById`, `create`, `findOrCreateByName`, `canonicalName`, `delete` |
 | `phases` | 5: `phases.module.ts`, `controller`, `service`, `repository`, `dto/create-phase.dto.ts` | `findAll(workspaceId)`, `findById`, `create`, `ensureExists`, `delete` |
-| `reports` | 8: `reports.module.ts`, `controller/phase-reports`, `controller/reports`, `service/reports`, `service/report-view.utils`, `repository/reports`, `dto/create-report`, `dto/update-result-feedback` | `findByPhaseId`, `findResultsByPhaseId`, `createForPhase`, `findResults`, `updateResultFeedback`, `delete`; утилита `toRow` |
+| `reports` | 8: `reports.module.ts`, `controller/phase-reports`, `controller/reports`, `service/reports`, `service/report-view.utils`, `repository/reports`, `dto/create-report`, `dto/update-result-feedback` | `findByPhaseId`, `findResultsByPhaseId`, `createForPhase`, `findResults`, `updateResultFeedback`, `delete`; `toRow` собирает run-агрегаты (флаки, stale green, ретраи) |
 | `results` | 5: `results.module.ts`, `controller`, `service`, `repository`, `dto/run-payload.ts` | `normalize`, `ingestRun`; `create`, `findById`, `updateFeedback`, `findRunsCoveringWindow`, `findDistinctPaths`, `findLatestRunPerPath`, `circuitFilter`; типы `RunPayload`, `NormalizedRun`, `ReportResultRow` |
 | `tests` | 7: `tests.module.ts`, `controller`, `service`, `repository`, `dto/create-automated-test`, `dto/bulk-automated-tests`, `dto/update-visibility` | `findForEnvironment`, `create`, `createBulk`, `updateVisibility`, `harvestFromResults`, `delete`; `harvestBatch`, `findByResultPath`, `update`, `addEnvironment` (не используется) |
 | `analytics` | 4: `analytics.module.ts`, `controller/phase-analytics`, `service/phase-analytics`, `dto/analytics.types.ts` | `getPhaseAnalytics`; приватные `buildEntries`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildMatrix`, `buildHygiene`, `normalizeMessage`, `percentile` |
