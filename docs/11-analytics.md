@@ -406,7 +406,9 @@ Score всегда показывается вместе с составляющ
 ## 9. Чем рисовать
 
 Графики аналитики отчёта и фазы перерисованы на собственные SVG-компоненты
-([`SimpleCharts.jsx`](../src/components/charts/SimpleCharts.jsx)); `@ant-design/charts` больше
+([`components/charts/`](../src/components/charts/)); `SimpleCharts.jsx` остаётся barrel-точкой,
+а реализации разложены по файлам `StackedBarChart.jsx`, `ColumnChart.jsx`, `LineChart.jsx`,
+`DonutChart.jsx`, `BoxPlot.jsx`, `DurationProfile.jsx`, `ParetoChart.jsx`. `@ant-design/charts` больше
 не импортируется.
 
 | Визуал | Где | Реализация |

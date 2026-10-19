@@ -101,7 +101,7 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 `GET /phases/:id/analytics`:
 
 - KPI: отчёты, каталог, покрытие, прошли хотя бы раз, никогда не проходили, флаки;
-- SVG-графики из `SimpleCharts`: stacked bars «Статусы по отчётам», `LineChart` pass rate + coverage,
+- SVG-графики из `components/charts` (barrel `SimpleCharts`): stacked bars «Статусы по отчётам», `LineChart` pass rate + coverage,
   `DonutChart` lifecycle (stable green / recovered / regressed / stable red / never run / other),
   `ColumnChart` «Возраст текущих падений» с MTTR;
 - таблица сравнения отчётов: счётчики, pass rate, coverage, p90, флаки, регрессы, fixed, анализ;
@@ -168,8 +168,9 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 | `RunDetails.jsx` | детали запуска | `Descriptions`; `FailureFeedbackFields` — `Select` причин + комментарий с сохранением по `onChange`/`onBlur` |
 | `ResultsChart.jsx` | донат результатов | чистая SVG, `stroke-dasharray` на `pathLength="100"`, без библиотеки графиков |
 | `ReportsSummaryChart.jsx` | сводка по отчётам | CSS-полосы, нормализация по максимальному `total` |
-| `pages/PhaseAnalytics.jsx` | аналитика фазы | KPI, SVG-тренд, сравнение, CSS-Grid-матрица, ошибки, владельцы, наборы, гигиена |
-| `components/charts/SimpleCharts.jsx` | SVG-графики аналитики | `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `DurationProfile`, `ParetoChart`; без внешней chart-библиотеки |
+| `pages/report-dashboard/` | аналитика отчёта | `ReportDashboard` (композиция), `metrics.js` (`buildReportMetrics`), секции `OwnerSection` / `AnalysisSection` / `SlowTests` и таблицы/графики в `components/*` |
+| `pages/phase-analytics/` | аналитика фазы | KPI, SVG-тренд, сравнение, CSS-Grid-матрица, ошибки, владельцы, наборы, гигиена; компоненты в `components/*` |
+| `components/charts/` | SVG-графики аналитики | `SimpleCharts.jsx` — barrel; `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `BoxPlot`, `DurationProfile`, `ParetoChart` в отдельных файлах; без внешней chart-библиотеки |
 | `CatalogTableParts.jsx` | колонки каталога | `toDtoPayload()` — только DTO-поля; `getCaseColumns`, `getSuiteColumns` |
 | `TestCatalogModal.jsx` | каталог тестов фазы | импорт JSON, Harvest, видимость (индивидуальная, по набору, по выбранным), удаление, группировка по наборам |
 | `HarvestModal.jsx` | сбор из запусков | `RangePicker`, пояснение про окружение, форма в родителе |

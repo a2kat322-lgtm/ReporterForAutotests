@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { App, Button, Form, Modal, Space, Table, Tooltip, Typography, Upload } from 'antd'
+import { App, Button, Form, Modal, Space, Tooltip, Typography, Upload } from 'antd'
 import { FileAddOutlined, ImportOutlined, UploadOutlined } from '@ant-design/icons'
 import { createAutomatedTest, createAutomatedTestsBulk, deleteAutomatedTest, getAutomatedTests, harvestAutomatedTests, updateAutomatedTestsVisibility } from '../services/dataService'
 import { parseTestsFile } from '../utils/testFileParser'
 import HarvestModal from './HarvestModal'
-import { getCaseColumns, getSuiteColumns, caseEmptyText, catalogEmptyText, toDtoPayload } from './CatalogTableParts'
+import { getCaseColumns, getSuiteColumns, toDtoPayload } from './CatalogTableParts'
+import CatalogTable from './catalog/CatalogTable'
+import { groupCatalog } from './catalog/catalogUtils'
 
 const { Text, Paragraph } = Typography
-
-const compareCatalogNames = (left, right) => left.localeCompare(right, undefined, { sensitivity: 'base', numeric: true })
 
 export default function TestCatalogModal({ open, onClose, environment, workspaceId }) {
   const [form] = Form.useForm()
@@ -140,22 +140,7 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
     }
   }
 
-  const groupedCatalog = useMemo(() => {
-    const groups = new Map()
-    for (const test of catalog) {
-      const suiteName = test.defaultSuiteName || 'Без набора'
-      if (!groups.has(suiteName)) groups.set(suiteName, [])
-      groups.get(suiteName).push(test)
-    }
-    return Array.from(groups, ([suiteName, tests], index) => ({
-      key: `suite-${index}`,
-      suiteName,
-      tests: tests.sort((a, b) => compareCatalogNames(
-        a.defaultCaseName || a.resultPath,
-        b.defaultCaseName || b.resultPath,
-      )),
-    })).sort((a, b) => compareCatalogNames(a.suiteName, b.suiteName))
-  }, [catalog])
+  const groupedCatalog = useMemo(() => groupCatalog(catalog), [catalog])
 
   const toggleSuiteVisibility = async (suite, visible) => {
     setBulkUpdating(true)
@@ -245,51 +230,5 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
         onSelectionChange={setSelectedRowKeys}
       />
     </Modal>
-  )
-}
-
-function CatalogTable({ loading, groupedCatalog, suiteColumns, caseColumns, selectedRowKeys, onSelectionChange }) {
-  const [expandedKeys, setExpandedKeys] = useState([])
-
-  return (
-    <Table
-      rowKey="key"
-      size="small"
-      loading={loading}
-      columns={suiteColumns}
-      dataSource={groupedCatalog}
-      pagination={false}
-      onRow={(suite) => ({
-        // Toggle from anywhere in the row except the built-in expand control
-        // (it toggles itself) and interactive children (the visibility switch).
-        onClick: (event) => {
-          if (event.target.closest('.ant-table-row-expand-icon')) return
-          setExpandedKeys((keys) => keys.includes(suite.key)
-            ? keys.filter((key) => key !== suite.key)
-            : [...keys, suite.key])
-        },
-        style: { cursor: 'pointer' },
-      })}
-      expandable={{
-        expandedRowKeys: expandedKeys,
-        onExpandedRowsChange: setExpandedKeys,
-        expandedRowRender: (suite) => (
-          <Table
-            className="suite-cases-table"
-            rowKey="id"
-            size="small"
-            columns={caseColumns}
-            dataSource={suite.tests}
-            pagination={false}
-            rowSelection={{
-              selectedRowKeys,
-              onChange: onSelectionChange,
-            }}
-            locale={{ emptyText: caseEmptyText }}
-          />
-        ),
-      }}
-      locale={{ emptyText: catalogEmptyText }}
-    />
   )
 }

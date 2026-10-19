@@ -1,17 +1,17 @@
 # 09. Индекс кода
 
 Навигационная карта репозитория: где что лежит, какие символы экспортирует файл и где
-обрабатывается каждый эндпоинт. Цифры актуальны на 19.10.2026 (без `node_modules`, `dist`,
+обрабатывается каждый эндпоинт. Цифры актуальны на 20.10.2026 (без `node_modules`, `dist`,
 `.dsh-code-index`).
 
 ## Сводка
 
 | Область | Файлов | Строк | Комментарий |
 | --- | ---: | ---: | --- |
-| `src/` (frontend) | 27 | ~3 840 | React-компоненты, страницы, сервис, SVG-графики, стили |
-| `api/src/` (backend) | 45 | ~2 360 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
-| `api/prisma/` | 3 | ~280 | схема, одна baseline-миграция, lock-файл |
-| **Итого** | **75** | **~6 480** | плюс `scripts/`, конфиги и документация |
+| `src/` (frontend) | 76 | ~3 740 | React-компоненты, страницы, сервис, SVG-графики, стили |
+| `api/src/` (backend) | 56 | ~2 130 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
+| `api/prisma/` | 3 | ~240 | схема, одна baseline-миграция, lock-файл |
+| **Итого** | **135** | **~6 110** | плюс `scripts/`, конфиги и документация |
 
 Дополнительно: `scripts/send-test-runs.ps1` (136 строк) — демо-генератор запусков;
 `vite.config.js`, `docker-compose.yml`, `index.html`, `package.json`, `api/package.json`,
@@ -32,7 +32,7 @@
 | `main.jsx` | 5 | точка входа React | монтирует `<App />` в `#root`, `StrictMode` |
 | `App.jsx` | 76 | провайдеры, тема, роутинг | `default App`; внутренние `getRoute`, `getPath`, `getInitialTheme`, `getInitialWorkspaceId` |
 | `constants.js` | 6 | константы UI | `envColors`, `environmentOptions` |
-| `styles.css` | 192 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
+| `styles.css` | 209 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
 | `services/dataService.js` | 126 | HTTP-клиент | `getData`, `getPhaseAnalytics`, `getWorkspaces`, `createWorkspace`, `deleteWorkspace`, `createPhase`, `deletePhase`, `createReport`, `deleteReport`, `updateResultFeedback`, `getAutomatedTests`, `createAutomatedTest`, `createAutomatedTestsBulk`, `updateAutomatedTestsVisibility`, `deleteAutomatedTest`, `harvestAutomatedTests`, `importLegacyData` |
 | `utils/format.js` | 16 | форматирование | `formatDate`, `formatDuration` |
 | `utils/errorSignature.js` | 27 | нормализация ошибок | `normalizeErrorMessage` (id, line numbers, URL, числа) |
@@ -41,9 +41,12 @@
 | `pages/PhasesPage.jsx` | 139 | список фаз | `default PhasesPage` |
 | `pages/ReportsPage.jsx` | 117 | отчёты фазы | `default ReportsPage`; внутри `create`, `remove`, колонки |
 | `pages/ReportPage.jsx` | 133 | результаты отчёта | `default ReportPage`; внутри `buildReportView`, фильтры статус/владелец/тег |
-| `pages/ReportDashboard.jsx` | 632 | аналитика отчёта | `default ReportDashboard`; внутри `DurationStats`, `DurationProfile`, `StabilityChart`, `RetryChart`, `OwnerStackedBar`, `SignatureSection`, `StaleGreenTable`, `FlakyTable` |
-| `pages/PhaseAnalytics.jsx` | 522 | аналитика фазы | `default PhaseAnalytics`; внутри `StatusDynamicsChart`, `PhaseTrendChart`, `LifecycleChart`, `FailureAgingChart`, `PhaseMatrix`, `ReportComparison`, `Hygiene` |
-| `components/charts/SimpleCharts.jsx` | 630 | SVG-графики аналитики | `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `DurationProfile`, `ParetoChart` |
+| `pages/ReportDashboard.jsx` | 3 | barrel ленивого маршрута | реэкспорт из `pages/report-dashboard/` |
+| `pages/report-dashboard/` | 21 файл, ~670 | аналитика отчёта | `ReportDashboard.jsx` (композиция страницы), `metrics.js` (`buildReportMetrics`), `constants.js`, `utils.js`; `components/*` — секции (`OwnerSection`, `AnalysisSection`, `SlowTests`) и таблицы/графики |
+| `pages/PhaseAnalytics.jsx` | 3 | barrel ленивого маршрута | реэкспорт из `pages/phase-analytics/` |
+| `pages/phase-analytics/` | 15 файлов, ~520 | аналитика фазы | `PhaseAnalytics.jsx`, `constants.js`, `utils.js`; `components/*` — графики, `PhaseMatrix`, `ReportComparison`, таблицы ошибок/владельцев/наборов, `Hygiene` |
+| `components/charts/` | 12 файлов, ~620 | SVG-графики аналитики | `SimpleCharts.jsx` — barrel для обратной совместимости; `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `BoxPlot`, `DurationProfile`, `ParetoChart`; общие `chartUtils.js` и `ChartPrimitives.jsx` |
+| `components/MetricCard.jsx` | 11 | плитка KPI | общая для аналитики отчёта и фазы |
 | `components/Shell.jsx` | 141 | каркас, workspace switcher, тема | `default Shell` |
 | `components/PageHeading.jsx` | 16 | заголовок страницы | `default PageHeading` |
 | `components/StatusTag.jsx` | 15 | тег статуса | `default StatusTag` |
@@ -52,7 +55,8 @@
 | `components/ResultsChart.jsx` | 46 | SVG-донат результатов | `default ResultsChart` |
 | `components/ReportsSummaryChart.jsx` | 77 | сводка по отчётам фазы | `default ReportsSummaryChart`; накопительный результат, стековые полосы |
 | `components/CatalogTableParts.jsx` | 109 | колонки каталога | `toDtoPayload`, `getCaseColumns`, `getSuiteColumns`, `caseEmptyText`, `catalogEmptyText` |
-| `components/TestCatalogModal.jsx` | 295 | модальное окно каталога | `default TestCatalogModal`; внутри `CatalogTable` |
+| `components/catalog/` | 2 файла, ~64 | таблица каталога | `CatalogTable.jsx` (раскрывающиеся наборы), `catalogUtils.js` (`groupCatalog`, `compareCatalogNames`) |
+| `components/TestCatalogModal.jsx` | 212 | модальное окно каталога | `default TestCatalogModal`; состояние, импорт, Harvest, видимость |
 | `components/HarvestModal.jsx` | 44 | окно Harvest | `default HarvestModal` |
 | `components/CreatePhaseModal.jsx` | 45 | создание фазы | `default CreatePhaseModal` |
 | `components/CreateReportModal.jsx` | 42 | создание отчёта | `default CreateReportModal` |
@@ -65,16 +69,17 @@ main.jsx → App.jsx → Dashboard.jsx
                          ├─ PhasesPage → CreatePhaseModal
                          ├─ ReportsPage → CreateReportModal, TestCatalogModal
                          │                   ├─ HarvestModal
-                         │                   └─ CatalogTableParts
+                         │                   └─ CatalogTableParts + catalog/CatalogTable
                          │                   └─ ReportsSummaryChart
                          ├─ ReportPage → ResultsChart, ReportTables → RunDetails
-                         ├─ ReportDashboard
-                         └─ PhaseAnalytics (lazy)
+                         ├─ ReportDashboard (lazy) → report-dashboard/{metrics, components}
+                         └─ PhaseAnalytics (lazy) → phase-analytics/components
 ```
 
 ### Аналитика: где считается
 
-`ReportDashboard` считает метрики отчёта в `useMemo` по `data.results`: статусы, эффективный
+`ReportDashboard` считает метрики отчёта в `useMemo` по `data.results` (чистая функция
+`buildReportMetrics` в `pages/report-dashboard/metrics.js`): статусы, эффективный
 pass rate и покрытие, длительности, нормализованные подписи ошибок, владельцев, stale green,
 флаки/ретраи и долг анализа. Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`,
 `recentStatuses`, …) приходят в строке `GET /reports/:id/results`. `PhaseAnalytics` получает
@@ -109,8 +114,12 @@ pass rate и покрытие, длительности, нормализова�
 | `reports` | 8: `reports.module.ts`, `controller/phase-reports`, `controller/reports`, `service/reports`, `service/report-view.utils`, `repository/reports`, `dto/create-report`, `dto/update-result-feedback` | `findByPhaseId`, `findResultsByPhaseId`, `createForPhase`, `findResults`, `updateResultFeedback`, `delete`; `toRow` собирает run-агрегаты (флаки, stale green, ретраи) |
 | `results` | 5: `results.module.ts`, `controller`, `service`, `repository`, `dto/run-payload.ts` | `normalize`, `ingestRun`; `create`, `findById`, `updateFeedback`, `findRunsCoveringWindow`, `findDistinctPaths`, `findLatestRunPerPath`, `circuitFilter`; типы `RunPayload`, `NormalizedRun`, `ReportResultRow` |
 | `tests` | 7: `tests.module.ts`, `controller`, `service`, `repository`, `dto/create-automated-test`, `dto/bulk-automated-tests`, `dto/update-visibility` | `findForEnvironment`, `create`, `createBulk`, `updateVisibility`, `harvestFromResults`, `delete`; `harvestBatch`, `findByResultPath`, `update`, `addEnvironment` (не используется) |
-| `analytics` | 4: `analytics.module.ts`, `controller/phase-analytics`, `service/phase-analytics`, `dto/analytics.types.ts` | `getPhaseAnalytics`; приватные `buildEntries`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildLifecycle`, `buildFailureAging`, `buildMatrix`, `buildHygiene`, `normalizeMessage`, `percentile` |
+| `analytics` | 15: `analytics.module.ts`, `controller/phase-analytics`, `dto/analytics.types.ts`, `service/phase-analytics.service.ts` (оркестратор), `service/lib/*` (11 файлов) | `getPhaseAnalytics`; билдеры `buildEntries`, `fillStatus`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildLifecycle`, `buildFailureAging`, `buildMatrix`, `buildHygiene`; утилиты `normalizeMessage`, `percentile`, `ratio`, `isFailure` |
 | `import` | 4: `import.module.ts`, `controller`, `service`, `repository` | `importLegacy`, `executeImport`; интерфейсы `LegacyPhase`, `LegacyReport`, `LegacyResult`, `LegacyImportPayload` |
+
+`analytics/service/lib/` разбит по доменам: `entries.ts`, `report-rows.ts`, `kpi.ts`, `owners.ts`,
+`suites.ts`, `failures.ts`, `lifecycle.ts`, `failure-aging.ts`, `matrix.ts`, `hygiene.ts` и общие
+`analytics.utils.ts`. `PhaseAnalyticsService` только загружает данные и собирает результат.
 
 ### Карта эндпоинтов
 
@@ -230,8 +239,8 @@ AnalyticsService → PhasesService (findById)
 - Ищете поведение экрана — начните с `src/pages/*`, затем `components/*`.
 - Ищете правило API — `api/src/modules/<feature>/service/*.service.ts`.
 - Ищете SQL/выборку — `api/src/modules/<feature>/repository/*.repository.ts`.
-- Ищете метрику аналитики — `api/src/modules/analytics/service/phase-analytics.service.ts`
-  и `src/pages/PhaseAnalytics.jsx`.
+- Ищете метрику аналитики — `api/src/modules/analytics/service/lib/*` (билдеры)
+  и `src/pages/report-dashboard/metrics.js` / `src/pages/phase-analytics/PhaseAnalytics.jsx`.
 - Ищете ограничение БД — `api/prisma/migrations/`.
 - Ищете контракт запуска — `api/src/modules/results/service/results.service.ts` и
   [07-ingestion-and-import.md](07-ingestion-and-import.md).

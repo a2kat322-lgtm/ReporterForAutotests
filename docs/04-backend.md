@@ -61,6 +61,7 @@ API — приложение NestJS 10 на TypeScript, работающее с 
 | `reports` | `PhaseReportsController`, `ReportsController` | `ReportsService`, `ReportsRepository` | — | `PhasesModule`, `ResultsModule`, `TestsModule` |
 | `results` | `ResultsController` | `ResultsService`, `ResultsRepository` | `ResultsService`, `ResultsRepository` | `WorkspacesModule` |
 | `tests` | `TestsController` | `TestsService`, `TestsRepository` | `TestsService`, `TestsRepository` | `ResultsModule` |
+| `analytics` | `PhaseAnalyticsController` | `PhaseAnalyticsService` | — | `PhasesModule`, `ReportsModule`, `ResultsModule`, `TestsModule` |
 | `import` | `ImportController` | `ImportService`, `ImportRepository` | — | — |
 
 `PrismaModule` помечен `@Global()`, поэтому репозитории получают `PrismaService` без явного импорта.
