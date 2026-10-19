@@ -7,7 +7,8 @@ import { TestsRepository } from '../../tests/repository/tests.repository'
 import { CreateReportDto } from '../dto/create-report.dto'
 import { UpdateResultFeedbackDto } from '../dto/update-result-feedback.dto'
 import { ReportsRepository } from '../repository/reports.repository'
-import { dayEnd, dayStart, parseDateOnly, toRow } from './report-view.utils'
+import { dayEnd, dayStart, parseDateOnly } from '../../../common/dates/day-range'
+import { toRow } from './report-view.utils'
 
 @Injectable()
 export class ReportsService {

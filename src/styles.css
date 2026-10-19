@@ -100,3 +100,54 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 /* Workspace dropdown menu item: name + delete action. */
 .workspace-menu-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:160px}
 .workspace-menu-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+
+/* Phase analytics: trend, matrix, hygiene. */
+.phase-trend{display:flex;flex-direction:column;gap:10px}
+@media(max-width:900px){.page-heading{flex-wrap:wrap}.page-heading>.ant-space{width:100%;flex-wrap:wrap}.page-heading>.ant-space>.ant-space-item{flex:1 1 auto}.page-heading>.ant-space .ant-btn{width:100%}}
+.phase-trend-legend{display:flex;flex-wrap:wrap;gap:16px;color:var(--text-muted);font-size:11px}
+.phase-trend-legend span{display:inline-flex;align-items:center;gap:6px}
+.phase-trend-legend i{width:9px;height:9px;border-radius:50%}
+.phase-trend svg{display:block;width:100%;height:auto;min-height:180px}
+.phase-trend-grid{stroke:var(--border);stroke-width:1;stroke-dasharray:3 4}
+.phase-trend-axis{fill:var(--text-muted);font-size:9px}
+.phase-trend-point{cursor:default}
+.phase-trend-caption{display:block;font-size:11px}
+.phase-matrix-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.phase-matrix-scroll{overflow:auto;max-height:780px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.phase-matrix-grid{display:grid;align-items:stretch;gap:2px 0;width:max-content;min-width:100%;margin-inline:auto}
+.phase-matrix-corner,.phase-matrix-head{position:sticky;top:0;z-index:2;display:flex;background:var(--surface);border-bottom:1px solid var(--border)}
+.phase-matrix-corner{left:0;z-index:3;align-items:flex-end;justify-content:flex-start;height:96px;padding:8px 10px;font-size:10px;font-weight:700;color:var(--text-muted);border-right:1px solid var(--border)}
+.phase-matrix-head{align-items:flex-end;justify-content:center;height:96px;padding:6px 1px;min-width:0}
+.phase-matrix-head span{display:block;max-height:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;writing-mode:vertical-rl;transform:rotate(180deg);font-size:10px;color:var(--text-muted)}
+.phase-matrix-suite{grid-column:1/-1;display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border:0;background:var(--surface-raised,rgba(255,255,255,.03));color:var(--text);font-size:11px;font-weight:700;cursor:pointer;text-align:left}
+.phase-matrix-suite:hover{background:var(--nav-active,rgba(139,92,246,.12))}
+.phase-matrix-test{position:sticky;left:0;z-index:1;display:flex;flex-direction:column;gap:2px;justify-content:center;min-width:0;padding:6px 10px;background:var(--surface);border-right:1px solid var(--border)}
+.phase-matrix-test .ant-typography{max-width:100%}
+.phase-matrix-test span .ant-typography{font-size:10px}
+.phase-matrix-status{display:flex;align-items:center;justify-content:center;min-height:36px;border-radius:6px;font-size:12px;font-style:normal;font-weight:700;line-height:1;background:var(--surface-raised,rgba(255,255,255,.04));color:var(--text-muted)}
+.phase-matrix-status.passed{color:#4ade80;background:color-mix(in srgb,#4ade80 18%,transparent)}
+.phase-matrix-status.failed{color:#fb7185;background:color-mix(in srgb,#fb7185 18%,transparent)}
+.phase-matrix-status.broken{color:#fbbf24;background:color-mix(in srgb,#fbbf24 18%,transparent)}
+.phase-matrix-status.skipped{color:#9ca0af;background:color-mix(in srgb,#9ca0af 16%,transparent)}
+.phase-matrix-status.no-run{color:var(--text-muted);background:transparent;border:1px dashed var(--border)}
+.phase-matrix-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;color:var(--text-muted);font-size:11px}
+.phase-matrix-legend span{display:inline-flex;align-items:center;gap:6px}
+.phase-matrix-legend .phase-matrix-status{width:18px;height:18px;min-height:0;border-radius:4px;font-size:10px}
+.phase-report-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.phase-report-cell .ant-typography{font-size:11px}
+.phase-comparison-table .ant-table-thead>tr>th{padding:8px 6px!important;white-space:nowrap;font-size:10px}
+.phase-comparison-table .ant-table-tbody>tr{cursor:pointer}
+.phase-failure-signature{display:flex;flex-direction:column;gap:2px;min-width:0}
+.phase-failure-signature .ant-typography{max-width:100%}
+.phase-failure-signature .ant-typography+.ant-typography{font-size:10px}
+.phase-hygiene{display:flex;flex-direction:column;gap:18px}
+.phase-hygiene-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.phase-hygiene-item{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:var(--surface-raised,rgba(255,255,255,.03))}
+.phase-hygiene-item strong{font-size:22px;line-height:1.1}
+.phase-hygiene-item .ant-typography{font-size:10px}
+.phase-hygiene-days{display:flex;flex-direction:column;gap:8px}
+.phase-runs-days{display:flex;align-items:flex-end;gap:3px;height:90px;overflow-x:auto;padding-bottom:16px}
+.phase-runs-day{position:relative;display:flex;align-items:flex-end;justify-content:center;flex:1 0 10px;height:100%}
+.phase-runs-day>span{display:block;width:100%;min-height:3px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#8b5cf6,#4ade80)}
+.phase-runs-day em{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:8px;font-style:normal;color:var(--text-muted);white-space:nowrap}
+@media(max-width:700px){.phase-matrix-toolbar{align-items:flex-start;flex-direction:column}.phase-matrix-corner,.phase-matrix-head{height:84px}}

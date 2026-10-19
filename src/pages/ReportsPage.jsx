@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { App, Button, Card, Empty, Popconfirm, Space, Table, Typography } from 'antd'
-import { ArrowLeftOutlined, DeleteOutlined, ExperimentOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, BarChartOutlined, DeleteOutlined, ExperimentOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
 import CreateReportModal from '../components/CreateReportModal'
 import TestCatalogModal from '../components/TestCatalogModal'
 import ReportsSummaryChart from '../components/ReportsSummaryChart'
@@ -89,6 +89,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         description="Отчёты и автоматические запуски тестов для этой тестовой фазы."
         action={
           <Space>
+            <Button size="large" icon={<BarChartOutlined />} onClick={() => navigate({ page: 'phaseAnalytics', phaseId: phase.id, phase })}>Аналитика фазы</Button>
             <Button size="large" icon={<ExperimentOutlined />} onClick={() => setCatalogOpen(true)}>Каталог тестов</Button>
             <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>Новый отчёт</Button>
           </Space>

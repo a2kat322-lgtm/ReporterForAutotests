@@ -10,13 +10,15 @@ import Dashboard from './pages/Dashboard'
 import './styles.css'
 
 function getRoute() {
-  const match = window.location.pathname.match(/^\/phase\/(\d+)(?:\/report\/(\d+)(?:\/analytics)?)?\/?$/)
+  const match = window.location.pathname.match(/^\/phase\/(\d+)(?:\/analytics|\/report\/(\d+)(?:\/analytics)?)?\/?$/)
   if (!match) return { page: 'phases' }
   if (match[2]) return { page: window.location.pathname.includes('/analytics') ? 'analytics' : 'report', phaseId: Number(match[1]), reportId: Number(match[2]) }
+  if (window.location.pathname.includes('/analytics')) return { page: 'phaseAnalytics', phaseId: Number(match[1]) }
   return { page: 'reports', phaseId: Number(match[1]) }
 }
 
 function getPath(route) {
+  if (route.page === 'phaseAnalytics') return `/phase/${encodeURIComponent(route.phaseId || route.phase.id)}/analytics`
   if (route.page === 'reports') return `/phase/${encodeURIComponent(route.phaseId || route.phase.id)}`
   if (route.page === 'report' || route.page === 'analytics') return `/phase/${encodeURIComponent(route.phaseId || route.phase.id)}/report/${encodeURIComponent(route.reportId || route.report.id)}${route.page === 'analytics' ? '/analytics' : ''}`
   return '/'

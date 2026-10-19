@@ -21,6 +21,17 @@ export async function getData(route = { page: 'phases' }) {
     return { phases, reports: [], results: [] }
   }
   const phaseId = route.phaseId || route.phase?.id
+  if (route.page === 'phaseAnalytics') {
+    const [reportList, analytics] = await Promise.all([
+      request(`/phases/${phaseId}/reports`),
+      getPhaseAnalytics(phaseId),
+    ])
+    return {
+      phases: [analytics.phase],
+      reports: reportList,
+      analytics,
+    }
+  }
   if (route.page === 'reports') {
     const [phase, reports, reportSummaries] = await Promise.all([
       request(`/phases/${phaseId}`),
@@ -44,6 +55,10 @@ export async function getData(route = { page: 'phases' }) {
 
 export async function getWorkspaces() {
   return request('/workspaces')
+}
+
+export function getPhaseAnalytics(phaseId) {
+  return request(`/phases/${phaseId}/analytics`)
 }
 
 export async function createWorkspace(values) {
