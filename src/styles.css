@@ -151,3 +151,27 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 .phase-runs-day>span{display:block;width:100%;min-height:3px;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#8b5cf6,#4ade80)}
 .phase-runs-day em{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:8px;font-style:normal;color:var(--text-muted);white-space:nowrap}
 @media(max-width:700px){.phase-matrix-toolbar{align-items:flex-start;flex-direction:column}.phase-matrix-corner,.phase-matrix-head{height:84px}}
+
+/* Report analytics v2: duration, error fingerprints, stale green, flaky runs. */
+.analytics-card .ant-table-thead>tr>th{white-space:nowrap;font-size:10px;padding:8px 6px!important}
+.duration-percentiles{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.duration-percentile{display:flex;flex-direction:column;gap:2px;min-width:92px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface-raised,rgba(255,255,255,.03))}
+.duration-percentile strong{font-size:18px;line-height:1.1}
+.duration-histogram{display:flex;align-items:flex-end;gap:12px;height:150px;padding-top:8px}
+.duration-histogram-item{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px;height:100%;min-width:0}
+.duration-histogram-track{display:flex;align-items:flex-end;width:100%;height:100%;overflow:hidden;border-radius:6px;background:var(--track)}
+.duration-histogram-track>span{display:block;width:100%;min-height:2px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#8b5cf6,#4ade80)}
+.signature-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.signature-cell .ant-typography{max-width:100%}
+.signature-cell .ant-typography+.ant-typography{font-size:10px}
+.analytics-test-cell{display:flex;flex-direction:column;gap:2px;min-width:0}
+.analytics-test-cell .ant-typography{max-width:100%}
+.analytics-test-cell .ant-typography+.ant-typography{font-size:10px}
+.run-history{display:inline-flex;align-items:center;gap:3px}
+.run-history-dot{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:5px;font-size:10px;font-style:normal;font-weight:700;line-height:1;background:var(--surface-raised,rgba(255,255,255,.04));color:var(--text-muted)}
+.run-history-dot.passed{color:#4ade80;background:color-mix(in srgb,#4ade80 18%,transparent)}
+.run-history-dot.failed{color:#fb7185;background:color-mix(in srgb,#fb7185 18%,transparent)}
+.run-history-dot.broken{color:#fbbf24;background:color-mix(in srgb,#fbbf24 18%,transparent)}
+.run-history-dot.skipped{color:#9ca0af;background:color-mix(in srgb,#9ca0af 16%,transparent)}
+@media(max-width:700px){.duration-histogram{gap:6px}.duration-percentile{min-width:76px;padding:6px 8px}}
+

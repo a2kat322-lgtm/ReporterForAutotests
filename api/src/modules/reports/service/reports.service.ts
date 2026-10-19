@@ -125,10 +125,15 @@ export class ReportsService {
     ])
 
     const latestRunByPath = new Map<string, TestResult>()
+    const runsByPath = new Map<string, TestResult[]>()
     for (const run of runs) {
+      const pathRuns = runsByPath.get(run.path)
+      if (pathRuns) pathRuns.push(run)
+      else runsByPath.set(run.path, [run])
+
       const current = latestRunByPath.get(run.path)
-      // runs are sorted by startDate desc; keep the earliest passing run so a
-      // later failure does not override an earlier pass in the report view.
+      // runs are sorted by startDate desc; keep a passing run so a later
+      // failure does not override an earlier pass in the report view.
       if (!current || (current.status !== 'passed' && run.status === 'passed')) {
         latestRunByPath.set(run.path, run)
       }
@@ -139,7 +144,7 @@ export class ReportsService {
       // Hidden catalog tests are excluded from the report, including their runs.
       if (!test.visible) continue
       const run = latestRunByPath.get(test.resultPath)
-      rows.push(toRow(test, run ?? null))
+      rows.push(toRow(test, run ?? null, runsByPath.get(test.resultPath) ?? []))
     }
     return rows
   }
