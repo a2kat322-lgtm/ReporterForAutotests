@@ -1,6 +1,11 @@
 import { ConfigProvider, theme } from 'antd'
 import { App as AntApp } from 'antd'
+import ruRU from 'antd/locale/ru_RU'
 import { useCallback, useEffect, useState } from 'react'
+import 'dayjs/locale/ru'
+import dayjs from 'dayjs'
+
+dayjs.locale('ru')
 import Dashboard from './pages/Dashboard'
 import './styles.css'
 
@@ -60,7 +65,7 @@ export default function App() {
     : { colorPrimary: '#8b5cf6', colorBgBase: '#0f1015', colorBgContainer: '#171820', colorBorder: '#292b38', borderRadius: 10, fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif' }
 
   return (
-    <ConfigProvider theme={{ algorithm: isLight ? theme.defaultAlgorithm : theme.darkAlgorithm, token: tokens }}>
+    <ConfigProvider locale={ruRU} theme={{ algorithm: isLight ? theme.defaultAlgorithm : theme.darkAlgorithm, token: tokens }}>
       <AntApp>
         <Dashboard route={route} navigate={navigate} colorMode={colorMode} onToggleTheme={() => setColorMode((mode) => mode === 'dark' ? 'light' : 'dark')} workspaceId={workspaceId} onSelectWorkspace={selectWorkspace} />
       </AntApp>

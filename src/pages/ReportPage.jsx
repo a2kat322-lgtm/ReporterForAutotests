@@ -98,6 +98,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
           options={statusOptions}
           value={statuses}
           onChange={setStatuses}
+           className="report-filter-select"
           style={{ width: '100%', minWidth: 0 }}
         />
         <Select
@@ -108,6 +109,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
           options={ownerOptions}
           value={owners}
           onChange={setOwners}
+           className="report-filter-select"
           style={{ width: '100%', minWidth: 0 }}
         />
         <Select
@@ -118,6 +120,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
           options={tagOptions}
           value={tags}
           onChange={setTags}
+           className="report-filter-select"
           style={{ width: '100%', minWidth: 0 }}
         />
         <Text type="secondary">Показано <strong>{tests.length}</strong> кейсов в <strong>{suites.length}</strong> наборах</Text>

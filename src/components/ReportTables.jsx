@@ -23,7 +23,7 @@ function SuiteStatusBadges({ tests }) {
   const counts = new Map()
   for (const test of tests) counts.set(test.status, (counts.get(test.status) || 0) + 1)
   return (
-    <Space size={6} wrap>
+    <Space size={10} wrap>
       {statusOrder
         .filter((status) => counts.has(status))
         .map((status) => (
@@ -71,7 +71,6 @@ const getCaseColumns = (reload) => [
     width: 280,
     render: (caseName, test) => (
       <div className="test-name">
-        <span className="test-status-dot" data-status={test.status}></span>
         <div>
           <Text strong>{caseName || test.name}</Text>
           {!test.inCatalog ? <Tag color="orange" style={{ marginLeft: 8 }}>не зарегистрирован</Tag> : null}

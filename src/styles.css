@@ -86,6 +86,19 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
   color: #1d4ed8 !important;
 }
 
+/* Collapsible sidebar */
+.sidebar{transition:width .2s ease,flex-basis .2s ease}.sidebar .brand img{transition:opacity .15s ease}.sidebar-toggle{position:absolute;right:-13px;top:74px;z-index:3;width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--text-muted);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.16)}.sidebar-toggle:hover{color:var(--nav-active-text);border-color:#8b5cf6}.topbar-sidebar-toggle{margin-right:4px}.sidebar-collapsed{padding-right:10px;padding-left:10px}.sidebar-collapsed .brand{justify-content:center;overflow:hidden}.sidebar-collapsed .brand img{width:38px;height:30px;object-fit:cover;object-position:left}.sidebar-collapsed .workspace{justify-content:center;padding:8px 4px;cursor:pointer}.sidebar-collapsed .workspace-copy,.sidebar-collapsed .workspace-arrow,.sidebar-collapsed .nav-section-label,.sidebar-collapsed .nav-label,.sidebar-collapsed .soon{display:none}.sidebar-collapsed .nav-item{justify-content:center;padding:10px 0}.sidebar-collapsed .nav-item .anticon{margin:0;font-size:17px}.sidebar-collapsed .sidebar-bottom{padding:0}.sidebar-collapsed .sidebar-toggle{right:-13px}
+@media(max-width:600px){.sidebar-toggle{display:none}.topbar-sidebar-toggle{display:inline-flex}}
+
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selector{background:#fff!important;color:#20212a!important;border-color:#d9dce5!important;box-shadow:none}
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-item,
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-placeholder,
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-arrow,
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-clear{color:#555866!important}
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-item{background:#f1eafe!important;border:1px solid #e1d4fa!important;color:#5b21b6!important}
+:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-item-remove{color:#737684!important}
+:root[data-theme="light"] .report-toolbar .report-filter-select.ant-select-focused .ant-select-selector{border-color:#8b5cf6!important;box-shadow:0 0 0 2px rgba(139,92,246,.12)!important}
+
 /* Workspace dropdown menu item: name + delete action. */
 .workspace-menu-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:160px}
 .workspace-menu-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
