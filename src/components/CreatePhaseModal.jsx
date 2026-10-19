@@ -27,7 +27,7 @@ export default function CreatePhaseModal({ open, onCancel, onCreate }) {
           <Input placeholder="например, Релиз 2.5.0" />
         </Form.Item>
         <Form.Item name="environment" label="Окружение" rules={[{ required: true, message: 'Введите окружение' }]}>
-          <Input placeholder="например, staging" />
+          <Input placeholder="например, dso" />
         </Form.Item>
         <Form.Item
           name="period"
