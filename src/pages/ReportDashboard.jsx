@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Button, Card, Col, Empty, Progress, Row, Table, Tag, Typography } from 'antd'
 import { ArrowLeftOutlined, BarChartOutlined } from '@ant-design/icons'
-import { Box, Column, DualAxes } from '@ant-design/charts'
+import { DurationProfile, ColumnChart, ParetoChart, StackedBarChart } from '../components/charts/SimpleCharts'
 import { formatDate, formatDuration } from '../utils/format'
 import { normalizeErrorMessage } from '../utils/errorSignature'
 
@@ -45,6 +45,7 @@ const STATUS_COLORS = {
   Skipped: '#9ca0af',
   'No run': '#737684',
 }
+const STATUS_SERIES = Object.entries(STATUS_COLORS).map(([label, color]) => ({ key: label, label, color }))
 
 function emptyCounts() {
   return Object.fromEntries(statuses.map(({ key }) => [key, 0]))
@@ -95,7 +96,7 @@ function StatusChart({ counts, total }) {
   </div></Card>
 }
 
-function DurationStats({ metrics, theme }) {
+function DurationStats({ metrics }) {
   return (
     <Card
       title="Длительность"
@@ -112,17 +113,14 @@ function DurationStats({ metrics, theme }) {
               </div>
             ))}
           </div>
-          <Column
-            data={metrics.durationBandData}
-            xField="bucket"
-            yField="count"
-            colorField="status"
-            stack
-            height={230}
-            theme={theme}
-            scale={{ color: { domain: Object.keys(STATUS_COLORS), range: Object.values(STATUS_COLORS) } }}
-            axis={{ x: { title: false }, y: { title: false } }}
-            legend={{ color: { position: 'top' } }}
+          <StackedBarChart
+            rows={metrics.durationBandData}
+            labelKey="bucket"
+            seriesKey="status"
+            valueKey="count"
+            series={STATUS_SERIES}
+            height={240}
+            labelLimit={6}
           />
         </>
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет данных о длительности" />}
@@ -130,111 +128,62 @@ function DurationStats({ metrics, theme }) {
   )
 }
 
-function SuiteDurationBox({ data, theme }) {
-  const config = {
-    data,
-    boxType: 'boxplot',
-    children: [{ type: 'boxplot', data, xField: 'suite', yField: 'duration' }],
-    colorField: 'suite',
-    legend: false,
-    style: { fill: '#8b5cf6' },
-    height: 300,
-    theme,
-    scale: { y: { type: 'log' } },
-    axis: { x: { title: false, labelAutoHide: true, labelAutoRotate: true }, y: { title: false } },
-  }
+function SuiteDurationBox({ data }) {
+  const groups = useMemo(() => {
+    const map = new Map()
+    for (const item of data) {
+      const values = map.get(item.suite) || []
+      values.push(item.duration)
+      map.set(item.suite, values)
+    }
+    return [...map.entries()].map(([label, values]) => ({ label, values }))
+  }, [data])
+
   return (
-    <Card title="Разброс длительности по наборам" className="analytics-card" extra={<Text type="secondary">секунды</Text>}>
-      {data.length ? <Box {...config} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет данных о длительности" />}
+    <Card title="Разброс длительности по наборам" className="analytics-card" extra={<Text type="secondary">p90 и медиана, секунды</Text>}>
+      <DurationProfile groups={groups} height={300} />
     </Card>
   )
 }
 
-function StabilityChart({ data, theme }) {
+function StabilityChart({ data }) {
   return (
     <Card title="Стабильность тестов" className="analytics-card" extra={<Text type="secondary">по executed runs</Text>}>
       {data.some((item) => item.count > 0) ? (
-        <Column
-          data={data}
-          xField="band"
-          yField="count"
-          height={300}
-          theme={theme}
-          style={{ fill: '#8b5cf6' }}
-          axis={{ x: { title: false }, y: { title: false } }}
-        />
+        <ColumnChart rows={data} labelKey="band" valueKey="count" color="#8b5cf6" height={280} />
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет запусков для оценки стабильности" />}
     </Card>
   )
 }
 
-function RetryChart({ data, theme }) {
+function RetryChart({ data }) {
   return (
     <Card title="Запуски на тест" className="analytics-card" extra={<Text type="secondary">ретраи</Text>}>
       {data.some((item) => item.count > 0) ? (
-        <Column
-          data={data}
-          xField="band"
-          yField="count"
-          height={300}
-          theme={theme}
-          style={{ fill: '#38bdf8' }}
-          axis={{ x: { title: false }, y: { title: false } }}
-        />
+        <ColumnChart rows={data} labelKey="band" valueKey="count" color="#38bdf8" height={280} />
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет запусков" />}
     </Card>
   )
 }
 
-function OwnerStackedBar({ data, theme }) {
+function OwnerStackedBar({ data }) {
   return (
-    <Column
-      data={data}
-      xField="owner"
-      yField="count"
-      colorField="status"
-      stack
+    <StackedBarChart
+      rows={data}
+      labelKey="owner"
+      seriesKey="status"
+      valueKey="count"
+      series={STATUS_SERIES}
+      height={260}
+      horizontal
       normalize
-      height={280}
-      theme={theme}
-      scale={{ color: { domain: Object.keys(STATUS_COLORS), range: Object.values(STATUS_COLORS) } }}
-      axis={{ x: { title: false }, y: { title: false, labelFormatter: (value) => `${Math.round(Number(value) * 100)}%` } }}
-      legend={{ color: { position: 'top' } }}
     />
   )
 }
 
-function ErrorPareto({ data, theme }) {
+function ErrorPareto({ data }) {
   const chartData = data.map((row, index) => ({ ...row, index: index + 1 }))
-  const maxCount = Math.max(...chartData.map((row) => row.count), 1)
-  const config = {
-    data: chartData,
-    xField: 'index',
-    height: 280,
-    theme,
-    children: [
-      {
-        type: 'interval',
-        data: chartData,
-        xField: 'index',
-        yField: 'count',
-        style: { fill: '#fb7185' },
-        label: { text: 'count', position: 'top' },
-        scale: { y: { domain: [0, maxCount + 1] } },
-      },
-      {
-        type: 'line',
-        data: chartData,
-        xField: 'index',
-        yField: 'cumulative',
-        style: { stroke: '#fbbf24' },
-        axis: { y: { position: 'right', labelFormatter: (value) => `${value}%` } },
-        scale: { y: { domain: [0, 100], independent: true } },
-      },
-    ],
-    axis: { x: { title: false }, y: { title: false } },
-  }
-  return <DualAxes {...config} />
+  return <ParetoChart rows={chartData} height={280} />
 }
 
 function SuiteTable({ suites }) {
@@ -249,7 +198,7 @@ function SuiteTable({ suites }) {
   return <Table rowKey="name" size="small" tableLayout="fixed" columns={columns} dataSource={suites} pagination={false} scroll={{ x: 520, y: 420 }} />
 }
 
-function SignatureSection({ signatures, failedTotal, theme }) {
+function SignatureSection({ signatures, failedTotal }) {
   const columns = [
     {
       title: 'ПОДПИСЬ ОШИБКИ',
@@ -272,7 +221,7 @@ function SignatureSection({ signatures, failedTotal, theme }) {
     >
       {failedTotal ? (
         <>
-          <ErrorPareto data={signatures} theme={theme} />
+          <ErrorPareto data={signatures} />
           <Table rowKey="signature" size="small" tableLayout="fixed" columns={columns} dataSource={signatures} pagination={false} scroll={{ y: 240 }} />
         </>
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="В отчёте нет падений" />}
@@ -344,8 +293,7 @@ function FlakyTable({ tests, retryFixed, regressed }) {
   )
 }
 
-export default function ReportDashboard({ data, phase, report, navigate, colorMode }) {
-  const chartTheme = colorMode === 'light' ? 'light' : 'dark'
+export default function ReportDashboard({ data, phase, report, navigate }) {
   const results = data.results || []
   const metrics = useMemo(() => {
     const counts = emptyCounts()
@@ -623,20 +571,23 @@ export default function ReportDashboard({ data, phase, report, navigate, colorMo
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts">
-      <Col xs={24} lg={12}><StatusChart counts={metrics.counts} total={metrics.total} /></Col>
-      <Col xs={24} lg={12}><DurationStats metrics={metrics} theme={chartTheme} /></Col>
+      <Col xs={24} lg={8}><StatusChart counts={metrics.counts} total={metrics.total} /></Col>
+      <Col xs={24} lg={16}><DurationStats metrics={metrics} /></Col>
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-      <Col xs={24} lg={12}><SuiteDurationBox data={metrics.suiteDurationData} theme={chartTheme} /></Col>
-      <Col xs={24} lg={6}><StabilityChart data={metrics.stabilityBands} theme={chartTheme} /></Col>
-      <Col xs={24} lg={6}><RetryChart data={metrics.runCountBands} theme={chartTheme} /></Col>
+      <Col xs={24}><SuiteDurationBox data={metrics.suiteDurationData} /></Col>
+    </Row>
+
+    <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
+      <Col xs={24} lg={12}><StabilityChart data={metrics.stabilityBands} /></Col>
+      <Col xs={24} lg={12}><RetryChart data={metrics.runCountBands} /></Col>
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
       <Col xs={24}>
         <Card title="Тесты по владельцам" className="analytics-card" extra={<Text type="secondary">доля статусов на владельца</Text>}>
-          <OwnerStackedBar data={metrics.ownerStackData} theme={chartTheme} />
+          <OwnerStackedBar data={metrics.ownerStackData} />
           <Table rowKey="owner" tableLayout="fixed" columns={ownerColumns} dataSource={metrics.owners} pagination={false} size="small" scroll={{ x: 900 }} />
         </Card>
       </Col>
@@ -648,7 +599,7 @@ export default function ReportDashboard({ data, phase, report, navigate, colorMo
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-      <Col xs={24}><SignatureSection signatures={metrics.signatures} failedTotal={metrics.failedTotal} theme={chartTheme} /></Col>
+      <Col xs={24}><SignatureSection signatures={metrics.signatures} failedTotal={metrics.failedTotal} /></Col>
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>

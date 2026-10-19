@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Button, Card, Col, Empty, Input, Row, Select, Space, Table, Tag, Typography } from 'antd'
 import { ArrowLeftOutlined, FileTextOutlined, ReloadOutlined } from '@ant-design/icons'
-import { Column, Line, Pie } from '@ant-design/charts'
+import { ColumnChart, DonutChart, LineChart, StackedBarChart } from '../components/charts/SimpleCharts'
 import { formatDate, formatDuration } from '../utils/format'
 
 const { Title, Text } = Typography
@@ -53,7 +53,7 @@ function Metric({ label, value, note, color }) {
   )
 }
 
-function StatusDynamicsChart({ reports, theme }) {
+function StatusDynamicsChart({ reports }) {
   const data = reports.flatMap((report) => CHART_STATUSES.map((status) => ({
     report: report.name,
     status: status.label,
@@ -63,24 +63,21 @@ function StatusDynamicsChart({ reports, theme }) {
   return (
     <Card title="Статусы по отчётам" className="analytics-card" extra={<Text type="secondary">стек по каждому отчёту</Text>}>
       {reports.length ? (
-        <Column
-          data={data}
-          xField="report"
-          yField="count"
-          colorField="status"
-          stack
+        <StackedBarChart
+          rows={data}
+          labelKey="report"
+          seriesKey="status"
+          valueKey="count"
+          series={CHART_STATUSES.map((status) => ({ key: status.label, label: status.label, color: status.color }))}
           height={300}
-          theme={theme}
-          scale={{ color: { domain: CHART_STATUSES.map((status) => status.label), range: CHART_STATUSES.map((status) => status.color) } }}
-          axis={{ x: { title: false, labelAutoRotate: true, labelAutoHide: true }, y: { title: false } }}
-          legend={{ color: { position: 'top' } }}
+          labelLimit={12}
         />
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="В фазе ещё нет отчётов" />}
     </Card>
   )
 }
 
-function PhaseTrendChart({ reports, theme }) {
+function PhaseTrendChart({ reports }) {
   const data = reports.flatMap((report) => [
     { report: report.name, metric: 'Pass rate', value: Math.round(report.passRate * 100) },
     { report: report.name, metric: 'Coverage', value: Math.round(report.coverage * 100) },
@@ -89,43 +86,43 @@ function PhaseTrendChart({ reports, theme }) {
   return (
     <Card title="Динамика прохождения и покрытия" className="analytics-card" extra={<Text type="secondary">по отчётам в хронологии</Text>}>
       {reports.length ? (
-        <Line
-          data={data}
-          xField="report"
-          yField="value"
-          colorField="metric"
+        <LineChart
+          rows={data}
+          labelKey="report"
+          seriesKey="metric"
+          valueKey="value"
+          series={[
+            { key: 'Pass rate', label: 'Pass rate', color: '#4ade80' },
+            { key: 'Coverage', label: 'Coverage', color: '#a78bfa' },
+          ]}
           height={300}
-          theme={theme}
-          scale={{ y: { domain: [0, 100] }, color: { domain: ['Pass rate', 'Coverage'], range: ['#4ade80', '#a78bfa'] } }}
-          axis={{ x: { title: false, labelAutoRotate: true, labelAutoHide: true }, y: { title: false, labelFormatter: (value) => `${value}%` } }}
-          legend={{ color: { position: 'top' } }}
+          yMax={100}
+          valueFormatter={(value) => `${value}%`}
         />
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="В фазе ещё нет отчётов" />}
     </Card>
   )
 }
 
-function LifecycleChart({ lifecycle, total, theme }) {
+function LifecycleChart({ lifecycle, total }) {
   const data = LIFECYCLE_META.map((item) => ({ type: item.label, value: lifecycle[item.key] || 0 })).filter((item) => item.value > 0)
   return (
     <Card title="Lifecycle тестов" className="analytics-card" extra={<Text type="secondary">тестов в каталоге: {total}</Text>}>
       {data.length ? (
-        <Pie
-          data={data}
-          angleField="value"
-          colorField="type"
-          innerRadius={0.58}
+        <DonutChart
+          rows={data}
+          labelKey="type"
+          valueKey="value"
+          colors={LIFECYCLE_META.map((item) => item.color)}
           height={280}
-          theme={theme}
-          scale={{ color: { domain: LIFECYCLE_META.map((item) => item.label), range: LIFECYCLE_META.map((item) => item.color) } }}
-          legend={{ color: { position: 'bottom' } }}
+          centerLabel="Тестов"
         />
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет данных о lifecycle" />}
     </Card>
   )
 }
 
-function FailureAgingChart({ aging, theme }) {
+function FailureAgingChart({ aging }) {
   const data = aging.buckets || []
   return (
     <Card
@@ -134,15 +131,7 @@ function FailureAgingChart({ aging, theme }) {
       extra={<Text type="secondary">MTTR {formatDuration(aging.mttrMedianMs)} · n={aging.mttrCount}</Text>}
     >
       {aging.totalCurrentFailures ? (
-        <Column
-          data={data}
-          xField="label"
-          yField="count"
-          height={280}
-          theme={theme}
-          style={{ fill: '#fb7185' }}
-          axis={{ x: { title: false }, y: { title: false } }}
-        />
+        <ColumnChart rows={data} labelKey="label" valueKey="count" color="#fb7185" height={280} />
       ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Нет текущих падений" />}
     </Card>
   )
@@ -451,7 +440,7 @@ function Hygiene({ hygiene }) {
   )
 }
 
-export default function PhaseAnalytics({ data, phase, navigate, reload, colorMode }) {
+export default function PhaseAnalytics({ data, phase, navigate, reload }) {
   const analytics = data.analytics
 
   if (!analytics) {
@@ -461,7 +450,6 @@ export default function PhaseAnalytics({ data, phase, navigate, reload, colorMod
   const { kpi, reports, matrix, owners, suites, failures, hygiene } = analytics
   const lifecycle = analytics.lifecycle || { stableGreen: 0, stableRed: 0, recovered: 0, regressed: 0, neverRun: 0, other: 0 }
   const failureAging = analytics.failureAging || { totalCurrentFailures: 0, buckets: [], mttrMedianMs: null, mttrCount: 0 }
-  const chartTheme = colorMode === 'light' ? 'light' : 'dark'
   const showReports = () => navigate({ page: 'reports', phaseId: phase.id, phase })
 
   return (
@@ -491,13 +479,13 @@ export default function PhaseAnalytics({ data, phase, navigate, reload, colorMod
       </Row>
 
       <Row gutter={[12, 12]} className="analytics-charts">
-        <Col xs={24} lg={12}><StatusDynamicsChart reports={reports} theme={chartTheme} /></Col>
-        <Col xs={24} lg={12}><PhaseTrendChart reports={reports} theme={chartTheme} /></Col>
+        <Col xs={24} lg={12}><StatusDynamicsChart reports={reports} /></Col>
+        <Col xs={24} lg={12}><PhaseTrendChart reports={reports} /></Col>
       </Row>
 
       <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-        <Col xs={24} lg={12}><LifecycleChart lifecycle={lifecycle} total={kpi.catalog} theme={chartTheme} /></Col>
-        <Col xs={24} lg={12}><FailureAgingChart aging={failureAging} theme={chartTheme} /></Col>
+        <Col xs={24} lg={12}><LifecycleChart lifecycle={lifecycle} total={kpi.catalog} /></Col>
+        <Col xs={24} lg={12}><FailureAgingChart aging={failureAging} /></Col>
       </Row>
 
       <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>

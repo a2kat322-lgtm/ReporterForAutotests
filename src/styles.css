@@ -175,3 +175,18 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 .run-history-dot.skipped{color:#9ca0af;background:color-mix(in srgb,#9ca0af 16%,transparent)}
 @media(max-width:700px){.duration-histogram{gap:6px}.duration-percentile{min-width:76px;padding:6px 8px}}
 
+/* Lightweight SVG charts used by report/phase analytics. */
+.simple-chart{width:100%}
+.simple-chart svg{display:block;width:100%;height:auto;overflow:visible;font-family:inherit}
+.simple-chart-empty{padding:42px 0;text-align:center;color:var(--text-muted);font-size:12px}
+.simple-chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;color:var(--text-muted);font-size:11px}
+.simple-chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.simple-chart-legend i{width:8px;height:8px;border-radius:50%}
+.chart-grid{stroke:var(--border);stroke-width:1;stroke-dasharray:3 5}
+.chart-axis{fill:var(--text-muted);font-size:11.5px;font-family:inherit}
+.chart-value{fill:var(--text);font-size:11.5px;font-weight:600;font-family:inherit}
+.chart-bar{transition:opacity .16s ease}
+.chart-bar:hover{opacity:.78}
+.donut-total{fill:var(--text);font-size:24px;font-weight:700;font-family:inherit}
+@media(max-width:700px){.simple-chart-legend{gap:9px;font-size:10px}.chart-axis,.chart-value{font-size:9px}}
+

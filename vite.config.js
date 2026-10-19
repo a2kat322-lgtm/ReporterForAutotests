@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    // Ant Design Charts has a large React-based dependency tree. Force every
-    // package and the app to use the same React runtime to avoid invalid-hook
-    // errors in Vite dev mode.
+    // Keep a single React runtime for the app and all UI dependencies to avoid
+    // invalid-hook errors in Vite dev mode.
     dedupe: ['react', 'react-dom'],
   },
   build: {
