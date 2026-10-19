@@ -8,10 +8,10 @@
 
 | Область | Файлов | Строк | Комментарий |
 | --- | ---: | ---: | --- |
-| `src/` (frontend) | 26 | ~3 010 | React-компоненты, страницы, сервис, утилиты, стили |
-| `api/src/` (backend) | 45 | ~2 240 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
+| `src/` (frontend) | 26 | ~3 260 | React-компоненты, страницы, сервис, утилиты, стили |
+| `api/src/` (backend) | 45 | ~2 360 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
 | `api/prisma/` | 3 | ~280 | схема, одна baseline-миграция, lock-файл |
-| **Итого** | **74** | **~5 520** | плюс `scripts/`, конфиги и документация |
+| **Итого** | **74** | **~5 900** | плюс `scripts/`, конфиги и документация |
 
 Дополнительно: `scripts/send-test-runs.ps1` (136 строк) — демо-генератор запусков;
 `vite.config.js`, `docker-compose.yml`, `index.html`, `package.json`, `api/package.json`,
@@ -41,8 +41,8 @@
 | `pages/PhasesPage.jsx` | 139 | список фаз | `default PhasesPage` |
 | `pages/ReportsPage.jsx` | 117 | отчёты фазы | `default ReportsPage`; внутри `create`, `remove`, колонки |
 | `pages/ReportPage.jsx` | 133 | результаты отчёта | `default ReportPage`; внутри `buildReportView`, фильтры статус/владелец/тег |
-| `pages/ReportDashboard.jsx` | 499 | аналитика отчёта | `default ReportDashboard`; внутри `Metric`, `StatusChart`, `DurationStats`, `SuiteTable`, `SignatureTable`, `StaleGreenTable`, `FlakyTable` |
-| `pages/PhaseAnalytics.jsx` | 469 | аналитика фазы | `default PhaseAnalytics`; внутри `PassRateTrend`, `PhaseMatrix`, `ReportComparison`, `FailureSignatures`, `FailureReasons`, `OwnerTable`, `SuiteTable`, `Hygiene` |
+| `pages/ReportDashboard.jsx` | 681 | аналитика отчёта | `default ReportDashboard`; внутри `Metric`, `StatusChart`, `DurationStats`, `SuiteDurationBox`, `StabilityChart`, `RetryChart`, `OwnerStackedBar`, `SignatureSection`, `StaleGreenTable`, `FlakyTable` |
+| `pages/PhaseAnalytics.jsx` | 534 | аналитика фазы | `default PhaseAnalytics`; внутри `StatusDynamicsChart`, `PhaseTrendChart`, `LifecycleChart`, `FailureAgingChart`, `PhaseMatrix`, `ReportComparison`, `Hygiene` |
 | `components/Shell.jsx` | 141 | каркас, workspace switcher, тема | `default Shell` |
 | `components/PageHeading.jsx` | 16 | заголовок страницы | `default PageHeading` |
 | `components/StatusTag.jsx` | 15 | тег статуса | `default StatusTag` |
@@ -108,7 +108,7 @@ pass rate и покрытие, длительности, нормализова�
 | `reports` | 8: `reports.module.ts`, `controller/phase-reports`, `controller/reports`, `service/reports`, `service/report-view.utils`, `repository/reports`, `dto/create-report`, `dto/update-result-feedback` | `findByPhaseId`, `findResultsByPhaseId`, `createForPhase`, `findResults`, `updateResultFeedback`, `delete`; `toRow` собирает run-агрегаты (флаки, stale green, ретраи) |
 | `results` | 5: `results.module.ts`, `controller`, `service`, `repository`, `dto/run-payload.ts` | `normalize`, `ingestRun`; `create`, `findById`, `updateFeedback`, `findRunsCoveringWindow`, `findDistinctPaths`, `findLatestRunPerPath`, `circuitFilter`; типы `RunPayload`, `NormalizedRun`, `ReportResultRow` |
 | `tests` | 7: `tests.module.ts`, `controller`, `service`, `repository`, `dto/create-automated-test`, `dto/bulk-automated-tests`, `dto/update-visibility` | `findForEnvironment`, `create`, `createBulk`, `updateVisibility`, `harvestFromResults`, `delete`; `harvestBatch`, `findByResultPath`, `update`, `addEnvironment` (не используется) |
-| `analytics` | 4: `analytics.module.ts`, `controller/phase-analytics`, `service/phase-analytics`, `dto/analytics.types.ts` | `getPhaseAnalytics`; приватные `buildEntries`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildMatrix`, `buildHygiene`, `normalizeMessage`, `percentile` |
+| `analytics` | 4: `analytics.module.ts`, `controller/phase-analytics`, `service/phase-analytics`, `dto/analytics.types.ts` | `getPhaseAnalytics`; приватные `buildEntries`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildLifecycle`, `buildFailureAging`, `buildMatrix`, `buildHygiene`, `normalizeMessage`, `percentile` |
 | `import` | 4: `import.module.ts`, `controller`, `service`, `repository` | `importLegacy`, `executeImport`; интерфейсы `LegacyPhase`, `LegacyReport`, `LegacyResult`, `LegacyImportPayload` |
 
 ### Карта эндпоинтов
@@ -182,7 +182,7 @@ AnalyticsService → PhasesService (findById)
 | --- | --- |
 | `scripts/send-test-runs.ps1` | демо-нагрузка `POST /api/results`: позитивные и негативные кейсы, ретраи, теги, `-DryRun`, `-BaseUrl` |
 | `docker-compose.yml` | PostgreSQL 16 (`test_insights` / `test_insights_dev`), порт 5432, healthcheck |
-| `vite.config.js` | React-плагин, `dedupe: react/react-dom`, `manualChunks` (react/charts/antd/dayjs) |
+| `vite.config.js` | React-плагин, `dedupe: react/react-dom`, `manualChunks` (react/antd/dayjs); Ant Design Charts остаётся в ленивом shared-чанке |
 | `index.html` | HTML-оболочка SPA |
 | `package.json` | скрипты фронтенда/API, зависимости |
 | `api/package.json` | скрипты Nest/Prisma/Jest, зависимости API |
@@ -200,7 +200,7 @@ AnalyticsService → PhasesService (findById)
 | `antd` | UI-компоненты (`Layout`, `Table`, `Modal`, `Form`, `Select`, `Progress`, …) |
 | `@ant-design/icons` | иконки в компонентах |
 | `dayjs` | `utils/format.js`, `App.jsx`, `PhasesPage`, `CreatePhaseModal`, `CreateReportModal` |
-| `@ant-design/charts` | **не используется** в `src/`, хотя указан в зависимостях и `manualChunks`; кандидат для аналитики фазы с ленивой загрузкой |
+| `@ant-design/charts` | аналитика отчёта и фазы: `Column`, `Box`, `DualAxes`, `Line`, `Pie`; грузится ленивым чанком |
 | `@nestjs/common`, `core`, `platform-express` | каркас API |
 | `@nestjs/config` | `appConfig`, `ConfigModule` |
 | `@nestjs/throttler` | глобальный guard и `@Throttle` |

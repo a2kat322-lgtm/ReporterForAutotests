@@ -305,6 +305,16 @@ Read-only агрегат по всей фазе: KPI, сравнение отч�
     "signatures": [{ "signature": "expected: <n> but was: <n> at <location>", "message": "...", "count": 4, "share": 0.44 }],
     "reasons": [{ "reason": "Дефект", "count": 4, "share": 0.44 }]
   },
+  "lifecycle": {
+    "stableGreen": 3, "stableRed": 1, "recovered": 2,
+    "regressed": 1, "neverRun": 1, "other": 0
+  },
+  "failureAging": {
+    "totalCurrentFailures": 3,
+    "buckets": [{ "label": "<1д", "count": 0 }, { "label": "1–3д", "count": 1 }, { "label": "3–7д", "count": 1 }, { "label": ">7д", "count": 1 }],
+    "mttrMedianMs": 172800000,
+    "mttrCount": 4
+  },
   "hygiene": {
     "totalRuns": 47, "environmentRuns": 42, "uncataloguedRuns": 12, "uncataloguedPaths": 3,
     "duplicateRuns": 2, "duplicateGroups": 2, "wrongCircuitRuns": 5,
@@ -335,6 +345,14 @@ Read-only агрегат по всей фазе: KPI, сравнение отч�
    timestamp, UUID, hex, `file:line`, числа и URL), `share` — доля от всех упавших запусков.
 10. `hygiene.overlappingReportPairs` — число пар отчётов с пересекающимися окнами дат;
     `duplicateRuns` — лишние запуски в группах `(path, startDate)`.
+11. `lifecycle` — взаимоисключающие категории по всем запускам пути:
+    `stableGreen` (все passed), `stableRed` (все failed/broken), `recovered` (последний passed,
+    раньше были падения), `regressed` (последний failed/broken, раньше был passed),
+    `neverRun` (нет запусков), `other` (например, только skipped).
+12. `failureAging.totalCurrentFailures` — пути, у которых последний запуск failed/broken;
+    `buckets` — возраст текущей красной серии от последнего pass до конца фазы.
+13. `failureAging.mttrMedianMs` — медиана «первое падение → первый следующий pass»;
+    `mttrCount` — сколько путей дали такой интервал.
 
 ---
 
