@@ -8,10 +8,10 @@
 
 | Область | Файлов | Строк | Комментарий |
 | --- | ---: | ---: | --- |
-| `src/` (frontend) | 26 | ~3 260 | React-компоненты, страницы, сервис, утилиты, стили |
+| `src/` (frontend) | 27 | ~3 840 | React-компоненты, страницы, сервис, SVG-графики, стили |
 | `api/src/` (backend) | 45 | ~2 360 | 7 модулей, 8 контроллеров, 7 сервисов, 6 репозиториев |
 | `api/prisma/` | 3 | ~280 | схема, одна baseline-миграция, lock-файл |
-| **Итого** | **74** | **~5 900** | плюс `scripts/`, конфиги и документация |
+| **Итого** | **75** | **~6 480** | плюс `scripts/`, конфиги и документация |
 
 Дополнительно: `scripts/send-test-runs.ps1` (136 строк) — демо-генератор запусков;
 `vite.config.js`, `docker-compose.yml`, `index.html`, `package.json`, `api/package.json`,
@@ -32,7 +32,7 @@
 | `main.jsx` | 5 | точка входа React | монтирует `<App />` в `#root`, `StrictMode` |
 | `App.jsx` | 76 | провайдеры, тема, роутинг | `default App`; внутренние `getRoute`, `getPath`, `getInitialTheme`, `getInitialWorkspaceId` |
 | `constants.js` | 6 | константы UI | `envColors`, `environmentOptions` |
-| `styles.css` | 177 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
+| `styles.css` | 192 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
 | `services/dataService.js` | 126 | HTTP-клиент | `getData`, `getPhaseAnalytics`, `getWorkspaces`, `createWorkspace`, `deleteWorkspace`, `createPhase`, `deletePhase`, `createReport`, `deleteReport`, `updateResultFeedback`, `getAutomatedTests`, `createAutomatedTest`, `createAutomatedTestsBulk`, `updateAutomatedTestsVisibility`, `deleteAutomatedTest`, `harvestAutomatedTests`, `importLegacyData` |
 | `utils/format.js` | 16 | форматирование | `formatDate`, `formatDuration` |
 | `utils/errorSignature.js` | 27 | нормализация ошибок | `normalizeErrorMessage` (id, line numbers, URL, числа) |
@@ -41,8 +41,9 @@
 | `pages/PhasesPage.jsx` | 139 | список фаз | `default PhasesPage` |
 | `pages/ReportsPage.jsx` | 117 | отчёты фазы | `default ReportsPage`; внутри `create`, `remove`, колонки |
 | `pages/ReportPage.jsx` | 133 | результаты отчёта | `default ReportPage`; внутри `buildReportView`, фильтры статус/владелец/тег |
-| `pages/ReportDashboard.jsx` | 681 | аналитика отчёта | `default ReportDashboard`; внутри `Metric`, `StatusChart`, `DurationStats`, `SuiteDurationBox`, `StabilityChart`, `RetryChart`, `OwnerStackedBar`, `SignatureSection`, `StaleGreenTable`, `FlakyTable` |
-| `pages/PhaseAnalytics.jsx` | 534 | аналитика фазы | `default PhaseAnalytics`; внутри `StatusDynamicsChart`, `PhaseTrendChart`, `LifecycleChart`, `FailureAgingChart`, `PhaseMatrix`, `ReportComparison`, `Hygiene` |
+| `pages/ReportDashboard.jsx` | 632 | аналитика отчёта | `default ReportDashboard`; внутри `DurationStats`, `DurationProfile`, `StabilityChart`, `RetryChart`, `OwnerStackedBar`, `SignatureSection`, `StaleGreenTable`, `FlakyTable` |
+| `pages/PhaseAnalytics.jsx` | 522 | аналитика фазы | `default PhaseAnalytics`; внутри `StatusDynamicsChart`, `PhaseTrendChart`, `LifecycleChart`, `FailureAgingChart`, `PhaseMatrix`, `ReportComparison`, `Hygiene` |
+| `components/charts/SimpleCharts.jsx` | 630 | SVG-графики аналитики | `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `DurationProfile`, `ParetoChart` |
 | `components/Shell.jsx` | 141 | каркас, workspace switcher, тема | `default Shell` |
 | `components/PageHeading.jsx` | 16 | заголовок страницы | `default PageHeading` |
 | `components/StatusTag.jsx` | 15 | тег статуса | `default StatusTag` |
@@ -182,7 +183,7 @@ AnalyticsService → PhasesService (findById)
 | --- | --- |
 | `scripts/send-test-runs.ps1` | демо-нагрузка `POST /api/results`: позитивные и негативные кейсы, ретраи, теги, `-DryRun`, `-BaseUrl` |
 | `docker-compose.yml` | PostgreSQL 16 (`test_insights` / `test_insights_dev`), порт 5432, healthcheck |
-| `vite.config.js` | React-плагин, `dedupe: react/react-dom`, `manualChunks` (react/antd/dayjs); Ant Design Charts остаётся в ленивом shared-чанке |
+| `vite.config.js` | React-плагин, `dedupe: react/react-dom`, `manualChunks` (react/antd/dayjs); SVG-чарты идут в ленивые чанки страниц |
 | `index.html` | HTML-оболочка SPA |
 | `package.json` | скрипты фронтенда/API, зависимости |
 | `api/package.json` | скрипты Nest/Prisma/Jest, зависимости API |
@@ -200,7 +201,7 @@ AnalyticsService → PhasesService (findById)
 | `antd` | UI-компоненты (`Layout`, `Table`, `Modal`, `Form`, `Select`, `Progress`, …) |
 | `@ant-design/icons` | иконки в компонентах |
 | `dayjs` | `utils/format.js`, `App.jsx`, `PhasesPage`, `CreatePhaseModal`, `CreateReportModal` |
-| `@ant-design/charts` | аналитика отчёта и фазы: `Column`, `Box`, `DualAxes`, `Line`, `Pie`; грузится ленивым чанком |
+| `@ant-design/charts` | **не импортируется** после перехода на `SimpleCharts`; зависимость осталась в `package.json` и может быть удалена |
 | `@nestjs/common`, `core`, `platform-express` | каркас API |
 | `@nestjs/config` | `appConfig`, `ConfigModule` |
 | `@nestjs/throttler` | глобальный guard и `@Throttle` |

@@ -101,9 +101,9 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 `GET /phases/:id/analytics`:
 
 - KPI: отчёты, каталог, покрытие, прошли хотя бы раз, никогда не проходили, флаки;
-- Ant Design Charts: stacked `Column` «Статусы по отчётам», `Line` pass rate + coverage,
-  `Pie` lifecycle (stable green / recovered / regressed / stable red / never run / other),
-  `Column` «Возраст текущих падений» с MTTR;
+- SVG-графики из `SimpleCharts`: stacked bars «Статусы по отчётам», `LineChart` pass rate + coverage,
+  `DonutChart` lifecycle (stable green / recovered / regressed / stable red / never run / other),
+  `ColumnChart` «Возраст текущих падений» с MTTR;
 - таблица сравнения отчётов: счётчики, pass rate, coverage, p90, флаки, регрессы, fixed, анализ;
 - матрица «тест × отчёт» на CSS Grid: коды `p/f/b/s/n`, группировка по наборам, фильтры
   по набору/тексту, сворачивание наборов, sticky-заголовки и первый столбец;
@@ -138,14 +138,14 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 - плитки: всего кейсов, процент прохождения, эффективный pass rate, покрытие, упавшие/сломанные,
   p90 времени, флаки, stale green;
 - «Обзор результатов» — прогресс-бары по статусам;
-- «Тесты по владельцам» — 100 % stacked `Column` по статусам + таблица passed / fail+broken /
+- «Тесты по владельцам» — 100 % stacked SVG-бар по статусам + таблица passed / fail+broken /
   skipped / no run, всего, p90 и флаки;
-- «Длительность» — p50/p90/p95/p99 и stacked `Column` по бакетам с разбивкой по статусам;
-- «Разброс длительности по наборам» — `Box` по секундам;
-- «Стабильность тестов» и «Запуски на тест» — `Column` по бакетам stability/runCount;
+- «Длительность» — p50/p90/p95/p99 и stacked SVG-бар по бакетам с разбивкой по статусам;
+- «Разброс длительности по наборам» — SVG-профиль min–max с p25/p50/p75/p90;
+- «Стабильность тестов» и «Запуски на тест» — SVG-столбцы по бакетам stability/runCount;
 - «Наборы» — pass rate, fail+broken, no run, p90;
 - «Самые медленные тест-кейсы» — топ-8 по `durationMs`;
-- «Подписи ошибок» — `DualAxes` Парето (частота + накопленная доля) и таблица с образцами;
+- «Подписи ошибок» — SVG-Парето (частота + накопленная доля) и таблица с образцами;
 - «Stale green» — отчёт показывает `passed`, но последний запуск упал/сломался;
 - «Флаки и ретраи» — число запусков, стабильность, последние статусы, `retryFixed`/`regressed`;
 - «Результаты анализа» — покрытие `failureReason` и распределение причин;
@@ -154,7 +154,7 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 
 Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recentStatuses`, …) приходят
 в строке `GET /reports/:id/results`; для старых ответов UI использует безопасные fallback-значения.
-Маршрут `analytics` ленивый, поэтому Ant Design Charts не попадает в стартовый бандл.
+Маршрут `analytics` ленивый, поэтому SVG-графики не попадают в стартовый бандл.
 
 ## Компоненты
 
@@ -168,6 +168,7 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 | `ResultsChart.jsx` | донат результатов | чистая SVG, `stroke-dasharray` на `pathLength="100"`, без библиотеки графиков |
 | `ReportsSummaryChart.jsx` | сводка по отчётам | CSS-полосы, нормализация по максимальному `total` |
 | `pages/PhaseAnalytics.jsx` | аналитика фазы | KPI, SVG-тренд, сравнение, CSS-Grid-матрица, ошибки, владельцы, наборы, гигиена |
+| `components/charts/SimpleCharts.jsx` | SVG-графики аналитики | `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `DurationProfile`, `ParetoChart`; без внешней chart-библиотеки |
 | `CatalogTableParts.jsx` | колонки каталога | `toDtoPayload()` — только DTO-поля; `getCaseColumns`, `getSuiteColumns` |
 | `TestCatalogModal.jsx` | каталог тестов фазы | импорт JSON, Harvest, видимость (индивидуальная, по набору, по выбранным), удаление, группировка по наборам |
 | `HarvestModal.jsx` | сбор из запусков | `RangePicker`, пояснение про окружение, форма в родителе |
@@ -244,9 +245,8 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 - **Ветка «не зарегистрирован»**. `ReportTables` умеет показывать тег для `inCatalog === false`, но
   `ReportsService.findResults` возвращает строки только для записей каталога, поэтому сейчас тег не
   отображается. Чтобы показать запуски без каталога, нужно менять контракт API.
-- **`@ant-design/charts`** используется в аналитике отчёта и фазы (`ReportDashboard`, `PhaseAnalytics`);
-  маршруты ленивые, поэтому библиотека грузится отдельным чанком только на аналитике. Простые
-  визуалы (донат результатов, полосы статусов, матрица) остались на SVG/CSS.
+- **`@ant-design/charts`** больше не импортируется: графики аналитики отчёта и фазы перерисованы
+  на SVG в `SimpleCharts`. Зависимость осталась в `package.json` и может быть удалена.
 - **Создание сущностей без workspace**. `workspaceId` берётся из `localStorage`; если он не выбран,
   `createPhase`/`createTest` отправят `null` и API ответит `400` (`workspaceId must be an integer`).
 - **Автор отчёта** не передаётся с клиента: `Report.author` имеет дефолт `"You"` в БД.

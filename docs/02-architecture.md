@@ -37,8 +37,8 @@ index.html
             ├── pages/PhasesPage.jsx        список фаз
             ├── pages/ReportsPage.jsx       отчёты фазы + сводный график
             ├── pages/ReportPage.jsx        результаты отчёта
-            ├── pages/ReportDashboard.jsx   аналитика отчёта (ленивый чанк, Ant Design Charts)
-            └── pages/PhaseAnalytics.jsx    аналитика фазы (ленивый чанк, Ant Design Charts)
+            ├── pages/ReportDashboard.jsx   аналитика отчёта (ленивый чанк, SVG-графики)
+            └── pages/PhaseAnalytics.jsx    аналитика фазы (ленивый чанк, SVG-графики)
 ```
 
 Правила:
