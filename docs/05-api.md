@@ -32,6 +32,7 @@
 | `DELETE` | `/phases/:phaseId` | удалить фазу и её отчёты | `200` |
 | `GET` | `/phases/:phaseId/reports` | отчёты фазы | `200` |
 | `GET` | `/phases/:phaseId/reports/results-summary` | сводка статусов по отчётам | `200` |
+| `GET` | `/phases/:phaseId/analytics` | аналитика фазы: KPI, сравнение, матрица, гигиена | `200` |
 | `POST` | `/phases/:phaseId/reports` | создать отчёт | `201` |
 | `GET` | `/reports/:reportId` | отчёт с фазой | `200` |
 | `GET` | `/reports/:reportId/results` | результаты отчёта | `200` |
@@ -250,6 +251,74 @@ curl -X PATCH http://localhost:3001/api/reports/results/42/feedback \
 ### `DELETE /reports/:reportId`
 
 `{ "deleted": true, "id": 2 }`. Запуски сохраняются. `404` — отчёта нет.
+
+---
+
+## Analytics
+
+### `GET /phases/:phaseId/analytics`
+
+Read-only агрегат по всей фазе: KPI, сравнение отчётов, матрица «тест × отчёт», владельцы, наборы,
+подписи ошибок и гигиена данных. Один запрос — одна фаза; пагинации нет. `404` — фазы нет.
+
+```json
+{
+  "phase": { "id": 1, "name": "Release 2.4.0", "environment": "stage", "...": "..." },
+  "kpi": {
+    "reports": 4, "catalog": 8, "executed": 7, "passedOnce": 6,
+    "neverPassed": 2, "alwaysFailed": 1, "flaky": 2,
+    "passRate": 0.75, "coverage": 0.875, "totalRuns": 42
+  },
+  "reports": [
+    {
+      "reportId": 1, "name": "Smoke 01.10",
+      "startDate": "2026-10-01T00:00:00.000Z", "endDate": "2026-10-03T00:00:00.000Z",
+      "counts": { "passed": 6, "failed": 1, "broken": 0, "skipped": 0, "no_run": 1 },
+      "total": 8, "passRate": 0.75, "effectivePassRate": 0.86, "coverage": 0.88,
+      "p90": 3900, "flaky": 1, "newFailures": 0, "fixed": 0, "analysisRate": 0.8
+    }
+  ],
+  "matrix": {
+    "columns": [{ "reportId": 1, "name": "Smoke 01.10", "startDate": "...", "endDate": "..." }],
+    "rows": [{ "path": "com.acme.CheckoutTest", "name": "checkout", "suiteName": "Checkout", "owner": "alex.kim", "cells": ["p", "f", "p"] }]
+  },
+  "owners": [{ "owner": "alex.kim", "total": 3, "passed": 2, "failed": 1, "broken": 0, "skipped": 0, "no_run": 0, "passRate": 0.67, "analysisRate": 0.8, "flaky": 1 }],
+  "suites": [{ "suiteName": "Auth", "total": 2, "failed": 1, "broken": 0, "no_run": 0, "passRate": 0.5, "p90": 4100 }],
+  "failures": {
+    "totalFailures": 9,
+    "signatures": [{ "signature": "expected: <n> but was: <n> at <location>", "message": "...", "count": 4, "share": 0.44 }],
+    "reasons": [{ "reason": "Дефект", "count": 4, "share": 0.44 }]
+  },
+  "hygiene": {
+    "totalRuns": 47, "environmentRuns": 42, "uncataloguedRuns": 12, "uncataloguedPaths": 3,
+    "duplicateRuns": 2, "duplicateGroups": 2, "wrongCircuitRuns": 5,
+    "overlappingReportPairs": 1, "overlappingReports": 2,
+    "missingOwnerRuns": 6, "missingMessageRuns": 1,
+    "runsByDay": [{ "date": "2026-10-01", "count": 4 }]
+  }
+}
+```
+
+Правила расчёта:
+
+1. Каталог — видимые тесты окружения фазы (`AutomatedTestEnvironment`), тот же, что в отчётах.
+2. Запуски — все `TestResult` workspace за период `phase.startedAt…endedAt`; для KPI и матрицы
+   учитываются только `circuit = phase.environment`. `hygiene` видит и чужие окружения.
+3. Статус отчёта — по тому же правилу, что `GET /reports/:id/results`: последний запуск, но
+   `passed` побеждает. Поэтому `reports[].counts` сходится с `results-summary`.
+4. `passRate` — `passed / catalog` (накопительный, как в сводке); `effectivePassRate` —
+   `passed / executed`; `coverage` — `executed / catalog`.
+5. `flaky` — у пути в фазе есть и `passed`, и `failed/broken`. `newFailures` — регресс
+   (`passed` в предыдущем отчёте → `failed/broken` в этом), `fixed` — обратный переход.
+6. `alwaysFailed` — все запуски пути в фазе `failed/broken`; `neverPassed` — путь ни разу не
+   показан как `passed` ни в одном отчёте.
+7. `p90` — ближайший ранг по длительностям выбранных запусков (`durationMs > 0`).
+8. Матрица: `cells[i]` соответствует `columns[i]`, коды `p/f/b/s/n` — passed/failed/broken/
+   skipped/no_run.
+9. `failures.signatures` — топ-10 по нормализованному сообщению (нижний регистр; удалены
+   timestamp, UUID, hex, `file:line`, числа и URL), `share` — доля от всех упавших запусков.
+10. `hygiene.overlappingReportPairs` — число пар отчётов с пересекающимися окнами дат;
+    `duplicateRuns` — лишние запуски в группах `(path, startDate)`.
 
 ---
 

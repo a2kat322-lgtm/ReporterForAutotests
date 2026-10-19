@@ -297,9 +297,9 @@ npm --prefix api run prisma:generate
 npm --prefix api run prisma:migrate:deploy
 ```
 
-Ожидаемый результат: `All migrations have been successfully applied.` На чистой БД применяются все
-19 миграций, включая `20261021000000_workspaces` и
-`20261022000000_remove_empty_default_workspace`.
+Ожидаемый результат: `All migrations have been successfully applied.` На чистой БД применяется
+одна baseline-миграция `20261018000000_baseline`, создающая финальную схему (таблицы, индексы,
+CHECK-ограничения, GiST).
 
 Проверка таблиц и пустоты базы:
 
@@ -309,21 +309,31 @@ sudo docker exec -it reporter-postgres psql -U reporter -d reporter -c 'SELECT c
 # 0
 ```
 
-**База после установки пустая:** seed-скрипта и демо-данных нет. Служебный workspace `default`
-создаётся миграцией workspaces для бэкфилла и удаляется, если пуст; если в нём уже есть данные, он
-сохраняется. Первый workspace, созданный в UI, получает `id = 1`.
+**База после установки пустая:** seed-скрипта и демо-данных нет. Baseline сразу сбрасывает
+последовательность `Workspace`, поэтому первый workspace, созданный в UI, получает `id = 1`;
+служебный `default` на чистой установке не создаётся.
 
 Дальше workspace появляется при создании в интерфейсе или автоматически при `POST /api/results`
 с `projectName`. Запуск без `projectName` (и legacy-импорт) создаёт `default` по требованию.
 
 ### Если миграции уже применялись старой версией
 
-- переименованная миграция `20261013130000_add_failure_feedback` использует
-  `ADD COLUMN IF NOT EXISTS` и безопасно применяется поверх существующих колонок;
-- запись старого имени в `_prisma_migrations` не мешает;
-- при ошибке `P3009` (неудачная миграция) найдите её в `_prisma_migrations`, устраните причину и
-  выполните `cd /srv/reporter/api && npx prisma migrate resolve --rolled-back <migration_name>`,
-  затем повторите deploy.
+Baseline рассчитан на **чистую** БД. На существующей БД, где применялась прежняя цепочка,
+`migrate deploy` попытается создать уже существующие таблицы и завершится ошибкой. Такую БД
+нужно один раз перевести на baseline:
+
+1. Сделайте бэкап (`pg_dump`).
+2. Сверьте фактическую схему с baseline (таблицы, индексы, CHECK-ограничения; при необходимости
+   `npx prisma migrate diff`).
+3. Отметьте baseline применённым **без выполнения SQL**:
+   `cd /srv/reporter/api && npx prisma migrate resolve --applied 20261018000000_baseline`.
+4. Повторите `npm --prefix api run prisma:migrate:deploy`.
+
+`resolve --applied` не создаёт схему — он только фиксирует факт применения. На БД, где нужных
+таблиц/индексов нет, это приведёт к рассинхрону. Записи старых миграций в `_prisma_migrations`
+мешать не будут. При ошибке `P3009` (неудачная миграция) найдите её в `_prisma_migrations`,
+устраните причину и выполните `npx prisma migrate resolve --rolled-back <migration_name>`,
+затем повторите deploy.
 
 ## 7. Сборка
 

@@ -15,7 +15,7 @@ flowchart LR
 
 | Компонент | Расположение | Запуск | Ответственность |
 | --- | --- | --- | --- |
-| SPA | `src/` | `npm run dev` (Vite, :5173) | UI, ручной роутинг, вызовы API, клиентская аналитика |
+| SPA | `src/` | `npm run dev` (Vite, :5173) | UI, ручной роутинг, вызовы API, аналитика отчёта на клиенте |
 | API | `api/src/` | `npm run api:dev` (Nest, :3001) | валидация, бизнес-логика, доступ к БД |
 | БД | Docker Compose | `npm run db:up` | хранение, ограничения целостности, индексы |
 
@@ -37,7 +37,8 @@ index.html
             ├── pages/PhasesPage.jsx        список фаз
             ├── pages/ReportsPage.jsx       отчёты фазы + сводный график
             ├── pages/ReportPage.jsx        результаты отчёта
-            └── pages/ReportDashboard.jsx   аналитика отчёта
+            ├── pages/ReportDashboard.jsx   аналитика отчёта
+            └── pages/PhaseAnalytics.jsx    аналитика фазы (ленивый чанк)
 ```
 
 Правила:
@@ -67,6 +68,7 @@ api/src/
 ├── config/app.config.ts        типизированная конфигурация из env
 ├── common/
 │   ├── database/               PrismaModule (global) + PrismaService
+│   ├── dates/                  dayStart / dayEnd / parseDateOnly (UTC-дни)
 │   └── pipes/                  ParseBigIntPipe
 └── modules/
     ├── workspaces/  controller → service → repository → Prisma
@@ -74,6 +76,7 @@ api/src/
     ├── reports/     controller(s) → service → repository → Prisma (+ PhasesService, ResultsRepository, TestsRepository)
     ├── results/     controller → service → repository → Prisma (+ WorkspacesService)
     ├── tests/       controller → service → repository → Prisma (+ ResultsRepository)
+    ├── analytics/   controller → service (read-only, поверх Phases/Reports/Results/Tests)
     └── import/      controller → service → repository → Prisma
 ```
 
@@ -99,6 +102,7 @@ flowchart TD
     App --> Reports
     App --> Results
     App --> Tests
+    App --> Analytics
     App --> Import
 
     Results --> Workspaces
@@ -106,6 +110,10 @@ flowchart TD
     Reports --> Phases
     Reports --> Results
     Reports --> Tests
+    Analytics --> Phases
+    Analytics --> Reports
+    Analytics --> Results
+    Analytics --> Tests
 
     Workspaces --> Prisma
     Phases --> Prisma
@@ -202,7 +210,7 @@ sequenceDiagram
 | `environment`/`circuit` как TEXT, а не enum | произвольные названия окружений | нормализация в коде и CHECK-констрейнты |
 | BigInt-ключи | рост данных, стабильные числовые ID | ограничение точности при экспорте в JS (см. ниже) |
 | Отдельная таблица `AutomatedTestEnvironment` | тест может участвовать в нескольких окружениях | составной PK, каскад, GIN больше не нужен |
-| Ручной роутинг на History API | минимальные зависимости, 4 экрана | нет вложенных layout-роутов и ленивой загрузки |
+| Ручной роутинг на History API | минимальные зависимости, 5 экранов | нет вложенных layout-роутов; ленивая загрузка только у аналитики фазы |
 
 ## Риски и технический долг архитектуры
 
@@ -210,14 +218,14 @@ sequenceDiagram
   заголовком подтверждения.
 - **BigInt → Number**: ID больше `2^53` потеряют точность при сериализации. Практически недостижимо
   при текущих объёмах, но ограничение стоит держать в голове.
-- **Клиентская аналитика**: при большом отчёте вся агрегация выполняется в браузере.
+- **Клиентская аналитика отчёта**: при большом отчёте агрегация выполняется в браузере. Аналитика
+  фазы, наоборот, считается на сервере одним запросом (`GET /phases/:id/analytics`).
 - **`workspaceId` в клиенте** хранится в `localStorage`; при его отсутствии создание фазы/теста
   уйдёт с `workspaceId: null` и получит `400`. Выбор workspace — обязательный первый шаг.
-- **Функциональность workspace ещё не закоммичена** (см. [09-code-index.md](09-code-index.md#состояние-репозитория)):
-  `Workspace` уже есть в схеме, миграциях и API, а `master` содержит предыдущую версию.
 - **Дублирование CSS**: `src/styles.css` содержит повторяющиеся блоки `:root` и стилей — правки
   нужно вносить в оба места либо провести чистку.
-- **Порядок миграций**: см. предупреждение в [06-data-model.md](06-data-model.md#порядок-миграций).
+- **Baseline-миграция**: история схлопнута в `20261018000000_baseline`; на существующей БД её
+  нужно отметить применённой вручную (см. [06-data-model.md](06-data-model.md#история-миграций)).
 
 ## Связанные документы
 

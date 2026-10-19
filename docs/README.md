@@ -20,6 +20,7 @@
 | [08-development.md](08-development.md) | Запуск, скрипты, проверки, troubleshooting |
 | [09-code-index.md](09-code-index.md) | Индекс кода: файлы, символы, эндпоинты, точки входа |
 | [10-deployment.md](10-deployment.md) | Развёртывание на удалённом сервере: Nginx, systemd, TLS, бэкапы |
+| [11-analytics.md](11-analytics.md) | Аналитика: что уже есть, каталог метрик по фазе и отчёту, ориентир на Allure, API и дорожная карта |
 
 ## Технологический стек
 

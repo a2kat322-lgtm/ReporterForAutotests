@@ -55,8 +55,9 @@ erDiagram
 | `updatedAt` | `TIMESTAMPTZ(3)` | NOT NULL, `@updatedAt` |
 
 Индексы: `Phase_createdAt_idx`, `Phase_workspaceId_idx`.
-Ограничение `Phase_environment_lowercase_check` добавлено миграцией
-`20261020000000_canonicalize_environment_and_paths`.
+Ограничение `Phase_environment_lowercase_check` входит в baseline-миграцию
+`20261018000000_baseline` (исторически оно появилось в
+`20261020000000_canonicalize_environment_and_paths`).
 
 ### `Report`
 
@@ -133,7 +134,7 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | `TestResult_workspaceId_circuit_idx` | точное совпадение окружения (btree) |
 | `TestResult_period_overlap_gist_idx` | `GIST (tstzrange("startDate","endDate",'[]'))` — пересечение интервалов |
 
-Индекс GiST объявлен **только в миграции** (`20261020030000_gist_overlap_index`), его нет в
+Индекс GiST объявлен **только в baseline-миграции** (`20261018000000_baseline`), его нет в
 `schema.prisma`. Prisma не управляет такими индексами; при генерации новых миграций проверяйте,
 что он не удаляется (`prisma migrate diff`).
 
@@ -191,6 +192,12 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 
 ## История миграций
 
+> **18.10.2026 история схлопнута.** В репозитории осталась одна миграция
+> `20261018000000_baseline`, которая создаёт финальную схему на чистой БД. Таблица ниже —
+> историческая хронология до схлопывания: на новой установке этих миграций нет, а в
+> `_prisma_migrations` старой БД могут остаться их имена. Как перевести существующую БД на
+> baseline — см. [10-deployment.md](10-deployment.md#если-миграции-уже-применялись-старой-версией).
+
 Порядок — лексикографический по имени каталога.
 
 | Миграция | Что делает |
@@ -216,6 +223,8 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | `20261022000000_remove_empty_default_workspace` | удаляет пустой служебный workspace `default` на чистой установке (создан для бэкфилла) |
 
 ### Порядок миграций
+
+> Историческая справка: на новую установку не влияет, потому что осталась одна baseline-миграция.
 
 Ранее миграция с полями `failureReason`/`failureComment` была датирована `20260309000000` — раньше
 `init`, хотя изменяет таблицу, создаваемую в `init`. Prisma применяет миграции в лексикографическом
@@ -249,18 +258,14 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 Workspace = 0, Phase = 0, Report = 0, AutomatedTest = 0, TestResult = 0
 ```
 
-Служебный workspace `default` создаётся миграцией `20261021000000_workspaces` только для бэкфилла
-существующих строк, а затем удаляется миграцией `20261022000000_remove_empty_default_workspace`,
-если в нём нет данных. На чистой БД последовательность `Workspace` сбрасывается, поэтому первый
-созданный workspace получает `id = 1`.
+Служебный workspace `default` больше не создаётся на чистой установке: baseline сразу сбрасывает
+последовательность `Workspace`, поэтому первый созданный workspace получает `id = 1`.
 
 Дальше workspace появляется одним из способов:
 
 - пользователь создаёт его в интерфейсе (кнопка «Новое пространство»);
 - `POST /api/results` с `projectName` создаёт workspace автоматически;
 - запуск без `projectName` или legacy-импорт создают workspace `default` по требованию.
-
-Если `default` уже содержит фазы, каталог или запуски, миграция очистки его **не удаляет**.
 
 Для наполнения стенда используйте `scripts/send-test-runs.ps1` (отправляет запуски) и создайте
 фазу/отчёт в интерфейсе; каталог наполняется через Harvest.

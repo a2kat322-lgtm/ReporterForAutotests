@@ -18,13 +18,14 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 Роутер — регулярное выражение в `App.jsx`:
 
 ```js
-/^\/phase\/(\d+)(?:\/report\/(\d+)(?:\/analytics)?)?\/?$/
+/^\/phase\/(\d+)(?:\/analytics|\/report\/(\d+)(?:\/analytics)?)?\/?$/
 ```
 
 | URL | `route.page` | Компонент | Данные |
 | --- | --- | --- | --- |
 | `/` (любой другой путь) | `phases` | `PhasesPage` | `GET /phases?workspaceId=` |
 | `/phase/:phaseId` | `reports` | `ReportsPage` | `GET /phases/:id`, `GET /phases/:id/reports`, `GET /phases/:id/reports/results-summary` |
+| `/phase/:phaseId/analytics` | `phaseAnalytics` | `PhaseAnalytics` (ленивый чанк) | `GET /phases/:id/analytics`, `GET /phases/:id/reports` |
 | `/phase/:phaseId/report/:reportId` | `report` | `ReportPage` | `GET /reports/:id`, `GET /reports/:id/results` |
 | `/phase/:phaseId/report/:reportId/analytics` | `analytics` | `ReportDashboard` | те же, что для `report` (аналитика считается на клиенте) |
 
@@ -70,6 +71,7 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 | --- | --- |
 | `phases` | `GET /phases[?workspaceId=]` |
 | `reports` | `GET /phases/:id`, `GET /phases/:id/reports`, `GET /phases/:id/reports/results-summary` |
+| `phaseAnalytics` | `GET /phases/:id/analytics`, `GET /phases/:id/reports` |
 | `report`, `analytics` | `GET /reports/:id` (включает `phase`), `GET /reports/:id/results` |
 
 ## Страницы
@@ -91,6 +93,25 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 - `TestCatalogModal` получает `environment` и `workspaceId` фазы — каталог и Harvest ограничены
   окружением фазы.
 - Создание через `CreateReportModal`; даты проверяются на «конец не раньше начала» на клиенте.
+- Кнопка «Аналитика фазы» → `phaseAnalytics`.
+
+### `PhaseAnalytics` — аналитика фазы
+
+Ленивый чанк (`React.lazy` + `Suspense`), данные — один серверный агрегат
+`GET /phases/:id/analytics`:
+
+- KPI: отчёты, каталог, покрытие, прошли хотя бы раз, никогда не проходили, флаки;
+- SVG-график «Динамика прохождения»: pass rate и coverage по отчётам в хронологии;
+- таблица сравнения отчётов: счётчики, pass rate, coverage, p90, флаки, регрессы, fixed, анализ;
+- матрица «тест × отчёт» на CSS Grid: коды `p/f/b/s/n`, группировка по наборам, фильтры
+  по набору/тексту, сворачивание наборов, sticky-заголовки и первый столбец;
+- топ подписей ошибок и распределение `failureReason`;
+- владельцы и наборы — по последнему отчёту;
+- гигиена данных: запуски вне каталога, дубли, чужой `circuit`, пересечение окон, пропуски
+  владельца/сообщения, объём приёма по дням.
+
+Тяжёлые агрегаты считает сервер; клиент только фильтрует и сортирует. Клик по строке сравнения
+открывает существующую аналитику отчёта.
 
 ### `ReportPage` — результаты отчёта
 
@@ -132,6 +153,7 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 | `RunDetails.jsx` | детали запуска | `Descriptions`; `FailureFeedbackFields` — `Select` причин + комментарий с сохранением по `onChange`/`onBlur` |
 | `ResultsChart.jsx` | донат результатов | чистая SVG, `stroke-dasharray` на `pathLength="100"`, без библиотеки графиков |
 | `ReportsSummaryChart.jsx` | сводка по отчётам | CSS-полосы, нормализация по максимальному `total` |
+| `pages/PhaseAnalytics.jsx` | аналитика фазы | KPI, SVG-тренд, сравнение, CSS-Grid-матрица, ошибки, владельцы, наборы, гигиена |
 | `CatalogTableParts.jsx` | колонки каталога | `toDtoPayload()` — только DTO-поля; `getCaseColumns`, `getSuiteColumns` |
 | `TestCatalogModal.jsx` | каталог тестов фазы | импорт JSON, Harvest, видимость (индивидуальная, по набору, по выбранным), удаление, группировка по наборам |
 | `HarvestModal.jsx` | сбор из запусков | `RangePicker`, пояснение про окружение, форма в родителе |
@@ -162,6 +184,7 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 | `deletePhase(id)` | `DELETE /phases/:id` |
 | `createReport(values)` | `POST /phases/:phaseId/reports` |
 | `deleteReport(id)` | `DELETE /reports/:id` |
+| `getPhaseAnalytics(phaseId)` | `GET /phases/:phaseId/analytics` |
 | `updateResultFeedback(resultId, values)` | `PATCH /reports/results/:resultId/feedback` |
 | `getAutomatedTests(environment, workspaceId)` | `GET /tests?environment=&workspaceId=` |
 | `createAutomatedTest(values)` | `POST /tests` |
