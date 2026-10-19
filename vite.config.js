@@ -18,7 +18,9 @@ export default defineConfig({
             // keeping it in the entry chunk makes those imports evaluate before
             // React is initialized in production builds.
             if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'react'
-            if (id.includes('@ant-design/charts') || id.includes('@ant-design/plots') || id.includes('@antv/')) return 'charts'
+            // Do not force @ant-design/charts into a manual chunk: it is imported
+            // only by lazy analytics pages, and a forced chunk creates a
+            // charts <-> react circular dependency in production builds.
             if (id.includes('antd') || id.includes('@ant-design/icons')) return 'antd'
             // Only the dayjs package itself: antd's `date-picker/generatePicker/dayjs.js`
             // also contains "dayjs" in its path and must stay in the antd chunk.

@@ -113,6 +113,29 @@ export interface PhaseHygiene {
   runsByDay: Array<{ date: string; count: number }>
 }
 
+export interface PhaseLifecycle {
+  stableGreen: number
+  stableRed: number
+  recovered: number
+  regressed: number
+  neverRun: number
+  other: number
+}
+
+export interface FailureAgeBucket {
+  label: string
+  count: number
+}
+
+export interface PhaseFailureAging {
+  /** Paths whose latest run is failed/broken. */
+  totalCurrentFailures: number
+  buckets: FailureAgeBucket[]
+  /** Median first failure → first subsequent pass, in milliseconds. */
+  mttrMedianMs: number | null
+  mttrCount: number
+}
+
 export interface PhaseAnalytics {
   phase: Phase
   kpi: PhaseKpi
@@ -121,5 +144,7 @@ export interface PhaseAnalytics {
   owners: PhaseOwnerRow[]
   suites: PhaseSuiteRow[]
   failures: PhaseFailures
+  lifecycle: PhaseLifecycle
+  failureAging: PhaseFailureAging
   hygiene: PhaseHygiene
 }

@@ -7,13 +7,16 @@ import { ResultsRepository } from '../../results/repository/results.repository'
 import { TestsRepository } from '../../tests/repository/tests.repository'
 import {
   AnalyticsStatus,
+  FailureAgeBucket,
   FailureReasonRow,
   FailureSignatureRow,
   MatrixRow,
   PhaseAnalytics,
+  PhaseFailureAging,
   PhaseFailures,
   PhaseHygiene,
   PhaseKpi,
+  PhaseLifecycle,
   PhaseMatrix,
   PhaseOwnerRow,
   PhaseSuiteRow,
@@ -155,6 +158,8 @@ export class PhaseAnalyticsService {
       owners: this.buildOwners(visibleCatalog, latestEntry, flakyPaths),
       suites: this.buildSuites(visibleCatalog, latestEntry),
       failures: this.buildFailures(environmentRuns),
+      lifecycle: this.buildLifecycle(visibleCatalog, environmentRuns),
+      failureAging: this.buildFailureAging(visibleCatalog, environmentRuns, dayEnd(phase.endedAt)),
       hygiene: this.buildHygiene(allRuns, environmentRuns, new Set(catalog.map((test) => test.resultPath)), orderedReports),
     }
   }
@@ -423,6 +428,101 @@ export class PhaseAnalyticsService {
       .sort((left, right) => right.count - left.count || left.reason.localeCompare(right.reason))
 
     return { totalFailures: total, signatures: signatureRows, reasons: reasonRows }
+  }
+
+  private buildLifecycle(catalog: AutomatedTest[], runs: TestResult[]): PhaseLifecycle {
+    const runsByPath = new Map<string, TestResult[]>()
+    for (const run of runs) {
+      const bucket = runsByPath.get(run.path)
+      if (bucket) bucket.push(run)
+      else runsByPath.set(run.path, [run])
+    }
+
+    const lifecycle: PhaseLifecycle = {
+      stableGreen: 0,
+      stableRed: 0,
+      recovered: 0,
+      regressed: 0,
+      neverRun: 0,
+      other: 0,
+    }
+
+    for (const test of catalog) {
+      const pathRuns = (runsByPath.get(test.resultPath) ?? [])
+        .sort((left, right) => left.startDate.valueOf() - right.startDate.valueOf())
+      if (!pathRuns.length) {
+        lifecycle.neverRun += 1
+        continue
+      }
+      const passed = pathRuns.some((run) => run.status === 'passed')
+      const failed = pathRuns.some((run) => isFailure(run.status))
+      const latest = pathRuns[pathRuns.length - 1].status
+      if (passed && !failed) lifecycle.stableGreen += 1
+      else if (!passed && failed) lifecycle.stableRed += 1
+      else if (latest === 'passed' && failed) lifecycle.recovered += 1
+      else if (isFailure(latest) && passed) lifecycle.regressed += 1
+      else lifecycle.other += 1
+    }
+
+    return lifecycle
+  }
+
+  private buildFailureAging(catalog: AutomatedTest[], runs: TestResult[], phaseEnd: Date): PhaseFailureAging {
+    const runsByPath = new Map<string, TestResult[]>()
+    for (const run of runs) {
+      const bucket = runsByPath.get(run.path)
+      if (bucket) bucket.push(run)
+      else runsByPath.set(run.path, [run])
+    }
+
+    const definitions = [
+      { label: '<1д', maxDays: 1 },
+      { label: '1–3д', maxDays: 3 },
+      { label: '3–7д', maxDays: 7 },
+      { label: '>7д', maxDays: Number.POSITIVE_INFINITY },
+    ]
+    const counts = definitions.map(() => 0)
+    const mttrs: number[] = []
+    let totalCurrentFailures = 0
+
+    for (const test of catalog) {
+      const pathRuns = (runsByPath.get(test.resultPath) ?? [])
+        .sort((left, right) => left.startDate.valueOf() - right.startDate.valueOf())
+      if (!pathRuns.length) continue
+
+      const latest = pathRuns[pathRuns.length - 1]
+      if (isFailure(latest.status)) {
+        totalCurrentFailures += 1
+        // Age of the current red streak: first failure since the last pass.
+        let streakStart = latest
+        for (let index = pathRuns.length - 1; index >= 0; index -= 1) {
+          const run = pathRuns[index]
+          if (run.status === 'passed') break
+          if (isFailure(run.status)) streakStart = run
+        }
+        const ageDays = Math.max(0, phaseEnd.valueOf() - streakStart.startDate.valueOf()) / 86_400_000
+        const bucketIndex = definitions.findIndex((definition) => ageDays < definition.maxDays)
+        counts[bucketIndex < 0 ? counts.length - 1 : bucketIndex] += 1
+      }
+
+      const firstFailure = pathRuns.find((run) => isFailure(run.status))
+      if (firstFailure) {
+        const nextPass = pathRuns.find((run) => run.status === 'passed' && run.startDate > firstFailure.startDate)
+        if (nextPass) mttrs.push(nextPass.startDate.valueOf() - firstFailure.startDate.valueOf())
+      }
+    }
+
+    const buckets: FailureAgeBucket[] = definitions.map((definition, index) => ({
+      label: definition.label,
+      count: counts[index],
+    }))
+
+    return {
+      totalCurrentFailures,
+      buckets,
+      mttrMedianMs: percentile(mttrs, 0.5),
+      mttrCount: mttrs.length,
+    }
   }
 
   private buildMatrix(entries: ReportEntry[], catalog: AutomatedTest[]): PhaseMatrix {

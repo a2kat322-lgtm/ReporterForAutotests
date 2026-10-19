@@ -5,10 +5,10 @@ import Shell from '../components/Shell'
 import { getData, getWorkspaces } from '../services/dataService'
 import PhasesPage from './PhasesPage'
 import ReportPage from './ReportPage'
-import ReportDashboard from './ReportDashboard'
 import ReportsPage from './ReportsPage'
 
 const PhaseAnalytics = lazy(() => import('./PhaseAnalytics'))
+const ReportDashboard = lazy(() => import('./ReportDashboard'))
 
 const { Text } = Typography
 
@@ -58,10 +58,10 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
   if (error) {
     content = <Alert type="error" showIcon message={error} action={<Button onClick={() => { setError(null); reload() }}>Повторить</Button>} />
   } else if (data) {
-    if (page === 'phaseAnalytics' && phase) content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка аналитики фазы…</Text></div>}><PhaseAnalytics data={data} phase={phase} navigate={navigate} reload={reload} /></Suspense>
+    if (page === 'phaseAnalytics' && phase) content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка аналитики фазы…</Text></div>}><PhaseAnalytics data={data} phase={phase} navigate={navigate} reload={reload} colorMode={colorMode} /></Suspense>
     else if (page === 'reports' && phase) content = <ReportsPage data={data} phase={phase} navigate={navigate} reload={reload} workspaceId={workspaceId} />
     else if (page === 'report' && phase && report) content = <ReportPage data={data} phase={phase} report={report} navigate={navigate} reload={reload} />
-    else if (page === 'analytics' && phase && report) content = <ReportDashboard data={data} phase={phase} report={report} navigate={navigate} />
+    else if (page === 'analytics' && phase && report) content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка аналитики отчёта…</Text></div>}><ReportDashboard data={data} phase={phase} report={report} navigate={navigate} colorMode={colorMode} /></Suspense>
     else if (page !== 'phases' && !phase) content = <Alert type="warning" showIcon message="Фаза не найдена" description="Возможно, запрошенная фаза была удалена." action={<Button onClick={() => navigate({ page: 'phases' })}>Назад к фазам</Button>} />
     else content = <PhasesPage data={data} navigate={navigate} reload={reload} workspaceId={workspaceId} />
   } else {
