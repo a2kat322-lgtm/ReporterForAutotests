@@ -45,7 +45,7 @@
 | `pages/report-dashboard/` | 21 файл, ~670 | аналитика отчёта | `ReportDashboard.jsx` (композиция страницы), `metrics.js` (`buildReportMetrics`), `constants.js`, `utils.js`; `components/*` — секции (`OwnerSection`, `AnalysisSection`, `SlowTests`) и таблицы/графики |
 | `pages/PhaseAnalytics.jsx` | 3 | barrel ленивого маршрута | реэкспорт из `pages/phase-analytics/` |
 | `pages/phase-analytics/` | 15 файлов, ~520 | аналитика фазы | `PhaseAnalytics.jsx`, `constants.js`, `utils.js`; `components/*` — графики, `PhaseMatrix`, `ReportComparison`, таблицы ошибок/владельцев/наборов, `Hygiene` |
-| `components/charts/` | 12 файлов, ~620 | SVG-графики аналитики | `SimpleCharts.jsx` — barrel для обратной совместимости; `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `BoxPlot`, `DurationProfile`, `ParetoChart`; общие `chartUtils.js` и `ChartPrimitives.jsx` |
+| `components/charts/` | 10 файлов, ~560 | SVG-графики аналитики | `index.js` — barrel; `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `BoxPlot`, `DurationProfile`, `ParetoChart`; общие `chartUtils.js` и `ChartPrimitives.jsx` |
 | `components/MetricCard.jsx` | 11 | плитка KPI | общая для аналитики отчёта и фазы |
 | `components/Shell.jsx` | 141 | каркас, workspace switcher, тема | `default Shell` |
 | `components/PageHeading.jsx` | 16 | заголовок страницы | `default PageHeading` |
@@ -198,7 +198,8 @@ AnalyticsService → PhasesService (findById)
 | `api/package.json` | скрипты Nest/Prisma/Jest, зависимости API |
 | `api/tsconfig.json` | CommonJS, ES2021, `strictNullChecks`, `noImplicitAny: false` |
 | `api/.env.example` | шаблон окружения |
-| `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `package-lock.json` | следы двух пакетных менеджеров |
+| `eslint.config.js` | flat-конфиг ESLint 9: `recommended`, `react`, `react-hooks`, `react-refresh`; скрипт `npm run lint` |
+| `package-lock.json` | единственный lock-файл (npm); `pnpm-*` удалены |
 
 ---
 
@@ -210,7 +211,7 @@ AnalyticsService → PhasesService (findById)
 | `antd` | UI-компоненты (`Layout`, `Table`, `Modal`, `Form`, `Select`, `Progress`, …) |
 | `@ant-design/icons` | иконки в компонентах |
 | `dayjs` | `utils/format.js`, `App.jsx`, `PhasesPage`, `CreatePhaseModal`, `CreateReportModal` |
-| `@ant-design/charts` | **не импортируется** после перехода на `SimpleCharts`; зависимость осталась в `package.json` и может быть удалена |
+| `@ant-design/charts` | **удалён** из `package.json`: чарты реализованы собственными SVG-компонентами в `src/components/charts/` |
 | `@nestjs/common`, `core`, `platform-express` | каркас API |
 | `@nestjs/config` | `appConfig`, `ConfigModule` |
 | `@nestjs/throttler` | глобальный guard и `@Throttle` |

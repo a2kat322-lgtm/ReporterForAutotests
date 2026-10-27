@@ -101,7 +101,7 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 `GET /phases/:id/analytics`:
 
 - KPI: отчёты, каталог, покрытие, прошли хотя бы раз, никогда не проходили, флаки;
-- SVG-графики из `components/charts` (barrel `SimpleCharts`): stacked bars «Статусы по отчётам», `LineChart` pass rate + coverage,
+- SVG-графики из `components/charts` (barrel `components/charts/index.js`): stacked bars «Статусы по отчётам», `LineChart` pass rate + coverage,
   `DonutChart` lifecycle (stable green / recovered / regressed / stable red / never run / other),
   `ColumnChart` «Возраст текущих падений» с MTTR;
 - таблица сравнения отчётов: счётчики, pass rate, coverage, p90, флаки, регрессы, fixed, анализ;
@@ -142,11 +142,13 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 - «Тесты по владельцам» — 100 % stacked SVG-бар по статусам + таблица passed / fail+broken /
   skipped / no run, всего, p90 и флаки;
 - «Длительность» — p50/p90/p95/p99 и stacked SVG-бар по бакетам с разбивкой по статусам;
-- «Разброс длительности по наборам» — SVG-профиль min–max с p25/p50/p75/p90;
-- «Стабильность тестов» и «Запуски на тест» — SVG-столбцы по бакетам stability/runCount;
+- «Суммарная длительность по наборам» — горизонтальные бары: длина = сумма длительностей
+  тестов набора, справа общее время и число тестов с временем;
 - «Наборы» — pass rate, fail+broken, no run, p90;
 - «Самые медленные тест-кейсы» — топ-8 по `durationMs`;
-- «Подписи ошибок» — SVG-Парето (частота + накопленная доля) и таблица с образцами;
+- «Подписи ошибок» — SVG-Парето (частота + накопленная доля) и таблица подписей; клик по строке
+  раскрывает упавшие с этой подписью тесты (имя, путь, статус, владелец). В свёрнутом виде таблица
+  короткая и прокручивается, при раскрытии внутренний скролл отключается — список тестов виден целиком;
 - «Stale green» — отчёт показывает `passed`, но последний запуск упал/сломался;
 - «Флаки и ретраи» — число запусков, стабильность, последние статусы, `retryFixed`/`regressed`;
 - «Результаты анализа» — покрытие `failureReason` и распределение причин;
@@ -170,7 +172,7 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 | `ReportsSummaryChart.jsx` | сводка по отчётам | CSS-полосы, нормализация по максимальному `total` |
 | `pages/report-dashboard/` | аналитика отчёта | `ReportDashboard` (композиция), `metrics.js` (`buildReportMetrics`), секции `OwnerSection` / `AnalysisSection` / `SlowTests` и таблицы/графики в `components/*` |
 | `pages/phase-analytics/` | аналитика фазы | KPI, SVG-тренд, сравнение, CSS-Grid-матрица, ошибки, владельцы, наборы, гигиена; компоненты в `components/*` |
-| `components/charts/` | SVG-графики аналитики | `SimpleCharts.jsx` — barrel; `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `BoxPlot`, `DurationProfile`, `ParetoChart` в отдельных файлах; без внешней chart-библиотеки |
+| `components/charts/` | SVG-графики аналитики | `index.js` — barrel; `StackedBarChart`, `ColumnChart`, `LineChart`, `DonutChart`, `BoxPlot`, `DurationProfile`, `ParetoChart` в отдельных файлах; без внешней chart-библиотеки |
 | `CatalogTableParts.jsx` | колонки каталога | `toDtoPayload()` — только DTO-поля; `getCaseColumns`, `getSuiteColumns` |
 | `TestCatalogModal.jsx` | каталог тестов фазы | импорт JSON, Harvest, видимость (индивидуальная, по набору, по выбранным), удаление, группировка по наборам |
 | `HarvestModal.jsx` | сбор из запусков | `RangePicker`, пояснение про окружение, форма в родителе |
@@ -248,7 +250,7 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
   `ReportsService.findResults` возвращает строки только для записей каталога, поэтому сейчас тег не
   отображается. Чтобы показать запуски без каталога, нужно менять контракт API.
 - **`@ant-design/charts`** больше не импортируется: графики аналитики отчёта и фазы перерисованы
-  на SVG в `SimpleCharts`. Зависимость осталась в `package.json` и может быть удалена.
+  на собственные SVG-компоненты `components/charts`. Зависимость осталась в `package.json` и может быть удалена.
 - **Создание сущностей без workspace**. `workspaceId` берётся из `localStorage`; если он не выбран,
   `createPhase`/`createTest` отправят `null` и API ответит `400` (`workspaceId must be an integer`).
 - **Автор отчёта** не передаётся с клиента: `Report.author` имеет дефолт `"You"` в БД.

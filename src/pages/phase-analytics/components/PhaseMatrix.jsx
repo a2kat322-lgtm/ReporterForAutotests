@@ -8,7 +8,8 @@ const { Text } = Typography
 export default function PhaseMatrix({ matrix }) {
   const [suite, setSuite] = useState(null)
   const [query, setQuery] = useState('')
-  const [collapsed, setCollapsed] = useState(() => new Set())
+  // По умолчанию все наборы свёрнуты: храним множество РАЗВЁРНУТЫХ наборов.
+  const [expanded, setExpanded] = useState(() => new Set())
   const columns = matrix.columns
 
   const suiteOptions = useMemo(
@@ -37,7 +38,7 @@ export default function PhaseMatrix({ matrix }) {
     return [...bySuite.entries()].map(([suiteName, items]) => ({ suiteName, items }))
   }, [rows])
 
-  const toggleSuite = (suiteName) => setCollapsed((previous) => {
+  const toggleSuite = (suiteName) => setExpanded((previous) => {
     const next = new Set(previous)
     if (next.has(suiteName)) next.delete(suiteName)
     else next.add(suiteName)
@@ -69,8 +70,8 @@ export default function PhaseMatrix({ matrix }) {
             onChange={(event) => setQuery(event.target.value)}
             style={{ width: 260 }}
           />
-          <Button size="small" onClick={() => setCollapsed(new Set(suiteOptions.map((option) => option.value)))}>Свернуть все</Button>
-          <Button size="small" onClick={() => setCollapsed(new Set())}>Развернуть все</Button>
+          <Button size="small" onClick={() => setExpanded(new Set())}>Свернуть все</Button>
+          <Button size="small" onClick={() => setExpanded(new Set(suiteOptions.map((option) => option.value)))}>Развернуть все</Button>
         </Space>
         <Text type="secondary">Показано <strong>{rows.length}</strong> из {matrix.rows.length}</Text>
       </div>
@@ -93,7 +94,7 @@ export default function PhaseMatrix({ matrix }) {
               </div>
             ))}
             {groups.map((group) => {
-              const isCollapsed = collapsed.has(group.suiteName)
+              const isCollapsed = !expanded.has(group.suiteName)
               return (
                 <Fragment key={group.suiteName}>
                   <button

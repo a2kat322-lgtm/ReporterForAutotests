@@ -1,7 +1,9 @@
 node_modules/
 dist/
 .dsh-code-index/
+.codegraph/
 .env
 .env.*
 !.env.example
 node-compile-cache/
+.tmp-build/

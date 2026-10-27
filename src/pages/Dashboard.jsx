@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Typography } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 import Shell from '../components/Shell'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { getData, getWorkspaces } from '../services/dataService'
 import PhasesPage from './PhasesPage'
 import ReportPage from './ReportPage'
@@ -69,5 +70,7 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
   }
 
   const shellRoute = { ...route, phase: phase ?? route.phase, report: report ?? route.report }
-  return <Shell route={shellRoute} navigate={navigate} colorMode={colorMode} onToggleTheme={onToggleTheme} workspaces={workspaces} workspaceId={workspaceId} onSelectWorkspace={onSelectWorkspace} onReloadWorkspaces={reloadWorkspaces}>{content}</Shell>
+  // Remounting the boundary per route clears a previous error on navigation.
+  const boundaryKey = `${page}-${phaseId ?? ''}-${reportId ?? ''}`
+  return <Shell route={shellRoute} navigate={navigate} colorMode={colorMode} onToggleTheme={onToggleTheme} workspaces={workspaces} workspaceId={workspaceId} onSelectWorkspace={onSelectWorkspace} onReloadWorkspaces={reloadWorkspaces}><ErrorBoundary key={boundaryKey} onReset={reload}>{content}</ErrorBoundary></Shell>
 }

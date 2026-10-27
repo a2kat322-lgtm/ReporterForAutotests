@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { App, Button, Card, Empty, Popconfirm, Switch, Table, Tag, Typography } from 'antd'
 import { DeleteOutlined, FolderOpenOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons'
@@ -36,7 +36,7 @@ export default function PhasesPage({ data, navigate, reload, workspaceId }) {
     reload()
   }
 
-  const remove = async (phase) => {
+  const remove = useCallback(async (phase) => {
     setDeletingId(phase.id)
     try {
       await deletePhase(phase.id)
@@ -47,7 +47,7 @@ export default function PhasesPage({ data, navigate, reload, workspaceId }) {
     } finally {
       setDeletingId(null)
     }
-  }
+  }, [message, reload])
 
   // Action column closes over remove(), so columns are built per component instance.
   const columns = useMemo(() => [
@@ -111,7 +111,7 @@ export default function PhasesPage({ data, navigate, reload, workspaceId }) {
         </span>
       ),
     },
-  ], [deletingId, onlyCurrentPhases])
+  ], [deletingId, onlyCurrentPhases, remove])
 
   return (
     <>

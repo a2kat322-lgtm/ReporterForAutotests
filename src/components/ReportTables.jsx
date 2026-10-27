@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Empty, Popover, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import StatusTag from './StatusTag'
 import { FailureFeedbackFields } from './RunDetails'
@@ -54,14 +54,25 @@ function getDurationMs(test) {
   return Number.isFinite(start) && Number.isFinite(end) && end >= start ? end - start : null
 }
 
+const INLINE_MESSAGE_LINE_LENGTH = 40
+const INLINE_MESSAGE_MAX_LENGTH = INLINE_MESSAGE_LINE_LENGTH * 3
+// Above this many cases the nested table virtualizes its rows; below it the
+// plain table keeps its natural height.
+const CASE_VIRTUAL_THRESHOLD = 150
+const CASE_SCROLL = { x: 1210, y: 520 }
+
+function splitFixedLength(text, length) {
+  const lines = []
+  for (let index = 0; index < text.length; index += length) lines.push(text.slice(index, index + length))
+  return lines
+}
+
 function formatInlineErrorMessage(message) {
-  const maxLineLength = 40
-  const maxLength = maxLineLength * 3
-  const truncated = message.length > maxLength
-    ? `${message.slice(0, maxLength).trimEnd()}...`
+  const truncated = message.length > INLINE_MESSAGE_MAX_LENGTH
+    ? `${message.slice(0, INLINE_MESSAGE_MAX_LENGTH).trimEnd()}...`
     : message
 
-  return truncated.match(new RegExp(`.{1,${maxLineLength}}`, 'g')) || []
+  return splitFixedLength(truncated, INLINE_MESSAGE_LINE_LENGTH)
 }
 
 const getCaseColumns = (reload) => [
@@ -135,13 +146,20 @@ const suiteColumns = [
 ]
 
 export function CaseTable({ tests, reload }) {
+  // `getCaseColumns` closes over `reload`; without the memo antd Table gets a
+  // brand-new column set (and re-renders every row) on each parent render.
+  const columns = useMemo(() => getCaseColumns(reload), [reload])
+  const virtual = tests.length > CASE_VIRTUAL_THRESHOLD
+
   return (
     <Table
       className="suite-cases-table"
       rowKey="rowKey"
-      columns={getCaseColumns(reload)}
+      columns={columns}
       dataSource={tests}
       pagination={false}
+      virtual={virtual}
+      scroll={virtual ? CASE_SCROLL : undefined}
       locale={{ emptyText }}
     />
   )

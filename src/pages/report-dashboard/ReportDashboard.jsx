@@ -7,9 +7,7 @@ import { buildReportMetrics } from './metrics'
 import { showRate } from './utils'
 import StatusChart from './components/StatusChart'
 import DurationStats from './components/DurationStats'
-import SuiteDurationBox from './components/SuiteDurationBox'
-import StabilityChart from './components/StabilityChart'
-import RetryChart from './components/RetryChart'
+import SuiteDurationTotals from './components/SuiteDurationTotals'
 import OwnerSection from './components/OwnerSection'
 import SuiteTable from './components/SuiteTable'
 import SlowTests from './components/SlowTests'
@@ -21,7 +19,8 @@ import AnalysisSection from './components/AnalysisSection'
 const { Title, Text } = Typography
 
 export default function ReportDashboard({ data, phase, report, navigate }) {
-  const results = data.results || []
+  // A fresh `[]` literal on every render would invalidate the metrics memo below.
+  const results = useMemo(() => data.results || [], [data.results])
   const metrics = useMemo(() => buildReportMetrics(results), [results])
 
   const showReport = () => navigate({ page: 'report', phaseId: phase.id, reportId: report.id, phase, report })
@@ -47,12 +46,7 @@ export default function ReportDashboard({ data, phase, report, navigate }) {
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-      <Col xs={24}><SuiteDurationBox data={metrics.suiteDurationData} /></Col>
-    </Row>
-
-    <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-      <Col xs={24} lg={12}><StabilityChart data={metrics.stabilityBands} /></Col>
-      <Col xs={24} lg={12}><RetryChart data={metrics.runCountBands} /></Col>
+      <Col xs={24}><SuiteDurationTotals suites={metrics.suites} /></Col>
     </Row>
 
     <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>

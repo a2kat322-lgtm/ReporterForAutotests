@@ -1,5 +1,5 @@
 import { normalizeErrorMessage } from '../../utils/errorSignature'
-import { DURATION_BUCKETS, FAILURE_STATUSES, STABILITY_BANDS, STATUS_META, statuses } from './constants'
+import { DURATION_BUCKETS, FAILURE_STATUSES, STATUS_META, statuses } from './constants'
 import { emptyCounts, percentile, rate, stability } from './utils'
 
 export function buildReportMetrics(results) {
@@ -11,7 +11,6 @@ export function buildReportMetrics(results) {
   const failureFeedback = new Map()
   const durations = []
   const histogram = DURATION_BUCKETS.map(() => emptyCounts())
-  const suiteDurationData = []
   let duration = 0
   let timed = 0
   let analysisTotal = 0
@@ -32,10 +31,7 @@ export function buildReportMetrics(results) {
     const suite = suites.get(suiteName) || { name: suiteName, total: 0, counts: emptyCounts(), durations: [] }
     suite.total += 1
     suite.counts[test.status] = (suite.counts[test.status] || 0) + 1
-    if (durationMs > 0) {
-      suite.durations.push(durationMs)
-      suiteDurationData.push({ suite: suiteName, duration: Number((durationMs / 1000).toFixed(3)) })
-    }
+    if (durationMs > 0) suite.durations.push(durationMs)
     suites.set(suiteName, suite)
 
     const owner = test.owner || 'Не назначен'
@@ -67,8 +63,15 @@ export function buildReportMetrics(results) {
         signature,
         message: test.message?.trim() || '(без сообщения)',
         count: 0,
+        tests: [],
       }
       current.count += 1
+      current.tests.push({
+        path: test.path,
+        name: test.name || test.caseName || test.path,
+        status: test.status,
+        owner: test.owner || 'Не назначен',
+      })
       signatures.set(signature, current)
 
       const reason = test.failureReason?.trim() || '(null)'
@@ -108,6 +111,8 @@ export function buildReportMetrics(results) {
       noRun: row.counts.no_run,
       passRate: rate(row.counts.passed, row.total),
       p90: percentile(row.durations, 0.9),
+      durationMs: row.durations.reduce((sum, value) => sum + value, 0),
+      timed: row.durations.length,
     }))
     .sort((left, right) => (right.failed + right.broken) - (left.failed + left.broken) || right.total - left.total)
   const flakyTests = results
@@ -126,24 +131,6 @@ export function buildReportMetrics(results) {
       count: histogram[index][status],
     }))
   )).filter((item) => item.count > 0)
-  const stabilityBands = STABILITY_BANDS.map((band) => ({ band: band.label, count: 0 }))
-  for (const test of results) {
-    const value = stability(test)
-    if (value == null) continue
-    const index = STABILITY_BANDS.findIndex((band) => value >= band.min && value <= band.max)
-    if (index >= 0) stabilityBands[index].count += 1
-  }
-  const runCountBands = [
-    { band: '1', count: 0 },
-    { band: '2', count: 0 },
-    { band: '3', count: 0 },
-    { band: '4+', count: 0 },
-  ]
-  for (const test of results) {
-    const runCount = test.runCount ?? (test.resultId ? 1 : 0)
-    if (!runCount) continue
-    runCountBands[Math.min(runCount, 4) - 1].count += 1
-  }
   const ownerStackData = ownerRows.flatMap((row) => (
     statuses.map(({ key, label }) => ({ owner: row.owner, status: label, count: row.counts[key] || 0 }))
   )).filter((item) => item.count > 0)
@@ -168,9 +155,6 @@ export function buildReportMetrics(results) {
     p95: percentile(durations, 0.95),
     p99: percentile(durations, 0.99),
     durationBandData,
-    suiteDurationData,
-    stabilityBands,
-    runCountBands,
     ownerStackData,
     suites: suiteRows,
     owners: ownerRows,

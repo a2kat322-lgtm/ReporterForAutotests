@@ -33,7 +33,7 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
     } finally {
       setLoading(false)
     }
-  }, [environment, workspaceId])
+  }, [environment, message, workspaceId])
 
   useEffect(() => {
     if (open) refresh()
@@ -98,7 +98,7 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
     }
   }
 
-  const remove = async (test) => {
+  const remove = useCallback(async (test) => {
     setDeletingId(test.id)
     try {
       await deleteAutomatedTest(test.id)
@@ -109,9 +109,9 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
     } finally {
       setDeletingId(null)
     }
-  }
+  }, [message, refresh])
 
-  const toggleVisible = async (test, visible) => {
+  const toggleVisible = useCallback(async (test, visible) => {
     setTogglingId(test.id)
     try {
       await createAutomatedTest({ ...toDtoPayload(test), visible, workspaceId })
@@ -122,10 +122,11 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
     } finally {
       setTogglingId(null)
     }
-  }
+  }, [message, refresh, workspaceId])
 
   const toggleSelectedVisibility = async (visible) => {
-    const selectedTests = catalog.filter((test) => selectedRowKeys.includes(test.id))
+    const selectedKeys = new Set(selectedRowKeys)
+    const selectedTests = catalog.filter((test) => selectedKeys.has(test.id))
     if (!selectedTests.length) return
     setBulkUpdating(true)
     try {
@@ -142,24 +143,33 @@ export default function TestCatalogModal({ open, onClose, environment, workspace
 
   const groupedCatalog = useMemo(() => groupCatalog(catalog), [catalog])
 
-  const toggleSuiteVisibility = async (suite, visible) => {
+  const toggleSuiteVisibility = useCallback(async (suite, visible) => {
     setBulkUpdating(true)
     try {
       await updateAutomatedTestsVisibility(suite.tests.map((test) => test.resultPath), visible, workspaceId)
       message.success(`${suite.tests.length} тестов в наборе ${suite.suiteName} ${visible ? 'включено' : 'скрыто'} в отчётах`)
-      setSelectedRowKeys((keys) => keys.filter((key) => !suite.tests.some((test) => test.id === key)))
+      setSelectedRowKeys((keys) => {
+        const suiteTestIds = new Set(suite.tests.map((test) => test.id))
+        return keys.filter((key) => !suiteTestIds.has(key))
+      })
       await refresh()
     } catch (error) {
       message.error(error.message || 'Failed to update visibility')
     } finally {
       setBulkUpdating(false)
     }
-  }
+  }, [message, refresh, workspaceId])
 
-  const suiteIsVisible = (suite) => suite.tests.some((test) => test.visible !== false)
+  const suiteIsVisible = useCallback((suite) => suite.tests.some((test) => test.visible !== false), [])
 
-  const caseColumns = getCaseColumns({ togglingId, deletingId, onToggleVisible: toggleVisible, onRemove: remove })
-  const suiteColumns = getSuiteColumns({ bulkUpdating, suiteIsVisible, onToggleSuiteVisibility: toggleSuiteVisibility })
+  const caseColumns = useMemo(
+    () => getCaseColumns({ togglingId, deletingId, onToggleVisible: toggleVisible, onRemove: remove }),
+    [togglingId, deletingId, toggleVisible, remove],
+  )
+  const suiteColumns = useMemo(
+    () => getSuiteColumns({ bulkUpdating, suiteIsVisible, onToggleSuiteVisibility: toggleSuiteVisibility }),
+    [bulkUpdating, suiteIsVisible, toggleSuiteVisibility],
+  )
 
   return (
     <Modal

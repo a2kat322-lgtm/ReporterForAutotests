@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Input, Select, Space, message } from 'antd'
 import { updateResultFeedback } from '../services/dataService'
 
-export const failureReasons = [
+const failureReasons = [
   { value: 'Неисправность АТ', label: 'Неисправность АТ' },
   { value: 'Недоступность контура', label: 'Недоступность контура' },
   { value: 'Дефект', label: 'Дефект' },

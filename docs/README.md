@@ -27,7 +27,7 @@
 - **Frontend:** React 19, Vite 6, Ant Design 5, `dayjs`, собственные SVG/CSS-графики.
 - **Backend:** NestJS 10, TypeScript, Prisma 6, `class-validator`, `@nestjs/throttler`.
 - **БД:** PostgreSQL 16 (Docker Compose), миграции Prisma.
-- **Пакетные менеджеры:** `npm` (основной, скрипты в `package.json`), есть `pnpm-lock.yaml`.
+- **Пакетный менеджер:** `npm` (скрипты в `package.json`, единственный lock-файл — `package-lock.json`).
 
 ## Структура репозитория
 

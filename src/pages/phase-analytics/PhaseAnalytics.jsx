@@ -10,11 +10,8 @@ import LifecycleChart from './components/LifecycleChart'
 import FailureAgingChart from './components/FailureAgingChart'
 import ReportComparison from './components/ReportComparison'
 import PhaseMatrix from './components/PhaseMatrix'
-import FailureSignatures from './components/FailureSignatures'
-import FailureReasons from './components/FailureReasons'
 import OwnerTable from './components/OwnerTable'
 import SuiteTable from './components/SuiteTable'
-import Hygiene from './components/Hygiene'
 
 const { Title, Text } = Typography
 
@@ -25,7 +22,7 @@ export default function PhaseAnalytics({ data, phase, navigate, reload }) {
     return <Empty description="Нет данных аналитики фазы" />
   }
 
-  const { kpi, reports, matrix, owners, suites, failures, hygiene } = analytics
+  const { kpi, reports, matrix, owners, suites } = analytics
   const lifecycle = analytics.lifecycle || { stableGreen: 0, stableRed: 0, recovered: 0, regressed: 0, neverRun: 0, other: 0 }
   const failureAging = analytics.failureAging || { totalCurrentFailures: 0, buckets: [], mttrMedianMs: null, mttrCount: 0 }
   const showReports = () => navigate({ page: 'reports', phaseId: phase.id, phase })
@@ -83,17 +80,8 @@ export default function PhaseAnalytics({ data, phase, navigate, reload }) {
       </Row>
 
       <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-        <Col xs={24} lg={14}><Card title="Топ подписей ошибок" className="analytics-card"><FailureSignatures failures={failures} /></Card></Col>
-        <Col xs={24} lg={10}><Card title="Результаты анализа" className="analytics-card"><FailureReasons failures={failures} /></Card></Col>
-      </Row>
-
-      <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
         <Col xs={24}><Card title="Владельцы" className="analytics-card" extra={<Text type="secondary">по последнему отчёту</Text>}><OwnerTable owners={owners} /></Card></Col>
         <Col xs={24}><Card title="Наборы" className="analytics-card" extra={<Text type="secondary">по последнему отчёту</Text>}><SuiteTable suites={suites} /></Card></Col>
-      </Row>
-
-      <Row gutter={[12, 12]} className="analytics-charts" style={{ marginTop: 12 }}>
-        <Col xs={24}><Card title="Гигиена данных" className="analytics-card"><Hygiene hygiene={hygiene} /></Card></Col>
       </Row>
     </>
   )

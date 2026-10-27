@@ -1,12 +1,15 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useState } from 'react'
 import { App, Button, Card, Empty, Popconfirm, Space, Table, Typography } from 'antd'
 import { ArrowLeftOutlined, BarChartOutlined, DeleteOutlined, ExperimentOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons'
 import CreateReportModal from '../components/CreateReportModal'
-import TestCatalogModal from '../components/TestCatalogModal'
 import ReportsSummaryChart from '../components/ReportsSummaryChart'
 import PageHeading from '../components/PageHeading'
 import { formatDate } from '../utils/format'
 import { createReport, deleteReport } from '../services/dataService'
+
+// The catalog modal (plus its table, upload and file parser) is only reachable
+// from the "Каталог тестов" button, so it must not sit in the entry chunk.
+const TestCatalogModal = lazy(() => import('../components/TestCatalogModal'))
 
 const { Text } = Typography
 
@@ -15,7 +18,10 @@ const emptyText = <Empty description="Пока нет отчётов" />
 
 export default function ReportsPage({ data, phase, navigate, reload }) {
   const [modalOpen, setModalOpen] = useState(false)
+  // Mount the lazy catalog chunk on first open, then keep it mounted: the close
+  // animation still runs, and reopening does not re-download the module.
   const [catalogOpen, setCatalogOpen] = useState(false)
+  const [catalogMounted, setCatalogMounted] = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const { message } = App.useApp()
   const reports = useMemo(() => data.reports.filter((item) => item.phaseId === phase.id), [data.reports, phase.id])
@@ -33,7 +39,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
     }
   }
 
-  const remove = async (report) => {
+  const remove = useCallback(async (report) => {
     setDeletingId(report.id)
     try {
       await deleteReport(report.id)
@@ -44,7 +50,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
     } finally {
       setDeletingId(null)
     }
-  }
+  }, [message, reload])
 
   // Action column closes over remove(), so columns are built per component instance.
   const columns = useMemo(() => [
@@ -78,7 +84,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         </span>
       ),
     },
-  ], [deletingId])
+  ], [deletingId, remove])
 
   return (
     <>
@@ -90,7 +96,7 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         action={
           <Space>
             <Button size="large" icon={<BarChartOutlined />} onClick={() => navigate({ page: 'phaseAnalytics', phaseId: phase.id, phase })}>Аналитика фазы</Button>
-            <Button size="large" icon={<ExperimentOutlined />} onClick={() => setCatalogOpen(true)}>Каталог тестов</Button>
+            <Button size="large" icon={<ExperimentOutlined />} onClick={() => { setCatalogMounted(true); setCatalogOpen(true) }}>Каталог тестов</Button>
             <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>Новый отчёт</Button>
           </Space>
         }
@@ -111,7 +117,11 @@ export default function ReportsPage({ data, phase, navigate, reload }) {
         />
       </Card>
       <CreateReportModal open={modalOpen} onCancel={() => setModalOpen(false)} onCreate={create} />
-      <TestCatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} environment={phase.environment} workspaceId={phase.workspaceId} />
+      {catalogMounted && (
+        <Suspense fallback={null}>
+          <TestCatalogModal open={catalogOpen} onClose={() => setCatalogOpen(false)} environment={phase.environment} workspaceId={phase.workspaceId} />
+        </Suspense>
+      )}
     </>
   )
 }

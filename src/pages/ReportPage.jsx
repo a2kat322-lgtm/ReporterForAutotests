@@ -57,11 +57,11 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
   const [statuses, setStatuses] = useState([])
   const [owners, setOwners] = useState([])
   const [tags, setTags] = useState([])
-  const filters = { statuses, owners, tags }
+  const filters = useMemo(() => ({ statuses, owners, tags }), [statuses, owners, tags])
 
   const { tests, suites, counts } = useMemo(
     () => buildReportView(data.results, filters),
-    [data.results, statuses, owners, tags],
+    [data.results, filters],
   )
 
   const ownerOptions = useMemo(() => [...new Set(data.results.map((row) => row.owner || 'Не назначен'))]

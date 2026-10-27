@@ -5,8 +5,7 @@
 - Node.js 20+ (сборка проверена на Node 24.21.0, npm 11.19.0).
 - Docker Desktop (для PostgreSQL 16) либо собственный PostgreSQL 16.
 - PowerShell 7 (`pwsh`) — для `scripts/send-test-runs.ps1`.
-- npm (основной сценарий); `pnpm` опционален — в репозитории есть `pnpm-workspace.yaml` и
-  `pnpm-lock.yaml`.
+- npm (единственный сценарий; lock-файл — `package-lock.json`).
 
 ## Первичная установка
 
@@ -103,12 +102,12 @@ npm run dev         # Vite,     http://localhost:5173
 
 ### Инструменты качества
 
-- ESLint/Prettier в репозитории не настроены (нет конфигов и зависимостей) — стиль поддерживается
-  вручную, ориентируйтесь на существующие файлы.
+- ESLint настроен: flat-конфиг `eslint.config.js` (js/recommended, react, react-hooks, react-refresh),
+  запуск — `npm run lint`. Prettier не настроен, стиль поддерживается вручную.
 - Юнит/e2e-тестов нет: `api/package.json` содержит скрипты `test`/`test:e2e`, но ни тестов, ни
   `api/test/jest-e2e.json` нет.
-- Минимальный набор проверок: `prisma:validate`, `api:build`, `build`, `send-test-runs.ps1 -DryRun`
-  и ручной сценарий из раздела «Проверка перед коммитом».
+- Минимальный набор проверок: `npm run lint`, `prisma:validate`, `api:build`, `build`,
+  `send-test-runs.ps1 -DryRun` и ручной сценарий из раздела «Проверка перед коммитом».
 
 ## Git и состояние репозитория
 
@@ -266,6 +265,7 @@ harvest — 1/10 сек; import — 1/мин. Для массовых прого
 ### Проверка перед коммитом
 
 ```powershell
+npm run lint
 npm --prefix api run prisma:validate
 npm run api:build
 npm run build

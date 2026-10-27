@@ -24,14 +24,6 @@ export const DURATION_BUCKETS = [
   { label: '>60с', max: Number.POSITIVE_INFINITY },
 ]
 
-export const STABILITY_BANDS = [
-  { label: '0–20%', min: 0, max: 20 },
-  { label: '21–40%', min: 21, max: 40 },
-  { label: '41–60%', min: 41, max: 60 },
-  { label: '61–80%', min: 61, max: 80 },
-  { label: '81–100%', min: 81, max: 100 },
-]
-
 export const STATUS_COLORS = {
   Passed: '#4ade80',
   Failed: '#fb7185',
