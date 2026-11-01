@@ -12,7 +12,9 @@
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "db:verify": "node scripts/verify-db-invariants.cjs"
+    "db:verify": "node scripts/verify-db-invariants.cjs",
+    "attachments:gc": "node scripts/attachments-gc.cjs",
+    "attachments:gc:dry-run": "node scripts/attachments-gc.cjs --dry-run"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

@@ -11,28 +11,28 @@
  */
 const fs = require('node:fs')
 const path = require('node:path')
+const {
+  collectReferencedKeys,
+  isManagedKey,
+  listStoredFiles,
+  loadDatabaseUrl,
+  resolveStorageDir,
+} = require('./lib/attachments.cjs')
 
 const GIST_INDEX = 'TestResult_period_overlap_gist_idx'
 const MIGRATIONS_DIR = path.join(__dirname, '..', 'prisma', 'migrations')
 
-/** Minimal .env fallback so the script also works outside `prisma` CLI. */
-function loadDatabaseUrl() {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL
-  const envPath = path.join(__dirname, '..', '.env')
-  if (!fs.existsSync(envPath)) return undefined
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const match = /^\s*DATABASE_URL\s*=\s*(.*)\s*$/.exec(line)
-    if (match) return match[1].replace(/^["']|["']$/g, '')
-  }
-  return undefined
-}
-
 const failures = []
+const warnings = []
 const checks = []
 
 function check(name, passed, detail) {
   checks.push({ name, passed, detail })
   if (!passed) failures.push(`${name}${detail ? ` — ${detail}` : ''}`)
+}
+
+function warn(name, detail) {
+  warnings.push(`${name}${detail ? ` — ${detail}` : ''}`)
 }
 
 /** Static guard: no migration may drop the interval index. */
@@ -120,6 +120,22 @@ async function checkDatabase() {
       coldColumns.length === 0,
       coldColumns.map((row) => row.column_name).join(', ') || undefined,
     )
+
+    // Files are not part of the schema, so this is a warning, not a failure:
+    // a restored database without the attachments directory is a valid state
+    // that only makes images in reports unavailable.
+    const referenced = await collectReferencedKeys(prisma)
+    if (referenced.size) {
+      const directory = resolveStorageDir()
+      const stored = new Set(listStoredFiles(directory).filter((file) => isManagedKey(file.name)).map((file) => file.name))
+      const missing = [...referenced].filter((key) => !stored.has(key))
+      if (missing.length) {
+        warn(
+          `вложений в БД: ${referenced.size}, файлов в ${directory}: ${stored.size}, ссылок без файла: ${missing.length}`,
+          'картинки в отчётах будут битыми; проверьте, что ATTACHMENTS_DIR восстановлен из бэкапа',
+        )
+      }
+    }
   } finally {
     await prisma.$disconnect()
   }
@@ -132,6 +148,7 @@ async function checkDatabase() {
   for (const item of checks) {
     console.log(`${item.passed ? 'ok  ' : 'FAIL'} ${item.name}${!item.passed && item.detail ? ` — ${item.detail}` : ''}`)
   }
+  for (const item of warnings) console.log(`warn ${item}`)
   if (failures.length) {
     console.error(`\nНарушено инвариантов: ${failures.length}. Исправьте миграцию или БД перед выкладкой.`)
     process.exit(1)
