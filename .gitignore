@@ -1,5 +1,6 @@
 node_modules/
 dist/
+api/storage/
 .dsh-code-index/
 .codegraph/
 .env
@@ -7,3 +8,4 @@ dist/
 !.env.example
 node-compile-cache/
 .tmp-build/
+.tmp-parser-test.cjs

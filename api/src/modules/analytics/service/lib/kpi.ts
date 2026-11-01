@@ -1,4 +1,5 @@
-import { AutomatedTest, TestResult } from '@prisma/client'
+import { AutomatedTest } from '@prisma/client'
+import { RunSummary } from '../../../results/dto/run-summary'
 import { PhaseKpi, ReportComparisonRow } from '../../dto/analytics.types'
 import { ReportEntry } from './entries'
 import { isFailure, ratio } from './analytics.utils'
@@ -6,7 +7,7 @@ import { isFailure, ratio } from './analytics.utils'
 export function buildKpi(
   reportRows: ReportComparisonRow[],
   catalog: AutomatedTest[],
-  runs: TestResult[],
+  runs: RunSummary[],
   flakyPaths: Set<string>,
   entries: ReportEntry[],
 ): PhaseKpi {
@@ -19,7 +20,7 @@ export function buildKpi(
 
   const catalogPaths = new Set(catalog.map((test) => test.resultPath))
   const executedPaths = new Set(runs.filter((run) => catalogPaths.has(run.path)).map((run) => run.path))
-  const runsByPath = new Map<string, TestResult[]>()
+  const runsByPath = new Map<string, RunSummary[]>()
   for (const run of runs) {
     const bucket = runsByPath.get(run.path)
     if (bucket) bucket.push(run)

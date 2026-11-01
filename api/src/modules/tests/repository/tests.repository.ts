@@ -29,7 +29,7 @@ export class TestsRepository {
     defaultSuiteName?: string
     defaultOwner?: string
     tags: string[]
-  }>, environment: string, workspaceId: bigint) {
+  }>, environment: string, workspaceId: bigint, source = 'harvested') {
     if (!entries.length) return { created: 0 }
     const canonicalEnvironment = environment.trim().toLowerCase()
     return this.prisma.$transaction(async (tx) => {
@@ -45,7 +45,7 @@ export class TestsRepository {
           defaultSuiteName: entry.defaultSuiteName,
           defaultOwner: entry.defaultOwner,
           tags: entry.tags as unknown as Prisma.InputJsonValue,
-          source: 'harvested',
+          source,
         })),
         skipDuplicates: true,
       })

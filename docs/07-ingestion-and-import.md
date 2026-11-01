@@ -3,9 +3,10 @@
 Документ описывает все способы попадания данных в систему:
 
 1. `POST /api/results` — основной поток от автоматизации.
-2. `POST /api/tests/harvest` — наполнение каталога из уже сохранённых запусков.
-3. `POST /api/tests` / `POST /api/tests/bulk` — ручное создание и импорт JSON-каталога.
-4. `POST /api/import` — разовый legacy-импорт старого снимка.
+2. `POST /api/allure/import` — импорт архива `allure-results` (шаги, скриншоты, параметры).
+3. `POST /api/tests/harvest` — наполнение каталога из уже сохранённых запусков.
+4. `POST /api/tests` / `POST /api/tests/bulk` — ручное создание и импорт JSON-каталога.
+5. `POST /api/import` — разовый legacy-импорт старого снимка.
 
 ## 1. `POST /api/results` — контракт запуска
 
@@ -26,7 +27,7 @@
 | `caseName` | нет | `trim` | 300 |
 | `owner` | нет | `trim` | 120 |
 | `circuit` | нет | `lower(trim)` | 120 |
-| `message` | нет | `trim` | без обрезки (TEXT) |
+| `message` | нет | `trim` | без обрезки (TEXT); пишется в `TestResultDetail.message` |
 | `tags` | нет | см. ниже | до 100 элементов в UI-каталоге, в запуске без жёсткого лимита |
 
 Неизвестные поля **игнорируются** (контракт внешний). Пустые строки превращаются в `null`.
@@ -151,7 +152,102 @@ pwsh -File scripts/send-test-runs.ps1 -BaseUrl http://localhost:3001/api
 > ранний `passed`. Фактическая логика отчёта (`ReportsService.findResults`) предпочитает успешный
 > запуск. Ожидайте `passed` в отчёте, если в окне есть успешный прогон.
 
-## 2. Harvest — сбор каталога из запусков
+## 2. Импорт `allure-results`
+
+Самый полный способ передать результат: адаптеры Allure (`allure-junit5`, `allure-pytest`,
+`allure-playwright`, …) уже пишут `allure-results` — папку с `*-result.json` и файлами вложений.
+CI упаковывает её в zip и отправляет одним запросом на один прогон.
+
+```bash
+cd target/allure-results && zip -r ../allure-results.zip . && cd ../..
+
+curl -X POST "http://localhost:3001/api/allure/import?workspaceId=1&environment=dso" \
+  -H "Content-Type: application/zip" \
+  --data-binary @target/allure-results.zip
+```
+
+```powershell
+Compress-Archive -Path target\allure-results\* -DestinationPath target\allure-results.zip
+Invoke-RestMethod -Method Post `
+  -Uri 'http://localhost:3001/api/allure/import?workspaceId=1&environment=dso' `
+  -ContentType 'application/zip' -InFile target\allure-results.zip
+```
+
+Что импортируется:
+
+| Allure | Куда |
+| --- | --- |
+| `uuid` | `TestResult.externalId` (идемпотентность) |
+| `labels.testClass` + `labels.testMethod` | `path` как `Class#method`; иначе `fullName` |
+| `labels.feature` | `suiteName` |
+| `labels.story` / `name` | `caseName` |
+| `labels.owner` | `owner` |
+| `labels.tag` | `tags` |
+| `status` (`unknown` → `broken`) | `status` |
+| `statusDetails.message` | `TestResultDetail.message` |
+| `statusDetails` (`trace`, `known`, `muted`, `flaky`) | `TestResultDetail.statusDetails` |
+| `start` / `stop` (мс) | `startDate` / `endDate` |
+| `steps` (вложенные, с `attachments`) | `TestResultDetail.steps` JSONB; файлы — в хранилище |
+| `parameters` | `TestResultDetail.parameters` |
+| `links` (`@TmsLink`, `@Issue`, `@Link`) | `TestResultDetail.links` JSONB: `{ name, url, type }`; `@TmsLink` без `url` показывается в карточке как текст |
+| `attachments` | `TestResultDetail.attachments` + файлы на диске |
+
+Правила и ограничения:
+
+- **Совместно с `ResultWriter`.** Если запуск уже отправлен формой, импорт **дополняет** его
+  шагами, вложениями и параметрами (совпадение `path` + `circuit` + время старта ±10 с) и
+  увеличивает `enriched`, а не создаёт вторую строку. Статус, время и окружение остаются от формы,
+  поэтому отчёт и метрики ретраев не меняются. Если статусы расходятся, в `warnings` попадает
+  предупреждение. Так основной канал остаётся быстрым (локальный запуск сразу виден в отчёте), а
+  архив нужен только для детального разбора.
+- **Один архив — один прогон.** Повторная загрузка того же архива не создаёт дублей
+  (уникальный `(workspaceId, externalId)`), в ответе `imported = 0`, `duplicates = N`.
+- **Каталог регистрируется автоматически** для отсутствующих путей с членством в окружении
+  (`source = 'allure'`). Без этого импортированные запуски не попали бы в отчёт.
+- **`environment` обязателен** и должен совпадать с окружением фазы, иначе запуски не видны в её
+  отчётах (сравнение по `circuit`, регистр не важен).
+- **Zip — это папка `allure-results`, а не её родитель**: файлы должны лежать в корне архива,
+  хотя вложенные каталоги тоже находятся (поиск по имени файла).
+- Битый `*-result.json` пропускается с предупреждением, отсутствующее вложение не ломает импорт
+  (в `warnings` попадает запись, вложение помечается как отсутствующее).
+- Контейнеры (`*-container.json`, шаги фикстур) пока не импортируются.
+- Лимит архива — 512 МиБ (`ALLURE_IMPORT_MAX_BYTES`), rate limit 2/10 сек и 30/мин.
+- Вложения хранятся в `ATTACHMENTS_DIR` (по умолчанию `api/storage/attachments`) под именем
+  `sha256` — одинаковые файлы не дублируются; отдаются через `GET /api/attachments/:key`.
+
+Подробности контракта — [05-api.md](05-api.md#post-allureimport).
+
+### Производительность импорта
+
+Измерено на локальной БД (PostgreSQL 18) и сгенерированном архиве: 2000 тестов, у каждого
+3 шага + вложенный шаг, у каждого 7-го — скриншот 20 КБ (286 файлов, 5.6 МБ вложений, zip 7 МБ).
+
+| Операция | Время |
+| --- | --- |
+| Импорт нового прогона (2000 строк + 286 вложений) | ≈ 1.5 с |
+| Импорт с дополнением 2000 уже отправленных `ResultWriter` запусков | ≈ 3.3 с |
+| Повторный импорт того же архива (`duplicates`) | ≈ 1.3 с |
+| Отчёт на 2000 строк | ≈ 0.4 с, ответ 1.6 МБ |
+| Аналитика фазы на 2000 запусков | ≈ 0.5 с |
+
+Как это обеспечено:
+
+- списки запусков (отчёт, аналитика, Harvest) выбирают только сводные колонки и **не тянут**
+  `steps`/`attachments`/`parameters`/`statusDetails` — иначе на 2000 запусков по 100 шагов запрос
+  приносил бы 27 МБ вместо 1 МБ (~1.2 с вместо ~50 мс на уровень Prisma);
+- вставка идёт батчами по 500 строк (лимит параметров PostgreSQL — 65 535);
+- дополнение уже отправленных запусков — отдельный `UPDATE` на строку, поэтому время растёт
+  линейно (2000 строк ≈ 3 с); при переходе на 10 000+ тестов это первое, что стоит
+  оптимизировать (один `UPDATE ... FROM (VALUES ...)`);
+- память процесса при импорте ≈ 2–3 объёма архива: zip читается и распаковывается целиком, так что
+  для сервера с 1–2 ГБ RAM архив лучше держать в пределах ~100 МБ;
+- каталог регистрируется в одной транзакции на 2000 путей.
+
+Что остаётся узким местом при росте (не связано с импортом): аналитика фазы загружает **все**
+запуски за период фазы и агрегирует их в памяти — при 2000 тестах × 30 дней это десятки тысяч
+строк и единицы секунд; для этого случая понадобится серверная агрегация или лимит периода.
+
+## 3. Harvest — сбор каталога из запусков
 
 `POST /api/tests/harvest` регистрирует в каталоге пути, которые уже встречались в запусках.
 
@@ -184,7 +280,7 @@ Query-параметры:
   `environment <> ''`. Всегда передавайте окружение (фронтенд передаёт `phase.environment`);
 - rate limit: 1 запрос / 10 секунд, 10 / минуту.
 
-## 3. Каталог: ручное создание и JSON-импорт
+## 4. Импорт каталога: ручное создание и JSON-импорт
 
 ### `POST /api/tests` (single upsert)
 
@@ -244,7 +340,7 @@ UI показывает предпросмотр (`Разобрано N тест
 (до 2000 путей). Скрытые тесты не попадают в отчёт и в сводку по отчётам, даже если у них есть
 запуски. UI поддерживает переключение по одному, по набору и по выбранным строкам.
 
-## 4. Legacy-импорт
+## 5. Legacy-импорт
 
 Предназначен для разового переноса данных из старой localStorage-версии.
 
@@ -286,7 +382,7 @@ ENABLE_LEGACY_IMPORT=true
 | `results[].name` | `TestResult.caseName` |
 | `results[].status` | `passed/failed/broken/skipped`; `running` и неизвестные → строка пропускается |
 | `results[].lastRunAt` | `startDate = endDate`; если нет — `createdAt` отчёта |
-| `results[].errorMessage` | `TestResult.message` |
+| `results[].errorMessage` | `TestResultDetail.message` |
 
 Дополнительно:
 
@@ -308,6 +404,7 @@ ENABLE_LEGACY_IMPORT=true
 | Операция | Повторный вызов |
 | --- | --- |
 | `POST /results` | создаёт новый запуск (дубликаты допустимы) |
+| `POST /allure/import` | пропускает уже импортированные результаты (`externalId`) |
 | `POST /tests` (single) | upsert по `(workspaceId, resultPath)` |
 | `POST /tests/bulk` | upsert по каждому элементу |
 | `POST /tests/harvest` | создаёт только отсутствующие записи, повторно добавляет членства (`skipDuplicates`) |

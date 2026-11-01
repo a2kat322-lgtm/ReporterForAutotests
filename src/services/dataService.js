@@ -1,4 +1,4 @@
-const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api`
+export const API_BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api`
 
 async function request(path, options = {}) {
   let response
@@ -123,4 +123,40 @@ export async function harvestAutomatedTests(startDate, endDate, environment, wor
 
 export async function importLegacyData(data) {
   return request('/import', { method: 'POST', headers: { 'X-Import-Confirmation': 'yes' }, body: JSON.stringify(data) })
+}
+
+/**
+ * Uploads an `allure-results` archive (one CI run) as a raw ZIP body.
+ * `environment` becomes the run circuit and must match the phase environment,
+ * otherwise the imported runs will not appear in that phase's reports.
+ */
+export async function importAllureResults({ file, environment, workspaceId, projectName, launchId }) {
+  const params = new URLSearchParams({ environment })
+  if (workspaceId != null) params.set('workspaceId', workspaceId)
+  if (projectName) params.set('projectName', projectName)
+  if (launchId) params.set('launchId', launchId)
+
+  let response
+  try {
+    response = await fetch(`${API_BASE}/allure/import?${params.toString()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/zip' },
+      body: file,
+    })
+  } catch {
+    throw new Error('Backend is unavailable. Start PostgreSQL and the NestJS API, then try again.')
+  }
+
+  let payload = null
+  try { payload = await response.json() } catch { payload = null }
+  if (!response.ok) throw new Error(payload?.message || `Import failed (${response.status})`)
+  return payload
+}
+
+export function getResultDetails(resultId) {
+  return request(`/results/${resultId}/details`)
+}
+
+export function getAttachmentUrl(key) {
+  return `${API_BASE}/attachments/${encodeURIComponent(key)}`
 }

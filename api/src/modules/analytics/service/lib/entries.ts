@@ -1,4 +1,5 @@
-import { AutomatedTest, Report, TestResult } from '@prisma/client'
+import { AutomatedTest, Report } from '@prisma/client'
+import { RunSummary } from '../../../results/dto/run-summary'
 import { dayEnd, dayStart } from '../../../../common/dates/day-range'
 import { AnalyticsStatus, StatusCounts } from '../../dto/analytics.types'
 import { emptyCounts } from './analytics.utils'
@@ -7,17 +8,17 @@ export interface ReportEntry {
   report: Report
   start: Date
   end: Date
-  selected: Map<string, TestResult>
+  selected: Map<string, RunSummary>
   statusByPath: Map<string, AnalyticsStatus>
   counts: StatusCounts
 }
 
 /** Replicates the report-view rule: the latest run wins unless an earlier run passed. */
-export function buildEntries(reports: Report[], runs: TestResult[]): ReportEntry[] {
+export function buildEntries(reports: Report[], runs: RunSummary[]): ReportEntry[] {
   return reports.map((report) => {
     const start = dayStart(report.startDate)
     const end = dayEnd(report.endDate)
-    const selected = new Map<string, TestResult>()
+    const selected = new Map<string, RunSummary>()
     for (const run of runs) {
       if (run.startDate > end || run.endDate < start) continue
       const current = selected.get(run.path)

@@ -1,8 +1,8 @@
-import { TestResult } from '@prisma/client'
+import { RunSummaryWithMessage } from '../../../results/dto/run-summary'
 import { FailureReasonRow, FailureSignatureRow, PhaseFailures } from '../../dto/analytics.types'
 import { isFailure, normalizeMessage, ratio } from './analytics.utils'
 
-export function buildFailures(runs: TestResult[]): PhaseFailures {
+export function buildFailures(runs: RunSummaryWithMessage[]): PhaseFailures {
   const failedRuns = runs.filter((run) => isFailure(run.status))
   const signatures = new Map<string, { count: number; sample: string }>()
   const reasons = new Map<string, number>()

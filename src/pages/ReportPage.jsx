@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, Select, Space, Tag, Typography } from 'antd'
-import { ArrowLeftOutlined, BarChartOutlined, ReloadOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, BarChartOutlined, ReloadOutlined, UploadOutlined } from '@ant-design/icons'
 import ResultsChart from '../components/ResultsChart'
 import { SuiteTable } from '../components/ReportTables'
+import AllureUploadModal from '../components/AllureUploadModal'
+import ResultDetailsDrawer from '../components/ResultDetailsDrawer'
 import { envColors } from '../constants'
 import { formatDate } from '../utils/format'
 
@@ -57,6 +59,8 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
   const [statuses, setStatuses] = useState([])
   const [owners, setOwners] = useState([])
   const [tags, setTags] = useState([])
+  const [detailsId, setDetailsId] = useState(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
   const filters = useMemo(() => ({ statuses, owners, tags }), [statuses, owners, tags])
 
   const { tests, suites, counts } = useMemo(
@@ -84,6 +88,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
           </Space>
         </div>
         <Space>
+          <Button icon={<UploadOutlined />} onClick={() => setUploadOpen(true)}>Импорт allure-results</Button>
           <Button icon={<BarChartOutlined />} onClick={() => navigate({ page: 'analytics', phaseId: phase.id, reportId: report.id, phase, report })}>Открыть аналитику</Button>
           <Button icon={<ReloadOutlined />} onClick={reload}>Обновить результаты</Button>
         </Space>
@@ -126,8 +131,17 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
         <Text type="secondary">Показано <strong>{tests.length}</strong> кейсов в <strong>{suites.length}</strong> наборах</Text>
       </div>
       <Card className="table-card test-table-card" styles={{ body: cardBody }}>
-        <SuiteTable suites={suites} reload={reload} />
+        <SuiteTable suites={suites} reload={reload} onOpenDetails={setDetailsId} />
       </Card>
+
+      <AllureUploadModal
+        open={uploadOpen}
+        workspaceId={phase.workspaceId}
+        environment={phase.environment}
+        onClose={() => setUploadOpen(false)}
+        onImported={reload}
+      />
+      <ResultDetailsDrawer resultId={detailsId} open={detailsId != null} onClose={() => setDetailsId(null)} />
     </>
   )
 }

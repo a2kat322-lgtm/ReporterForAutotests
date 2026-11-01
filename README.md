@@ -49,11 +49,22 @@ api/src/
 │   │   ├── repository/
 │   │   ├── dto/
 │   │   └── reports.module.ts
-│   └── import/
-│       ├── controller/
-│       ├── service/
+│   ├── tests/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   ├── dto/
+│   │   └── tests.module.ts
+│   ├── import/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   └── import.module.ts
+│   └── allure/
+│       ├── controller/           # POST /allure/import, GET /attachments/:key
+│       ├── service/              # ZIP reader, allure-results parser, storage
 │       ├── repository/
-│       └── import.module.ts
+│       └── allure.module.ts
 ├── app.module.ts
 └── main.ts
 ```
@@ -63,7 +74,28 @@ Each feature is isolated in its own module. Controllers contain only HTTP concer
 
 The Prisma schema is in `api/prisma/schema.prisma`. The initial migration is committed under `api/prisma/migrations/`. Use `prisma migrate dev` while developing schema changes and `prisma migrate deploy` for a production-like environment. The API never runs migrations automatically and does not use `synchronize`/`ddl-auto` behavior.
 
-`TestResult.steps` is stored as PostgreSQL JSONB because steps have a flexible payload (`name`, `status`, `duration`, optional `output`/`error`) and are rendered as one report detail. The stable relational fields remain indexed columns. Results are idempotent via the unique `(reportId, automatedTestId)` constraint.
+`TestResultDetail.steps` is stored as PostgreSQL JSONB because steps have a flexible payload (`name`, `status`, `duration`, nested `steps`, `attachments`) and are rendered as one report detail. `attachments` holds metadata only: files live under `ATTACHMENTS_DIR` (default `api/storage/attachments`) and are served by `GET /api/attachments/:key`. Steps, attachments, parameters, links, status details and the failure text live in `TestResultDetail` (1:1 with the run) so the hot `TestResult` row stays narrow: list queries read thousands of runs per request, while the detail is read for one run at a time. Steps, attachments and parameters are filled by the `allure-results` import; runs posted through the form contract keep them empty. The stable relational fields remain indexed columns. Results are idempotent on import via the unique `(workspaceId, externalId)` constraint.
+
+## Allure-results import
+
+Instead of posting one request per test, CI can upload the `allure-results` directory as a ZIP. The
+archive brings steps, screenshots, parameters, tags, TMS/issue links and the failure stack trace;
+missing catalog paths are registered automatically for the given environment.
+
+```powershell
+Compress-Archive -Path target\allure-results\* -DestinationPath target\allure-results.zip
+Invoke-RestMethod -Method Post `
+  -Uri 'http://localhost:3001/api/allure/import?workspaceId=1&environment=dso' `
+  -ContentType 'application/zip' -InFile target\allure-results.zip
+```
+
+Re-uploading the same archive is a no-op (`imported = 0`), and a run already posted by the test-side
+listener is enriched in place instead of duplicated (same `path` + `circuit` + start time ±10 s), so
+the fast per-test channel stays the source of truth and the archive only adds steps and screenshots.
+`environment` becomes the run `circuit` and must match the phase environment. The report page has the
+same action: «Импорт allure-results», and a «Детали» button next to every case opens the step tree and
+screenshots. Contract details — [`docs/05-api.md`](docs/05-api.md) and
+[`docs/07-ingestion-and-import.md`](docs/07-ingestion-and-import.md).
 
 ## Legacy localStorage import
 
@@ -71,12 +103,16 @@ Legacy data can be imported only when the API process explicitly has `ENABLE_LEG
 
 ## API endpoints
 
-- `GET/POST /api/phases`
+- `GET /api/phases`
 - `GET /api/phases/:phaseId`
 - `GET/POST /api/phases/:phaseId/reports`
 - `GET /api/reports/:reportId`
 - `GET /api/reports/:reportId/results`
 - `POST /api/reports/:reportId/results` (idempotent upsert)
+- `POST /api/results`
+- `GET /api/results/:resultId/details`
+- `POST /api/allure/import`
+- `GET /api/attachments/:key`
 - `POST /api/import` (disabled by default)
 
 ## Checks

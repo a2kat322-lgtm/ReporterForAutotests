@@ -39,6 +39,9 @@
 | `PATCH` | `/reports/results/:resultId/feedback` | обратная связь по падению | `200` |
 | `DELETE` | `/reports/:reportId` | удалить отчёт | `200` |
 | `POST` | `/results` | принять запуск от автоматизации | `201` |
+| `GET` | `/results/:resultId/details` | шаги, вложения, параметры запуска | `200` |
+| `POST` | `/allure/import` | импорт zip-архива `allure-results` | `201` |
+| `GET` | `/attachments/:key` | файл вложения из архива | `200` |
 | `GET` | `/tests` | каталог тестов | `200` |
 | `POST` | `/tests` | создать/обновить тест каталога | `201` |
 | `POST` | `/tests/bulk` | пакетный upsert каталога | `200` |
@@ -390,6 +393,75 @@ curl -X POST http://localhost:3001/api/results \
 
 Ошибки `400`: нет `path`, неверный `status`, отсутствует/невалиден `startDate`, `endDate < startDate`.
 Rate limit: 50/сек, 5000/мин.
+
+### `GET /results/:resultId/details`
+
+Полная карточка запуска для отчёта: `steps` (дерево шагов с вложенными шагами и вложениями),
+`attachments`, `parameters`, `links` (`@TmsLink`/`@Issue`/`@Link`), `statusDetails` (`message`,
+`trace`), `launchId`, `externalId`. Запуски, отправленные формой, возвращают пустые массивы и
+`statusDetails: null`.
+
+### `POST /allure/import`
+
+Импорт одного архива `allure-results` — один архив соответствует одному прогону CI. Тело — сырой
+ZIP (`Content-Type: application/zip`), multipart не нужен.
+
+| Query | Обязателен | Смысл |
+| --- | --- | --- |
+| `environment` | да | записывается в `circuit`; должен совпадать с окружением фазы |
+| `workspaceId` | одно из двух | проект по ID |
+| `projectName` | одно из двух | проект по имени (создаётся при отсутствии) |
+| `launchId` | нет | идентификатор прогона; по умолчанию случайный UUID |
+
+```bash
+curl -X POST "http://localhost:3001/api/allure/import?workspaceId=1&environment=dso" \
+  -H "Content-Type: application/zip" \
+  --data-binary @allure-results.zip
+```
+
+Ответ `201`:
+
+```json
+{
+  "imported": 42,
+  "enriched": 7,
+  "duplicates": 0,
+  "totalResults": 49,
+  "attachments": 17,
+  "launchId": "8c7b9691-1962-4bf8-9fc7-caae7df0e96e",
+  "workspaceId": 1,
+  "projectName": "dso",
+  "environment": "dso",
+  "catalogCreated": 42,
+  "warnings": []
+}
+```
+
+Особенности:
+
+- **уже отправленный запуск дополняется, а не дублируется.** Если `ResultWriter` (или любой клиент
+  формы) уже прислал запуск с тем же `path`, `circuit` и временем старта (±10 с), импорт пишет
+  `steps`, `attachments`, `parameters`, `statusDetails`, `externalId`, `launchId` в эту строку и
+  увеличивает `enriched`. Статус, время, окружение и проект остаются от формы, поэтому отчёт и
+  метрики ретраев/флаки не меняются;
+- **один архив = один прогон.** Повторная загрузка того же архива не создаёт дублей:
+  `imported = 0`, `duplicates = N` (уникальность по `(workspaceId, externalId)`);
+- отсутствующие пути автоматически попадают в каталог с членством в окружении `environment`
+  (`source = 'allure'`), иначе запуски были бы не видны в отчётах;
+- `path` собирается как `testClass#testMethod` из labels (как у JUnit-расширения), иначе берётся
+  `fullName`;
+- `suiteName` ← label `feature`, `caseName` ← label `story` (или `name`), `owner` ← label `owner`,
+  теги ← labels `tag`;
+- лимит архива — 512 МиБ (`ALLURE_IMPORT_MAX_BYTES`), rate limit 2/10 сек и 30/мин;
+- файлы вложений пишутся в `ATTACHMENTS_DIR` (по умолчанию `api/storage/attachments`) под именем
+  `sha256`, поэтому одинаковые скриншоты не дублируются;
+- если в архиве нет какого-то файла вложения, запуск всё равно импортируется, а в `warnings`
+  появляется запись; битый JSON-файл результата пропускается с предупреждением.
+
+### `GET /attachments/:key`
+
+Отдаёт файл вложения по ключу из `steps[].attachments[].key` / `attachments[].key`.
+Ключ — `sha256` с расширением; ответ кешируется на год (`Cache-Control: immutable`).
 
 ---
 

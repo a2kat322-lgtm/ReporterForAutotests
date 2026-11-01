@@ -1,9 +1,10 @@
-import { AutomatedTest, TestResult } from '@prisma/client'
+import { AutomatedTest } from '@prisma/client'
+import { RunSummary } from '../../../results/dto/run-summary'
 import { PhaseLifecycle } from '../../dto/analytics.types'
 import { isFailure } from './analytics.utils'
 
-export function buildLifecycle(catalog: AutomatedTest[], runs: TestResult[]): PhaseLifecycle {
-  const runsByPath = new Map<string, TestResult[]>()
+export function buildLifecycle(catalog: AutomatedTest[], runs: RunSummary[]): PhaseLifecycle {
+  const runsByPath = new Map<string, RunSummary[]>()
   for (const run of runs) {
     const bucket = runsByPath.get(run.path)
     if (bucket) bucket.push(run)

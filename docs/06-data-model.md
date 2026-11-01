@@ -118,12 +118,16 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | `status` | `TestStatus` | NOT NULL (`passed`, `failed`, `broken`, `skipped`) |
 | `owner` | `VARCHAR(120)` | NULL |
 | `circuit` | `VARCHAR(120)` | NULL; CHECK `circuit IS NULL OR circuit = lower(circuit)` |
-| `message` | `TEXT` | NULL |
 | `failureReason` | `VARCHAR(120)` | NULL |
 | `failureComment` | `TEXT` | NULL |
 | `startDate` / `endDate` | `TIMESTAMPTZ(3)` | NOT NULL |
 | `tags` | `JSONB` | NOT NULL, default `'[]'` |
+| `externalId` | `VARCHAR(128)` | NULL; `uuid` результата Allure, ключ идемпотентности импорта |
+| `launchId` | `VARCHAR(128)` | NULL; один загруженный архив = один прогон CI |
 | `createdAt` / `updatedAt` | `TIMESTAMPTZ(3)` | NOT NULL |
+
+Это «горячая» строка запуска: её выбирают списковые запросы (отчёт — тысячи строк за запрос,
+аналитика — сотни тысяч), поэтому в ней остались только поля, нужные для таблицы и агрегатов.
 
 Индексы:
 
@@ -131,12 +135,49 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | --- | --- |
 | `TestResult_workspaceId_path_startDate_idx` | история запусков по пути |
 | `TestResult_workspaceId_startDate_endDate_idx` | диапазонные выборки |
-| `TestResult_workspaceId_circuit_idx` | точное совпадение окружения (btree) |
+| `TestResult_workspaceId_circuit_startDate_idx` | контур + диапазон дат одним индексом |
 | `TestResult_period_overlap_gist_idx` | `GIST (tstzrange("startDate","endDate",'[]'))` — пересечение интервалов |
+| `TestResult_workspaceId_externalId_key` | UNIQUE — идемпотентность импорта архивов |
+| `TestResult_workspaceId_launchId_idx` | группировка запусков одного прогона CI |
+
+### `TestResultDetail`
+
+«Холодная» часть запуска, связь 1:1 по `resultId` (PK, FK → `TestResult.id`, `ON DELETE CASCADE`):
+
+| Колонка | Тип | Ограничения |
+| --- | --- | --- |
+| `resultId` | `BIGINT` | PK, FK → `TestResult.id`, `ON DELETE CASCADE` |
+| `message` | `TEXT` | NULL; текст ошибки от формы или из `allure-results` |
+| `steps` | `JSONB` | NOT NULL, default `'[]'`; дерево шагов из `allure-results` |
+| `attachments` | `JSONB` | NOT NULL, default `'[]'`; метаданные вложений (`name`, `type`, `size`, `key`) |
+| `parameters` | `JSONB` | NOT NULL, default `'[]'`; параметры параметризованного запуска |
+| `links` | `JSONB` | NOT NULL, default `'[]'`; ссылки Allure: `[{ name, url, type }]` (`tms`, `issue`, `link`) |
+| `statusDetails` | `JSONB` | NULL; `{ message, trace, known, muted, flaky }` |
+
+Почему отдельно: списковые запросы (`findRunsCoveringWindow`) отдают тысячи строк запусков, а
+сообщение и Allure-детали нужны либо для одного запуска (рисование деталей), либо только для
+упавших (аналитика подписей ошибок). Колонки в горячей строке заставляли бы каждое чтение
+пролистывать в разы больше страниц. Поэтому:
+
+- строка `TestResultDetail` создаётся только если у запуска есть текст ошибки или Allure-детали
+  (у «сухих» прогонов её нет);
+- сообщения для строки отчёта читаются точечно по PK — только для выбранного и последнего запуска
+  пути (`ResultsRepository.findMessagesByIds`);
+- аналитика догружает сообщения только по `failed`/`broken` (`findFailureMessages`);
+- `GET /api/results/:resultId/details` склеивает обе таблицы обратно в плоский объект, поэтому
+  контракт API не менялся.
+
+`steps`, `attachments`, `parameters`, `links`, `statusDetails` заполняются только импортом
+`allure-results`; у запусков, отправленных формой, их нет. Файлы вложений в PostgreSQL **не
+хранятся**: в JSONB лежат метаданные с ключом `sha256`, сами байты — в `ATTACHMENTS_DIR`
+(по умолчанию `api/storage/attachments`, каталог нужно бэкапить отдельно от БД).
 
 Индекс GiST объявлен **только в baseline-миграции** (`20261018000000_baseline`), его нет в
-`schema.prisma`. Prisma не управляет такими индексами; при генерации новых миграций проверяйте,
-что он не удаляется (`prisma migrate diff`).
+`schema.prisma`: Prisma не умеет описывать индексы по выражениям. Без него окно отчёта падает в
+последовательное сканирование (на 1,5 млн строк замер дал 194 мс против 4,3 мс с индексом),
+поэтому существование индекса закреплено проверкой `npm --prefix api run db:verify`
+(`api/scripts/verify-db-invariants.cjs`): она падает, если индекс пропал или его удаляет какая-то
+миграция. Прогоняйте её после `prisma migrate deploy`.
 
 ## Инварианты
 
@@ -221,6 +262,14 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | `20261020030000_gist_overlap_index` | GiST-индекс по `tstzrange(startDate, endDate)` |
 | `20261021000000_workspaces` | `Workspace`, сквозной `workspaceId`, `projectName`, FK, скоуп-индексы |
 | `20261022000000_remove_empty_default_workspace` | удаляет пустой служебный workspace `default` на чистой установке (создан для бэкфилла) |
+
+После схлопывания добавлены миграции: `20261101150000_allure_results_import` — колонки
+`steps`, `attachments`, `parameters`, `statusDetails`, `externalId`, `launchId` в `TestResult` и
+два индекса (уникальный по `(workspaceId, externalId)`, обычный по `(workspaceId, launchId)`);
+`20261101170000_allure_links` — колонка `links`; `20261101180000_test_result_detail_split` — вынос
+`message`, `steps`, `attachments`, `parameters`, `links`, `statusDetails` в `TestResultDetail`
+(данные переносятся, колонки удаляются) и замена индекса `(workspaceId, circuit)` на
+`(workspaceId, circuit, startDate)`.
 
 ### Порядок миграций
 

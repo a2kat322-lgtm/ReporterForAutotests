@@ -110,17 +110,47 @@ model TestResult {
   owner     String?    @db.VarChar(120)
   /// Canonical form: lowercase (enforced by a CHECK constraint). Compared against Phase.environment.
   circuit   String?    @db.VarChar(120)
-  message        String?
   failureReason  String?    @db.VarChar(120)
   failureComment String?
   startDate      DateTime   @db.Timestamptz(3)
   endDate   DateTime   @db.Timestamptz(3)
   tags      Json       @default("[]") @db.JsonB
+  /// Allure result `uuid`: makes repeated imports of the same archive idempotent.
+  externalId String? @db.VarChar(128)
+  /// Import batch (one uploaded archive) — groups all runs of a single CI execution.
+  launchId   String? @db.VarChar(128)
   createdAt DateTime   @default(now()) @db.Timestamptz(3)
   updatedAt DateTime   @updatedAt @db.Timestamptz(3)
   workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  detail    TestResultDetail?
 
+  @@unique([workspaceId, externalId])
   @@index([workspaceId, path, startDate])
   @@index([workspaceId, startDate, endDate])
-  @@index([workspaceId, circuit])
+  /// `startDate` is part of the key so a circuit filter can also use a date range.
+  @@index([workspaceId, circuit, startDate])
+  @@index([workspaceId, launchId])
+}
+
+/// Cold part of a run: the failure text and the Allure detail. It lives in its
+/// own table so the hot run row stays narrow — reports and analytics read
+/// thousands of runs per request, while these columns are read for one run at a
+/// time by the detail drawer (and for failed runs by the failure analytics).
+model TestResultDetail {
+  resultId      BigInt      @id
+  /// Failure text posted by the automation system or imported from Allure.
+  message       String?
+  /// Nested step tree imported from `allure-results` (name, status, timings, nested steps, attachments).
+  /// Stays `[]` for runs posted through the form contract.
+  steps         Json        @default("[]") @db.JsonB
+  /// Attachment metadata (`name`, `type`, `size`, `key`); the file itself lives in the attachment storage.
+  attachments   Json        @default("[]") @db.JsonB
+  /// Parameters of a parametrised run: `[{ name, value, excluded }]`.
+  parameters    Json        @default("[]") @db.JsonB
+  /// Links from Allure (`@TmsLink`, `@Issue`, `@Link`): `[{ name, url, type }]`.
+  links         Json        @default("[]") @db.JsonB
+  /// `{ message, trace, known, muted, flaky }` from Allure `statusDetails`.
+  statusDetails Json?       @db.JsonB
+
+  result TestResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
 }

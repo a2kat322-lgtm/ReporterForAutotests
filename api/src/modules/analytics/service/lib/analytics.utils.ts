@@ -1,4 +1,5 @@
-import { Report, TestResult } from '@prisma/client'
+import { Report } from '@prisma/client'
+import { RunSummary } from '../../../results/dto/run-summary'
 import { AnalyticsStatus, StatusCounts } from '../../dto/analytics.types'
 
 const URL_PATTERN = /https?:\/\/\S+/g
@@ -22,7 +23,7 @@ export function isFailure(status: AnalyticsStatus): boolean {
   return FAILURE_STATUSES.has(status)
 }
 
-export function durationOf(run: TestResult | null | undefined): number | null {
+export function durationOf(run: RunSummary | null | undefined): number | null {
   if (!run) return null
   const value = run.endDate.valueOf() - run.startDate.valueOf()
   return value > 0 ? value : null
@@ -41,7 +42,7 @@ export function statusCode(status: AnalyticsStatus): string {
 }
 
 /** Collapses variable fragments (ids, line numbers, timings) into a stable error fingerprint. */
-export function normalizeMessage(message: string | null): string {
+export function normalizeMessage(message: string | null | undefined): string {
   const value = message?.trim()
   if (!value) return '(без сообщения)'
   const normalized = value

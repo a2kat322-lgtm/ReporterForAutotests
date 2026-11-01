@@ -1,10 +1,16 @@
-import { Report, TestResult } from '@prisma/client'
+import { Report } from '@prisma/client'
+import { RunSummaryWithMessage } from '../../../results/dto/run-summary'
 import { PhaseHygiene } from '../../dto/analytics.types'
 import { isFailure } from './analytics.utils'
 
+/**
+ * `windowRuns` is the number of runs of every circuit in the phase window. Runs
+ * of other environments are never loaded — only counted — so the counters that
+ * describe them are derived from that number.
+ */
 export function buildHygiene(
-  allRuns: TestResult[],
-  environmentRuns: TestResult[],
+  windowRuns: number,
+  environmentRuns: RunSummaryWithMessage[],
   catalogPaths: Set<string>,
   reports: Report[],
 ): PhaseHygiene {
@@ -45,13 +51,13 @@ export function buildHygiene(
 
   const failedRuns = environmentRuns.filter((run) => isFailure(run.status))
   return {
-    totalRuns: allRuns.length,
+    totalRuns: windowRuns,
     environmentRuns: environmentRuns.length,
     uncataloguedRuns: uncatalogued.length,
     uncataloguedPaths: uncataloguedPaths.size,
     duplicateRuns,
     duplicateGroups,
-    wrongCircuitRuns: allRuns.length - environmentRuns.length,
+    wrongCircuitRuns: windowRuns - environmentRuns.length,
     overlappingReportPairs,
     overlappingReports: overlappingReports.size,
     missingOwnerRuns: environmentRuns.filter((run) => !run.owner?.trim()).length,

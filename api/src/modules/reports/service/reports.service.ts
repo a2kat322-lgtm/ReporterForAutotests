@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
-import { Prisma, TestResult } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { PhasesService } from '../../phases/service/phases.service'
 import { ResultsRepository } from '../../results/repository/results.repository'
 import { ReportResultRow } from '../../results/dto/run-payload'
+import { RunSummary } from '../../results/dto/run-summary'
 import { TestsRepository } from '../../tests/repository/tests.repository'
 import { CreateReportDto } from '../dto/create-report.dto'
 import { UpdateResultFeedbackDto } from '../dto/update-result-feedback.dto'
@@ -48,7 +49,7 @@ export class ReportsService {
     const reportSummaries = reports.map((report) => {
       const start = dayStart(report.startDate)
       const end = dayEnd(report.endDate)
-      const latestRunByPath = new Map<string, TestResult>()
+      const latestRunByPath = new Map<string, RunSummary>()
       for (const run of runs) {
         if (run.startDate > end || run.endDate < start) continue
         const current = latestRunByPath.get(run.path)
@@ -124,8 +125,8 @@ export class ReportsService {
       this.resultsRepository.findRunsCoveringWindow(report.phase.workspaceId, dayStart(report.startDate), dayEnd(report.endDate), environment),
     ])
 
-    const latestRunByPath = new Map<string, TestResult>()
-    const runsByPath = new Map<string, TestResult[]>()
+    const latestRunByPath = new Map<string, RunSummary>()
+    const runsByPath = new Map<string, RunSummary[]>()
     for (const run of runs) {
       const pathRuns = runsByPath.get(run.path)
       if (pathRuns) pathRuns.push(run)
@@ -139,12 +140,26 @@ export class ReportsService {
       }
     }
 
+    // Only the selected run and the chronologically latest run of a path are
+    // displayed with their failure text, so the message is read for at most two
+    // rows per path instead of every row of the window.
+    const messageIds = new Map<string, bigint>()
+    for (const test of catalog) {
+      const pathRuns = runsByPath.get(test.resultPath)
+      if (!test.visible || !pathRuns?.length) continue
+      const selected = latestRunByPath.get(test.resultPath)
+      if (selected) messageIds.set(selected.id.toString(), selected.id)
+      messageIds.set(pathRuns[0].id.toString(), pathRuns[0].id)
+    }
+    const messages = await this.resultsRepository.findMessagesByIds([...messageIds.values()])
+
     const rows: ReportResultRow[] = []
     for (const test of catalog) {
       // Hidden catalog tests are excluded from the report, including their runs.
       if (!test.visible) continue
       const run = latestRunByPath.get(test.resultPath)
-      rows.push(toRow(test, run ?? null, runsByPath.get(test.resultPath) ?? []))
+      const pathRuns = runsByPath.get(test.resultPath) ?? []
+      rows.push(toRow(test, run ?? null, pathRuns, messages))
     }
     return rows
   }

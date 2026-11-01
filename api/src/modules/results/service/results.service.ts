@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { TestStatus } from '@prisma/client'
 import { WorkspacesService } from '../../workspaces/service/workspaces.service'
 import { ResultsRepository } from '../repository/results.repository'
@@ -90,5 +90,16 @@ export class ResultsService {
     const workspace = await this.workspacesService.findOrCreateByName(run.projectName)
     const saved = await this.resultsRepository.create({ ...run, workspaceId: workspace.id })
     return { received: true, id: saved.id, path: saved.path, status: saved.status, workspaceId: workspace.id, projectName: workspace.name }
+  }
+
+  /**
+   * Full run detail for the report drawer: steps, attachment metadata,
+   * parameters and the Allure status details (message + stack trace). Runs
+   * posted through the form contract simply have empty arrays here.
+   */
+  async findDetails(id: bigint) {
+    const result = await this.resultsRepository.findById(id)
+    if (!result) throw new NotFoundException('Test result not found')
+    return result
   }
 }

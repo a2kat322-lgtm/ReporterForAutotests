@@ -162,10 +162,14 @@ DTO — классы `class-validator`; глобальный pipe включён
 ### Выборка запусков по окну
 
 `ResultsRepository.findRunsCoveringWindow` использует `$queryRaw` с оператором пересечения
-интервалов и GiST-индексом:
+интервалов и GiST-индексом. Колонки перечислены явно, а не `SELECT *`: текст ошибки и
+Allure-детали лежат в `TestResultDetail` и не должны ехать с каждой загрузкой отчёта.
 
 ```sql
-SELECT * FROM "TestResult"
+SELECT "id", "workspaceId", "projectName", "path", "suiteName", "caseName", "status",
+       "owner", "circuit", "failureReason", "failureComment",
+       "startDate", "endDate", "tags", "externalId", "launchId", "createdAt", "updatedAt"
+FROM "TestResult"
 WHERE "workspaceId" = $1
   AND tstzrange("startDate", "endDate", '[]') && tstzrange($2, $3, '[]')
   AND "circuit" = $4            -- если environment задан
@@ -173,6 +177,15 @@ ORDER BY "startDate" DESC
 ```
 
 `Prisma.sql`/`Prisma.empty` собирают условие безопасно (параметризация сохраняется).
+
+Кто догружает «холодные» данные и когда:
+
+| Потребитель | Запрос | Что читает |
+| --- | --- | --- |
+| Строка отчёта | `findMessagesByIds` | сообщение только выбранного и последнего запуска пути (≤2 на путь) |
+| Аналитика фазы | `findFailureMessages` | сообщения только `failed`/`broken` в окне (подписи ошибок и счётчик `missingMessageRuns`) |
+| Детали запуска | `findById` | вся `TestResultDetail` для одной строки |
+| Счётчик `hygiene.totalRuns`/`wrongCircuitRuns` | `countRunsCoveringWindow` | `count(*)`, строки других контуров не грузятся |
 
 ### Сборка строк отчёта
 

@@ -263,6 +263,7 @@ API_HOST=127.0.0.1
 CORS_ORIGIN="https://reporter.example.com"
 ENABLE_LEGACY_IMPORT=false
 TRUST_PROXY=true
+ATTACHMENTS_DIR=/srv/reporter/storage/attachments
 ```
 
 | Переменная | Значение в продакшене | Зачем |
@@ -273,10 +274,13 @@ TRUST_PROXY=true
 | `CORS_ORIGIN` | `https://<домен>` | точный origin фронтенда, без слэша на конце |
 | `ENABLE_LEGACY_IMPORT` | `false` | legacy-импорт не нужен в проде |
 | `TRUST_PROXY` | `true` | реальный IP клиента из `X-Forwarded-For` для throttle |
+| `ATTACHMENTS_DIR` | `/srv/reporter/storage/attachments` | скриншоты и логи из `allure-results`; каталог бэкапится отдельно от БД |
+| `ALLURE_IMPORT_MAX_BYTES` | `536870912` | предел одного архива (512 МиБ); согласуйте с `client_max_body_size` |
 
 ```bash
 sudo -iu reporter
 chmod 600 /srv/reporter/api/.env
+mkdir -p /srv/reporter/storage/attachments
 ```
 
 Почему `127.0.0.1`, а не `localhost`: `localhost` может разрешиться в IPv6 (`::1`), а PostgreSQL
@@ -435,8 +439,8 @@ server {
     root /var/www/reporter;
     index index.html;
 
-    # API принимает тела до 10 МБ; даём запас.
-    client_max_body_size 12m;
+    # API: запуски до 10 МБ, архивы allure-results — до 512 МБ.
+    client_max_body_size 512m;
 
     # API: префикс /api сохраняется (у NestJS global prefix).
     location /api/ {
@@ -446,7 +450,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
+        # Импорт большого архива: разбор zip и запись вложений на диск.
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
     }
 
     # Хэшированные ассеты можно кэшировать надолго.
@@ -618,6 +624,13 @@ Cron `/etc/cron.d/reporter-backup` (обратите внимание на эк�
 30 2 * * * root find /var/backups/reporter -name '*.dump' -mtime +14 -delete
 ```
 
+Вложения из `allure-results` лежат не в БД, а в `ATTACHMENTS_DIR` — их нужно бэкапить отдельно,
+иначе после восстановления БД карточки запусков останутся со ссылками на отсутствующие файлы:
+
+```cron
+45 2 * * * root tar -czf /var/backups/reporter/attachments-$(date +\%F).tar.gz -C /srv/reporter/storage attachments
+```
+
 ```bash
 sudo chmod 644 /etc/cron.d/reporter-backup
 ```
@@ -717,6 +730,7 @@ sudo mv /var/www/reporter.prev /var/www/reporter
 - [ ] PostgreSQL 16 запущен, БД и пользователь созданы, порт доступен только локально.
 - [ ] `api/.env` заполнен, права `600`, `TRUST_PROXY=true`, `API_HOST=127.0.0.1`.
 - [ ] `prisma generate` и `prisma migrate deploy` прошли, таблицы созданы.
+- [ ] `npm --prefix api run db:verify` подтвердил инварианты схемы (GiST-индекс, уникальность `(workspaceId, externalId)`, составной индекс `(workspaceId, circuit, startDate)`, перенос холодных колонок в `TestResultDetail`).
 - [ ] База пустая (0 workspace), демо-данных нет; первый workspace создаётся в UI.
 - [ ] API собран (`npm run api:build`), systemd-сервис активен.
 - [ ] `curl http://127.0.0.1:3001/api/workspaces` отвечает `[]` на чистой установке.

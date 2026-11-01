@@ -1,9 +1,10 @@
-import { AutomatedTest, TestResult } from '@prisma/client'
+import { AutomatedTest } from '@prisma/client'
+import { RunSummary } from '../../../results/dto/run-summary'
 import { FailureAgeBucket, PhaseFailureAging } from '../../dto/analytics.types'
 import { isFailure, percentile } from './analytics.utils'
 
-export function buildFailureAging(catalog: AutomatedTest[], runs: TestResult[], phaseEnd: Date): PhaseFailureAging {
-  const runsByPath = new Map<string, TestResult[]>()
+export function buildFailureAging(catalog: AutomatedTest[], runs: RunSummary[], phaseEnd: Date): PhaseFailureAging {
+  const runsByPath = new Map<string, RunSummary[]>()
   for (const run of runs) {
     const bucket = runsByPath.get(run.path)
     if (bucket) bucket.push(run)

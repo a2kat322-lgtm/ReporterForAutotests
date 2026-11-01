@@ -112,10 +112,11 @@ pass rate и покрытие, длительности, нормализова�
 | `workspaces` | 5: `workspaces.module.ts`, `controller`, `service`, `repository`, `dto/create-workspace.dto.ts` | `findAll`, `findById`, `create`, `findOrCreateByName`, `canonicalName`, `delete` |
 | `phases` | 5: `phases.module.ts`, `controller`, `service`, `repository`, `dto/create-phase.dto.ts` | `findAll(workspaceId)`, `findById`, `create`, `ensureExists`, `delete` |
 | `reports` | 8: `reports.module.ts`, `controller/phase-reports`, `controller/reports`, `service/reports`, `service/report-view.utils`, `repository/reports`, `dto/create-report`, `dto/update-result-feedback` | `findByPhaseId`, `findResultsByPhaseId`, `createForPhase`, `findResults`, `updateResultFeedback`, `delete`; `toRow` собирает run-агрегаты (флаки, stale green, ретраи) |
-| `results` | 5: `results.module.ts`, `controller`, `service`, `repository`, `dto/run-payload.ts` | `normalize`, `ingestRun`; `create`, `findById`, `updateFeedback`, `findRunsCoveringWindow`, `findDistinctPaths`, `findLatestRunPerPath`, `circuitFilter`; типы `RunPayload`, `NormalizedRun`, `ReportResultRow` |
+| `results` | 5: `results.module.ts`, `controller`, `service`, `repository`, `dto/run-payload.ts`, `dto/run-summary.ts` | `normalize`, `ingestRun`; `create`, `findById`, `updateFeedback`, `findRunsCoveringWindow`, `countRunsCoveringWindow`, `findMessagesByIds`, `findFailureMessages`, `findDistinctPaths`, `findLatestRunPerPath`, `circuitFilter`; типы `RunPayload`, `NormalizedRun`, `RunSummary`, `ReportResultRow` |
 | `tests` | 7: `tests.module.ts`, `controller`, `service`, `repository`, `dto/create-automated-test`, `dto/bulk-automated-tests`, `dto/update-visibility` | `findForEnvironment`, `create`, `createBulk`, `updateVisibility`, `harvestFromResults`, `delete`; `harvestBatch`, `findByResultPath`, `update`, `addEnvironment` (не используется) |
 | `analytics` | 15: `analytics.module.ts`, `controller/phase-analytics`, `dto/analytics.types.ts`, `service/phase-analytics.service.ts` (оркестратор), `service/lib/*` (11 файлов) | `getPhaseAnalytics`; билдеры `buildEntries`, `fillStatus`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildLifecycle`, `buildFailureAging`, `buildMatrix`, `buildHygiene`; утилиты `normalizeMessage`, `percentile`, `ratio`, `isFailure` |
 | `import` | 4: `import.module.ts`, `controller`, `service`, `repository` | `importLegacy`, `executeImport`; интерфейсы `LegacyPhase`, `LegacyReport`, `LegacyResult`, `LegacyImportPayload` |
+| `allure` | 8: `allure.module.ts`, `controller/allure`, `controller/attachment`, `service/allure-import.service.ts`, `service/allure-parser.ts`, `service/zip-reader.ts`, `service/attachment-storage.service.ts`, `repository/allure.repository.ts` | `importArchive`, `pickCandidate` (слияние с запуском формы), `toEnrichment`, `storeSteps`, `storeAttachments`, `findFile`; `parseAllureArchive`, `readZip`; `save`, `resolve`, `contentType`; `findUnlinkedRuns`, `enrich` |
 
 `analytics/service/lib/` разбит по доменам: `entries.ts`, `report-rows.ts`, `kpi.ts`, `owners.ts`,
 `suites.ts`, `failures.ts`, `lifecycle.ts`, `failure-aging.ts`, `matrix.ts`, `hygiene.ts` и общие
@@ -142,6 +143,9 @@ pass rate и покрытие, длительности, нормализова�
 | `PATCH /reports/results/:resultId/feedback` | `ReportsController::updateResultFeedback` | `ReportsService.updateResultFeedback` |
 | `DELETE /reports/:reportId` | `ReportsController::delete` | `ReportsService.delete` |
 | `POST /results` | `ResultsController::ingest` | `ResultsService.ingestRun` |
+| `GET /results/:resultId/details` | `ResultsController::findDetails` | `ResultsService.findDetails` |
+| `POST /allure/import` | `AllureController::importArchive` | `AllureImportService.importArchive` |
+| `GET /attachments/:key` | `AttachmentController::find` | `AttachmentStorageService.resolve` |
 | `GET /tests` | `TestsController::findAll` | `TestsService.findForEnvironment` |
 | `POST /tests` | `TestsController::create` | `TestsService.create` |
 | `POST /tests/bulk` | `TestsController::createBulk` | `TestsService.createBulk` |
@@ -165,11 +169,15 @@ ReportsService   → PhasesService (ensureExists, findById)
                  → ResultsRepository (findRunsCoveringWindow)
                  → TestsRepository (findForEnvironment)
 ResultsService   → WorkspacesService (findOrCreateByName)
+AllureImportService → WorkspacesService (findById / findOrCreateByName)
+                    → TestsRepository (harvestBatch — авто-регистрация каталога)
+                    → AttachmentStorageService (save)
+                    → AllureRepository (createMany)
 TestsService     → ResultsRepository (findDistinctPaths, findLatestRunPerPath)
 AnalyticsService → PhasesService (findById)
                  → ReportsRepository (findByPhaseId)
                  → TestsRepository (findForEnvironment)
-                 → ResultsRepository (findRunsCoveringWindow без circuit)
+                 → ResultsRepository (findRunsCoveringWindow, countRunsCoveringWindow, findFailureMessages)
 ```
 
 Все репозитории используют глобальный `PrismaService`.

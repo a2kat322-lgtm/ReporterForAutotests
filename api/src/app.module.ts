@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import { APP_GUARD } from '@nestjs/core'
+import { AllureModule } from './modules/allure/allure.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ImportModule } from './modules/import/import.module'
 import { PhasesModule } from './modules/phases/phases.module'
@@ -20,6 +21,7 @@ import { appConfig } from './config/app.config'
       { name: 'long', ttl: 60_000, limit: 300 },
     ]),
     PrismaModule,
+    AllureModule,
     AnalyticsModule,
     PhasesModule,
     ReportsModule,

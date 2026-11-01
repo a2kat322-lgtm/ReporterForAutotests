@@ -3,6 +3,7 @@ import { dayEnd, dayStart } from '../../../common/dates/day-range'
 import { PhasesService } from '../../phases/service/phases.service'
 import { ReportsRepository } from '../../reports/repository/reports.repository'
 import { ResultsRepository } from '../../results/repository/results.repository'
+import { RunSummaryWithMessage } from '../../results/dto/run-summary'
 import { TestsRepository } from '../../tests/repository/tests.repository'
 import { PhaseAnalytics } from '../dto/analytics.types'
 import { compareReports } from './lib/analytics.utils'
@@ -29,20 +30,33 @@ export class PhaseAnalyticsService {
   async getPhaseAnalytics(phaseId: bigint): Promise<PhaseAnalytics> {
     const phase = await this.phasesService.findById(phaseId)
     const environment = phase.environment.trim().toLowerCase()
-    const [reports, catalog, allRuns] = await Promise.all([
+    const periodStart = dayStart(phase.startedAt)
+    const periodEnd = dayEnd(phase.endedAt)
+
+    const [reports, catalog, runsInEnvironment, windowRuns, failureMessages] = await Promise.all([
       this.reportsRepository.findByPhaseId(phaseId),
       this.testsRepository.findForEnvironment(environment, phase.workspaceId),
+      // The circuit filter runs in SQL: runs of other environments are counted,
+      // not loaded. They are only needed as a hygiene counter.
       this.resultsRepository.findRunsCoveringWindow(
         phase.workspaceId,
-        dayStart(phase.startedAt),
-        dayEnd(phase.endedAt),
+        periodStart,
+        periodEnd,
+        environment,
       ),
+      this.resultsRepository.countRunsCoveringWindow(phase.workspaceId, periodStart, periodEnd),
+      // Failure signatures are the only analytics that need the failure text,
+      // and they only need it for failed/broken runs.
+      this.resultsRepository.findFailureMessages(phase.workspaceId, periodStart, periodEnd, environment),
     ])
 
     const orderedReports = [...reports].sort(compareReports)
     const visibleCatalog = catalog.filter((test) => test.visible)
-    const environmentRuns = allRuns
-      .filter((run) => (run.circuit ?? '').trim().toLowerCase() === environment)
+    const environmentRuns: RunSummaryWithMessage[] = runsInEnvironment
+      .map((run) => {
+        const message = failureMessages.get(run.id.toString())
+        return message === undefined ? run : { ...run, message }
+      })
       .sort((left, right) => right.startDate.valueOf() - left.startDate.valueOf())
     const visiblePaths = new Set(visibleCatalog.map((test) => test.resultPath))
 
@@ -63,7 +77,7 @@ export class PhaseAnalyticsService {
       failures: buildFailures(environmentRuns),
       lifecycle: buildLifecycle(visibleCatalog, environmentRuns),
       failureAging: buildFailureAging(visibleCatalog, environmentRuns, dayEnd(phase.endedAt)),
-      hygiene: buildHygiene(allRuns, environmentRuns, new Set(catalog.map((test) => test.resultPath)), orderedReports),
+      hygiene: buildHygiene(windowRuns, environmentRuns, new Set(catalog.map((test) => test.resultPath)), orderedReports),
     }
   }
 }

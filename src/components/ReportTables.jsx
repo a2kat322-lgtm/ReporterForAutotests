@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Empty, Popover, Space, Table, Tag, Tooltip, Typography } from 'antd'
+import { Button, Empty, Popover, Space, Table, Tag, Tooltip, Typography } from 'antd'
 import StatusTag from './StatusTag'
 import { FailureFeedbackFields } from './RunDetails'
 import { formatDuration } from '../utils/format'
@@ -59,7 +59,7 @@ const INLINE_MESSAGE_MAX_LENGTH = INLINE_MESSAGE_LINE_LENGTH * 3
 // Above this many cases the nested table virtualizes its rows; below it the
 // plain table keeps its natural height.
 const CASE_VIRTUAL_THRESHOLD = 150
-const CASE_SCROLL = { x: 1210, y: 520 }
+const CASE_SCROLL = { x: 1310, y: 520 }
 
 function splitFixedLength(text, length) {
   const lines = []
@@ -75,7 +75,7 @@ function formatInlineErrorMessage(message) {
   return splitFixedLength(truncated, INLINE_MESSAGE_LINE_LENGTH)
 }
 
-const getCaseColumns = (reload) => [
+const getCaseColumns = (reload, onOpenDetails) => [
   {
     title: 'НАЗВАНИЕ КЕЙСА',
     dataIndex: 'caseName',
@@ -130,6 +130,21 @@ const getCaseColumns = (reload) => [
       ? <div className="failure-feedback-cell"><FailureFeedbackFields test={test} reload={reload} compact /></div>
       : null),
   },
+  {
+    title: '',
+    width: 96,
+    render: (_, test) => (test.resultId != null ? (
+      <Button
+        size="small"
+        onClick={(event) => {
+          event.stopPropagation()
+          onOpenDetails?.(test.resultId)
+        }}
+      >
+        Детали
+      </Button>
+    ) : null),
+  },
 ]
 
 const suiteColumns = [
@@ -145,10 +160,10 @@ const suiteColumns = [
   },
 ]
 
-export function CaseTable({ tests, reload }) {
+export function CaseTable({ tests, reload, onOpenDetails }) {
   // `getCaseColumns` closes over `reload`; without the memo antd Table gets a
   // brand-new column set (and re-renders every row) on each parent render.
-  const columns = useMemo(() => getCaseColumns(reload), [reload])
+  const columns = useMemo(() => getCaseColumns(reload, onOpenDetails), [reload, onOpenDetails])
   const virtual = tests.length > CASE_VIRTUAL_THRESHOLD
 
   return (
@@ -165,7 +180,7 @@ export function CaseTable({ tests, reload }) {
   )
 }
 
-export function SuiteTable({ suites, reload }) {
+export function SuiteTable({ suites, reload, onOpenDetails }) {
   const [expandedKeys, setExpandedKeys] = useState([])
 
   return (
@@ -187,7 +202,7 @@ export function SuiteTable({ suites, reload }) {
       expandable={{
         expandedRowKeys: expandedKeys,
         onExpandedRowsChange: setExpandedKeys,
-        expandedRowRender: (suite) => <CaseTable tests={suite.tests} reload={reload} />,
+        expandedRowRender: (suite) => <CaseTable tests={suite.tests} reload={reload} onOpenDetails={onOpenDetails} />,
       }}
       locale={{ emptyText }}
     />

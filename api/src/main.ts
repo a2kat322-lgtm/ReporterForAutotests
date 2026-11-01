@@ -3,7 +3,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
-import { json, urlencoded } from 'express'
+import { json, raw, urlencoded } from 'express'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
@@ -19,6 +19,12 @@ async function bootstrap() {
   // The automation system posts runs as application/x-www-form-urlencoded.
   app.use(json({ limit: '10mb' }))
   app.use(urlencoded({ extended: true, limit: '10mb' }))
+  // `allure-results` archives arrive as a raw ZIP body; no multipart parser is
+  // needed, so the automation system can post them with a plain HTTP client.
+  app.use('/api/allure/import', raw({
+    type: ['application/zip', 'application/x-zip-compressed', 'application/octet-stream'],
+    limit: '512mb',
+  }))
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }))
   app.enableCors({ origin: config.get<string>('app.corsOrigin'), credentials: false })
   app.enableShutdownHooks()

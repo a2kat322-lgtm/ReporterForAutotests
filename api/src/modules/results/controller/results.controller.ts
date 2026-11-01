@@ -1,5 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common'
+import { Body, Controller, Get, Param, Post } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
+import { ParseBigIntPipe } from '../../../common/pipes/parse-bigint.pipe'
 import { ResultsService } from '../service/results.service'
 
 @Controller('results')
@@ -15,5 +16,11 @@ export class ResultsController {
   @Throttle({ short: { limit: 50, ttl: 1000 }, long: { limit: 5000, ttl: 60_000 } })
   ingest(@Body() body: Record<string, unknown>) {
     return this.resultsService.ingestRun(body)
+  }
+
+  /** Detail payload used by the report drawer (steps, attachments, parameters). */
+  @Get(':resultId/details')
+  findDetails(@Param('resultId', ParseBigIntPipe) resultId: bigint) {
+    return this.resultsService.findDetails(resultId)
   }
 }

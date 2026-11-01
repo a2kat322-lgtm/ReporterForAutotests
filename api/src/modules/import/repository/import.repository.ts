@@ -87,19 +87,22 @@ export class ImportRepository {
         const path = result.automatedTestId.slice(0, 300)
         const existing = await tx.testResult.findFirst({ where: { workspaceId, path, startDate: ranAt } })
         if (existing) { skippedResults += 1; continue }
-        await tx.testResult.create({
+        const created = await tx.testResult.create({
           data: {
             workspaceId,
             projectName: 'default',
             path,
             caseName: result.name?.slice(0, 300) ?? null,
             status,
-            message: result.errorMessage ?? null,
             startDate: ranAt,
             endDate: ranAt,
             tags: [] as unknown as Prisma.InputJsonValue,
           },
         })
+        const message = result.errorMessage ?? null
+        if (message) {
+          await tx.testResultDetail.create({ data: { resultId: created.id, message } })
+        }
         importedResults += 1
       }
 

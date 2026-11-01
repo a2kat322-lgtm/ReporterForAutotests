@@ -1,7 +1,8 @@
-import { AutomatedTest, TestResult } from '@prisma/client'
+import { AutomatedTest } from '@prisma/client'
+import { RunSummary } from '../../results/dto/run-summary'
 import { ReportResultRow } from '../../results/dto/run-payload'
 
-function isFailure(status: TestResult['status']): boolean {
+function isFailure(status: RunSummary['status']): boolean {
   return status === 'failed' || status === 'broken'
 }
 
@@ -10,8 +11,18 @@ function isFailure(status: TestResult['status']): boolean {
  * latest run, but an earlier passed run wins) and all runs of this path inside
  * the report window. The selected run drives `status`; the run aggregates drive
  * staleness, flakiness and retry analytics.
+ *
+ * `messages` holds the failure text loaded separately from `TestResultDetail`
+ * for the rows that actually display it — the run scan itself never reads it.
  */
-export function toRow(test: AutomatedTest | null, run: TestResult | null, runs: TestResult[] = []): ReportResultRow {
+export function toRow(
+  test: AutomatedTest | null,
+  run: RunSummary | null,
+  runs: RunSummary[] = [],
+  messages: Map<string, string | null> = new Map(),
+): ReportResultRow {
+  const messageOf = (item: RunSummary | null | undefined) =>
+    item ? messages.get(item.id.toString()) ?? null : null
   const tags = (run?.tags ?? test?.tags ?? []) as unknown
   const effectiveRuns = runs.length ? runs : (run ? [run] : [])
   const ordered = [...effectiveRuns].sort((left, right) => left.startDate.valueOf() - right.startDate.valueOf())
@@ -32,7 +43,7 @@ export function toRow(test: AutomatedTest | null, run: TestResult | null, runs: 
     caseName: run?.caseName ?? test?.defaultCaseName ?? null,
     owner: run?.owner ?? test?.defaultOwner ?? null,
     circuit: run?.circuit ?? null,
-    message: run?.message ?? null,
+    message: messageOf(run),
     failureReason: run?.failureReason ?? null,
     failureComment: run?.failureComment ?? null,
     status,
@@ -62,7 +73,7 @@ export function toRow(test: AutomatedTest | null, run: TestResult | null, runs: 
     retryFixed: Boolean(first && latest && isFailure(first.status) && latest.status === 'passed'),
     regressed: Boolean(first && latest && first.status === 'passed' && isFailure(latest.status)),
     recentStatuses: ordered.slice(-5).reverse().map((item) => item.status),
-    latestMessage: latest?.message ?? null,
+    latestMessage: messageOf(latest),
     latestFailureReason: latestFailed?.failureReason ?? null,
   }
 }

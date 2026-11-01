@@ -1,9 +1,10 @@
-import { AutomatedTest, TestResult } from '@prisma/client'
+import { AutomatedTest } from '@prisma/client'
+import { RunSummary } from '../../../results/dto/run-summary'
 import { AnalyticsStatus, ReportComparisonRow } from '../../dto/analytics.types'
 import { ReportEntry } from './entries'
 import { durationOf, isFailure, percentile, ratio } from './analytics.utils'
 
-export function buildReportRows(entries: ReportEntry[], catalog: AutomatedTest[], runs: TestResult[]): ReportComparisonRow[] {
+export function buildReportRows(entries: ReportEntry[], catalog: AutomatedTest[], runs: RunSummary[]): ReportComparisonRow[] {
   const rows: ReportComparisonRow[] = []
   const visiblePaths = new Set(catalog.map((test) => test.resultPath))
   let previous = new Map<string, AnalyticsStatus>()
@@ -55,7 +56,7 @@ export function buildReportRows(entries: ReportEntry[], catalog: AutomatedTest[]
   return rows
 }
 
-export function collectFlakyPaths(runs: TestResult[], visiblePaths: Set<string>): Set<string> {
+export function collectFlakyPaths(runs: RunSummary[], visiblePaths: Set<string>): Set<string> {
   const flags = new Map<string, { passed: boolean; failed: boolean }>()
   for (const run of runs) {
     if (!visiblePaths.has(run.path)) continue
@@ -71,7 +72,7 @@ export function collectFlakyPaths(runs: TestResult[], visiblePaths: Set<string>)
   return flaky
 }
 
-export function countFlaky(runs: TestResult[], start: Date, end: Date, visiblePaths: Set<string>): number {
+export function countFlaky(runs: RunSummary[], start: Date, end: Date, visiblePaths: Set<string>): number {
   const flags = new Map<string, { passed: boolean; failed: boolean }>()
   for (const run of runs) {
     if (!visiblePaths.has(run.path) || run.startDate > end || run.endDate < start) continue
