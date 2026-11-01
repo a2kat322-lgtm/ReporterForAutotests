@@ -20,6 +20,23 @@ function isImage(attachment) {
   return String(attachment.type || '').startsWith('image/') || imageKeyPattern.test(attachment.key || '')
 }
 
+/**
+ * Screenshots are removed by the retention job (48 h by default) while the run
+ * row stays, so the URL still renders but the file is gone. Explain that instead
+ * of leaving a broken-image icon.
+ */
+function AttachmentImage({ url, name }) {
+  const [expired, setExpired] = useState(false)
+  if (expired) {
+    return (
+      <Text type="secondary" className="attachment-missing">
+        {name} — файл удалён по сроку хранения
+      </Text>
+    )
+  }
+  return <Image src={url} alt={name} width={180} onError={() => setExpired(true)} />
+}
+
 function AttachmentList({ attachments }) {
   if (!attachments?.length) return null
   return (
@@ -36,7 +53,7 @@ function AttachmentList({ attachments }) {
         if (isImage(attachment)) {
           return (
             <div key={index} className="attachment-image">
-              <Image src={url} alt={attachment.name} width={180} />
+              <AttachmentImage url={url} name={attachment.name} />
               <Text type="secondary" className="attachment-caption">{attachment.name}</Text>
             </div>
           )

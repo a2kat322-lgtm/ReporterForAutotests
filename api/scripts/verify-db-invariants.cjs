@@ -121,18 +121,20 @@ async function checkDatabase() {
       coldColumns.map((row) => row.column_name).join(', ') || undefined,
     )
 
-    // Files are not part of the schema, so this is a warning, not a failure:
-    // a restored database without the attachments directory is a valid state
-    // that only makes images in reports unavailable.
-    const referenced = await collectReferencedKeys(prisma)
+    // Files are not part of the schema, so this is a warning, not a failure.
+    // Only runs inside the retention window are checked: with the hard TTL,
+    // references of older runs are expected to point at deleted files.
+    const retentionHours = Number(process.env.ATTACHMENT_TTL_HOURS) || 48
+    const since = new Date(Date.now() - retentionHours * 3600_000)
+    const referenced = await collectReferencedKeys(prisma, since)
     if (referenced.size) {
       const directory = resolveStorageDir()
       const stored = new Set(listStoredFiles(directory).filter((file) => isManagedKey(file.name)).map((file) => file.name))
       const missing = [...referenced].filter((key) => !stored.has(key))
       if (missing.length) {
         warn(
-          `вложений в БД: ${referenced.size}, файлов в ${directory}: ${stored.size}, ссылок без файла: ${missing.length}`,
-          'картинки в отчётах будут битыми; проверьте, что ATTACHMENTS_DIR восстановлен из бэкапа',
+          `файлов в ${directory}: ${stored.size}, ссылок за последние ${retentionHours} ч без файла: ${missing.length}`,
+          'скриншоты свежих запусков должны быть на диске; проверьте ATTACHMENTS_DIR и что сборщик мусора не удаляет лишнее',
         )
       }
     }

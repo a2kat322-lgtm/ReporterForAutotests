@@ -53,21 +53,27 @@ function createPrismaClient() {
 /**
  * Every attachment key the database references, at the top level and at any
  * nesting depth inside the step tree.
+ *
+ * With `since`, only runs started at or after that moment are considered. That
+ * is what the retention check needs: with the 48 h TTL, references of older runs
+ * are expected to point at deleted files.
  */
-async function collectReferencedKeys(prisma) {
-  const rows = await prisma.$queryRaw`
+async function collectReferencedKeys(prisma, since) {
+  const sql = `
     WITH refs AS (
       SELECT jsonb_path_query(
                jsonb_build_object('attachments', d."attachments", 'steps', d."steps"),
                '$.**.attachments[*].key'
              ) AS key
       FROM "TestResultDetail" d
+      ${since ? 'JOIN "TestResult" r ON r.id = d."resultId" AND r."startDate" >= $1' : ''}
       WHERE d."attachments" <> '[]'::jsonb OR d."steps" <> '[]'::jsonb
     )
     SELECT DISTINCT key #>> '{}' AS key
     FROM refs
     WHERE key IS NOT NULL AND key <> 'null'::jsonb
   `
+  const rows = since ? await prisma.$queryRawUnsafe(sql, since) : await prisma.$queryRawUnsafe(sql)
   return new Set(rows.map((row) => row.key).filter(Boolean))
 }
 
