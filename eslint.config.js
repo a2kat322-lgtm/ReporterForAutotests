@@ -34,4 +34,8 @@ export default [
     files: ['*.config.js'],
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node } },
+  },
 ]

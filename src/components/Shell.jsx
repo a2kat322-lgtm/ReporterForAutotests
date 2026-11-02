@@ -6,7 +6,7 @@ import { createWorkspace, deleteWorkspace } from '../services/dataService'
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
 
-const pageTitles = { phases: 'Тестовые фазы' }
+const pageTitles = { phases: 'Тестовые фазы', help: 'Как подключить отчёт' }
 
 export default function Shell({ children, route, navigate, colorMode, onToggleTheme, workspaces, workspaceId, onSelectWorkspace, onReloadWorkspaces }) {
   const { message, modal } = App.useApp()
@@ -128,7 +128,7 @@ export default function Shell({ children, route, navigate, colorMode, onToggleTh
           <Space>
             <Tooltip title={colorMode === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Switch checked={colorMode === 'light'} onChange={onToggleTheme} checkedChildren={<BulbOutlined />} unCheckedChildren={<MoonOutlined />} aria-label="Переключить тему" /></Tooltip>
             <Button type="text" icon={<SearchOutlined />} />
-            <Button type="text" icon={<span className="help-icon">?</span>} />
+            <Tooltip title="Как подключить отчёт"><Button type="text" icon={<span className="help-icon">?</span>} aria-label="Как подключить отчёт" onClick={() => navigate({ page: 'help' })} /></Tooltip>
           </Space>
         </Header>
         <Content className="page-content">{children}</Content>

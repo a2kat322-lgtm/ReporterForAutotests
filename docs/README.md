@@ -21,6 +21,7 @@
 | [09-code-index.md](09-code-index.md) | Индекс кода: файлы, символы, эндпоинты, точки входа |
 | [10-deployment.md](10-deployment.md) | Развёртывание на удалённом сервере: Nginx, systemd, TLS, бэкапы |
 | [11-analytics.md](11-analytics.md) | Аналитика: что уже есть, каталог метрик по фазе и отчёту, ориентир на Allure, API и дорожная карта |
+| [12-client-integration.md](12-client-integration.md) | Подключение тестового проекта: JUnit 4/5 и TestNG, оба канала отправки (форма + архив allure-results) |
 
 ## Технологический стек
 

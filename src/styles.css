@@ -252,3 +252,31 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 .detail-link-static{color:var(--text-muted);cursor:default}
 .detail-link-static:hover{border-color:var(--border);color:var(--text-muted)}
 
+/* --- Help / integration page --- */
+.help-alert{margin-bottom:20px;border-radius:12px}
+.help-card{margin-bottom:20px;border-color:var(--border);background:var(--surface)}
+.help-card .ant-card-head{border-color:var(--border)}
+.help-card .ant-card-head-title{color:var(--text)}
+.help-card .ant-typography{max-width:980px}
+.help-card .ant-tabs-nav{margin-bottom:18px}
+.help-two-channels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:4px 0 8px}
+.help-channel{border:1px solid var(--border);border-radius:12px;padding:16px 18px;background:var(--surface-raised)}
+.help-channel h4{margin:0 0 8px;font-size:14px;color:var(--text)}
+.help-channel p{margin:0;color:var(--text-muted);font-size:12.5px;line-height:1.6}
+.help-channel code,.help-note code{font-family:'DM Mono',ui-monospace,monospace;font-size:12px;color:#c4b5fd}
+:root[data-theme="light"] .help-channel code,:root[data-theme="light"] .help-note code{color:#6d28d9}
+.help-note{margin-top:14px;margin-bottom:0!important}
+.code-block{border:1px solid var(--border);background:var(--surface-raised);border-radius:10px;overflow:hidden;margin:12px 0 16px;max-width:100%}
+.code-block-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;min-height:40px;padding:2px 6px 2px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.code-block-title{flex:1;min-width:0;font-family:'DM Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:var(--text-dim);overflow-wrap:anywhere}
+.code-block-head .ant-btn{color:var(--text-muted);font-size:11.5px}
+.code-block-head .ant-btn:hover{color:var(--text)}
+.code-block pre{margin:0;padding:14px 16px;overflow:auto;font-family:'DM Mono',ui-monospace,monospace;font-size:12px;line-height:1.65;color:var(--text);tab-size:4}
+.code-block code{font-family:inherit}
+.help-bundle-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:2px 0 14px}
+.help-bundle-actions .ant-typography{margin:0;max-width:640px}
+.help-details{margin:4px 0 16px;border:1px dashed var(--border);border-radius:10px;padding:0 16px}
+.help-details summary{cursor:pointer;padding:12px 0;font-size:12.5px;color:var(--text-muted);outline:none}
+.help-details summary:hover{color:var(--text)}
+@media(max-width:900px){.help-two-channels{grid-template-columns:1fr}}
+

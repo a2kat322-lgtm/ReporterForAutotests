@@ -14,6 +14,8 @@ async function request(path, options = {}) {
 }
 
 export async function getData(route = { page: 'phases' }) {
+  // The help page is static: it must not call the API for data it never shows.
+  if (route.page === 'help') return { phases: [], reports: [], results: [] }
   const workspaceId = route.workspaceId
   const params = workspaceId != null ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''
   if (route.page === 'phases') {

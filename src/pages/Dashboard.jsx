@@ -10,6 +10,7 @@ import ReportsPage from './ReportsPage'
 
 const PhaseAnalytics = lazy(() => import('./PhaseAnalytics'))
 const ReportDashboard = lazy(() => import('./ReportDashboard'))
+const HelpPage = lazy(() => import('./HelpPage'))
 
 const { Text } = Typography
 
@@ -63,6 +64,7 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
     else if (page === 'reports' && phase) content = <ReportsPage data={data} phase={phase} navigate={navigate} reload={reload} workspaceId={workspaceId} />
     else if (page === 'report' && phase && report) content = <ReportPage data={data} phase={phase} report={report} navigate={navigate} reload={reload} />
     else if (page === 'analytics' && phase && report) content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка аналитики отчёта…</Text></div>}><ReportDashboard data={data} phase={phase} report={report} navigate={navigate} /></Suspense>
+    else if (page === 'help') content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка инструкции…</Text></div>}><HelpPage navigate={navigate} /></Suspense>
     else if (page !== 'phases' && !phase) content = <Alert type="warning" showIcon message="Фаза не найдена" description="Возможно, запрошенная фаза была удалена." action={<Button onClick={() => navigate({ page: 'phases' })}>Назад к фазам</Button>} />
     else content = <PhasesPage data={data} navigate={navigate} reload={reload} workspaceId={workspaceId} />
   } else {
