@@ -79,8 +79,8 @@ The Prisma schema is in `api/prisma/schema.prisma`. The initial migration is com
 ## Allure-results import
 
 Instead of posting one request per test, CI can upload the `allure-results` directory as a ZIP. The
-archive brings steps, screenshots, parameters, tags, TMS/issue links and the failure stack trace;
-missing catalog paths are registered automatically for the given environment.
+archive brings steps, screenshots, parameters, tags, the Epic label, TMS/issue links and the failure
+stack trace; missing catalog paths are registered automatically for the given environment.
 
 ```powershell
 Compress-Archive -Path target\allure-results\* -DestinationPath target\allure-results.zip

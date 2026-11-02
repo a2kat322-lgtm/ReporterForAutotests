@@ -20,6 +20,7 @@ export const runSummarySelect = {
   suiteName: true,
   caseName: true,
   status: true,
+  epic: true,
   owner: true,
   circuit: true,
   failureReason: true,

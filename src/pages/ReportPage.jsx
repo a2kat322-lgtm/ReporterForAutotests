@@ -23,6 +23,7 @@ function buildReportView(results, filters) {
     const owner = row.owner || 'Не назначен'
     const tags = Array.isArray(row.tags) ? row.tags : []
     if (filters.statuses.length && !filters.statuses.includes(row.status)) continue
+    if (filters.epics.length && !filters.epics.includes(row.epic)) continue
     if (filters.owners.length && !filters.owners.includes(owner)) continue
     if (filters.tags.length && !filters.tags.some((tag) => tags.includes(tag))) continue
     matched.push(row)
@@ -57,11 +58,12 @@ const statusOptions = [
 
 export default function ReportPage({ data, phase, report, navigate, reload }) {
   const [statuses, setStatuses] = useState([])
+  const [epics, setEpics] = useState([])
   const [owners, setOwners] = useState([])
   const [tags, setTags] = useState([])
   const [detailsId, setDetailsId] = useState(null)
   const [uploadOpen, setUploadOpen] = useState(false)
-  const filters = useMemo(() => ({ statuses, owners, tags }), [statuses, owners, tags])
+  const filters = useMemo(() => ({ statuses, epics, owners, tags }), [statuses, epics, owners, tags])
 
   const { tests, suites, counts } = useMemo(
     () => buildReportView(data.results, filters),
@@ -69,6 +71,8 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
   )
 
   const ownerOptions = useMemo(() => [...new Set(data.results.map((row) => row.owner || 'Не назначен'))]
+    .sort((a, b) => a.localeCompare(b, 'ru')).map((value) => ({ value, label: value })), [data.results])
+  const epicOptions = useMemo(() => [...new Set(data.results.map((row) => row.epic).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'ru')).map((value) => ({ value, label: value })), [data.results])
   const tagOptions = useMemo(() => [...new Set(data.results.flatMap((row) => Array.isArray(row.tags) ? row.tags : []))]
     .sort((a, b) => a.localeCompare(b, 'ru')).map((value) => ({ value, label: value })), [data.results])
@@ -94,7 +98,7 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
         </Space>
       </div>
       <ResultsChart counts={counts} total={tests.length} />
-      <div className="toolbar report-toolbar" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) auto', width: '100%' }}>
+      <div className="toolbar report-toolbar" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr)) auto', width: '100%' }}>
         <Select
           mode="multiple"
           allowClear
@@ -103,6 +107,17 @@ export default function ReportPage({ data, phase, report, navigate, reload }) {
           options={statusOptions}
           value={statuses}
           onChange={setStatuses}
+           className="report-filter-select"
+          style={{ width: '100%', minWidth: 0 }}
+        />
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount="responsive"
+          placeholder="Эпик"
+          options={epicOptions}
+          value={epics}
+          onChange={setEpics}
            className="report-filter-select"
           style={{ width: '100%', minWidth: 0 }}
         />

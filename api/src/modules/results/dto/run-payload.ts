@@ -10,6 +10,8 @@ export interface RunPayload {
   suiteName?: string
   caseName?: string
   status: TestStatus
+  /** Allure behaviour hierarchy; imported runs take it from `labels.epic`. */
+  epic?: string
   owner?: string
   circuit?: string
   message?: string
@@ -27,6 +29,7 @@ export interface NormalizedRun {
   suiteName: string | null
   caseName: string | null
   status: TestStatus
+  epic: string | null
   owner: string | null
   circuit: string | null
   message: string | null
@@ -42,6 +45,8 @@ export interface ReportResultRow {
   name: string
   suiteName: string | null
   caseName: string | null
+  /** Allure `labels.epic` of the selected run; `null` for runs without it. */
+  epic: string | null
   owner: string | null
   circuit: string | null
   message: string | null

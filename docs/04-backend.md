@@ -167,7 +167,7 @@ Allure-детали лежат в `TestResultDetail` и не должны еха
 
 ```sql
 SELECT "id", "workspaceId", "projectName", "path", "suiteName", "caseName", "status",
-       "owner", "circuit", "failureReason", "failureComment",
+       "epic", "owner", "circuit", "failureReason", "failureComment",
        "startDate", "endDate", "tags", "externalId", "launchId", "createdAt", "updatedAt"
 FROM "TestResult"
 WHERE "workspaceId" = $1

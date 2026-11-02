@@ -107,6 +107,8 @@ model TestResult {
   suiteName String?    @db.VarChar(200)
   caseName  String?    @db.VarChar(300)
   status    TestStatus
+  /// Allure `labels.epic` — the top level of the behaviour hierarchy, used by report filters.
+  epic      String?    @db.VarChar(200)
   owner     String?    @db.VarChar(120)
   /// Canonical form: lowercase (enforced by a CHECK constraint). Compared against Phase.environment.
   circuit   String?    @db.VarChar(120)

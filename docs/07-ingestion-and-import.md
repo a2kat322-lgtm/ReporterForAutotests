@@ -25,6 +25,7 @@
 | `projectName` | нет | `lower(trim)`, по умолчанию `default` | 200 символов |
 | `suiteName` | нет | `trim` | 200 |
 | `caseName` | нет | `trim` | 300 |
+| `epic` | нет | `trim` | 200; у импортированных запусков берётся из `labels.epic` |
 | `owner` | нет | `trim` | 120 |
 | `circuit` | нет | `lower(trim)` | 120 |
 | `message` | нет | `trim` | без обрезки (TEXT); пишется в `TestResultDetail.message` |
@@ -104,6 +105,7 @@ curl -X POST http://localhost:3001/api/results \
   --data-urlencode "endDate=2026-10-17T09:00:03Z" \
   --data-urlencode "suiteName=Auth" \
   --data-urlencode "caseName=loginWithValidCredentials" \
+  --data-urlencode "epic=Auth" \
   --data-urlencode "owner=maria.petrova" \
   --data-urlencode "circuit=stage" \
   --data-urlencode "tags=auth,smoke"
@@ -118,6 +120,7 @@ $body = @{
   status      = 'passed'
   startDate   = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
   endDate     = (Get-Date).ToUniversalTime().AddSeconds(3).ToString('yyyy-MM-ddTHH:mm:ssZ')
+  epic        = 'Auth'
   owner       = 'maria.petrova'
   circuit     = 'stage'
   tags        = 'auth,smoke'
@@ -181,6 +184,7 @@ Invoke-RestMethod -Method Post `
 | `labels.testClass` + `labels.testMethod` | `path` как `Class#method`; иначе `fullName` |
 | `labels.feature` | `suiteName` |
 | `labels.story` / `name` | `caseName` |
+| `labels.epic` | `epic` (фильтр на странице отчёта) |
 | `labels.owner` | `owner` |
 | `labels.tag` | `tags` |
 | `status` (`unknown` → `broken`) | `status` |

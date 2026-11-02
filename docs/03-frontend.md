@@ -119,8 +119,9 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 
 ### `ReportPage` — результаты отчёта
 
-- `buildReportView(results, query)`:
-  - фильтр по подстроке в `name` или `path`;
+- `buildReportView(results, filters)`:
+  - фильтры по статусу, `epic`, владельцу и тегам (мультивыбор в тулбаре);
+  - `epic` приходит из Allure `labels.epic` и доступен в фильтре рядом со статусом;
   - подсчёт статусов `passed/failed/broken/skipped/no_run`;
   - группировка по `suiteName` (fallback «Без набора»), сортировка наборов и кейсов.
 - `ResultsChart` — SVG-донат с процентом прохождения и легендой.

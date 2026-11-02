@@ -61,6 +61,8 @@ export interface ParsedResult {
   path: string
   suiteName: string | null
   caseName: string | null
+  /** Allure `labels.epic`; the report filters by it. */
+  epic: string | null
   owner: string | null
   status: NormalizedStatus
   message: string | null
@@ -241,6 +243,7 @@ function parseResult(value: Record<string, unknown>): ParsedResult | null {
     path,
     suiteName: (label('feature') ?? label('suite') ?? label('parentsuite'))?.slice(0, 200) ?? null,
     caseName: (label('story') ?? text(value.name, 300))?.slice(0, 300) ?? null,
+    epic: label('epic')?.slice(0, 200) ?? null,
     owner: label('owner')?.slice(0, 120) ?? null,
     status: normalizeStatus(value.status),
     message,

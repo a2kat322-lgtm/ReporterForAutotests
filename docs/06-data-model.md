@@ -116,6 +116,7 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 | `suiteName` | `VARCHAR(200)` | NULL |
 | `caseName` | `VARCHAR(300)` | NULL |
 | `status` | `TestStatus` | NOT NULL (`passed`, `failed`, `broken`, `skipped`) |
+| `epic` | `VARCHAR(200)` | NULL; Allure `labels.epic` — верхний уровень иерархии Behaviour |
 | `owner` | `VARCHAR(120)` | NULL |
 | `circuit` | `VARCHAR(120)` | NULL; CHECK `circuit IS NULL OR circuit = lower(circuit)` |
 | `failureReason` | `VARCHAR(120)` | NULL |
@@ -128,6 +129,8 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 
 Это «горячая» строка запуска: её выбирают списковые запросы (отчёт — тысячи строк за запрос,
 аналитика — сотни тысяч), поэтому в ней остались только поля, нужные для таблицы и агрегатов.
+`epic` хранится здесь же, а не в `TestResultDetail`: страница отчёта фильтрует по нему каждую
+строку, и отдельная догрузка добавила бы запрос на каждый отчёт.
 
 Индексы:
 
@@ -269,7 +272,8 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 `20261101170000_allure_links` — колонка `links`; `20261101180000_test_result_detail_split` — вынос
 `message`, `steps`, `attachments`, `parameters`, `links`, `statusDetails` в `TestResultDetail`
 (данные переносятся, колонки удаляются) и замена индекса `(workspaceId, circuit)` на
-`(workspaceId, circuit, startDate)`.
+`(workspaceId, circuit, startDate)`; `20261102130000_test_result_epic` — колонка `TestResult.epic`
+для фильтра отчёта по Epic.
 
 ### Порядок миграций
 

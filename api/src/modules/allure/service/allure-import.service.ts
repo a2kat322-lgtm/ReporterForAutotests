@@ -207,6 +207,7 @@ export class AllureImportService {
       suiteName: result.suiteName,
       caseName: result.caseName,
       status: result.status,
+      epic: result.epic,
       owner: result.owner,
       circuit: environment,
       startDate: result.startDate,
@@ -286,6 +287,7 @@ export class AllureImportService {
       launchId,
       suiteName: candidate.suiteName ?? result.suiteName,
       caseName: candidate.caseName ?? result.caseName,
+      epic: candidate.epic ?? result.epic,
       owner: candidate.owner ?? result.owner,
       tags: postedTags.length ? undefined : (result.tags as unknown as Prisma.InputJsonValue),
     }

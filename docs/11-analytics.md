@@ -81,7 +81,8 @@
    трактовать как «повторные запуски».
 6. **Поля Allure приходят только с импортом.** `steps`, `attachments`, `parameters`,
    `statusDetails`, `externalId`, `launchId` заполняет `POST /allure/import`; у запусков,
-   отправленных формой, они пустые. Severity/priority, epic и исполнитель по-прежнему не хранятся
+   отправленных формой, они пустые. `epic` сохраняется из `labels.epic` импорта (или поля `epic`
+   формы) и доступен в фильтре отчёта; severity/priority и исполнитель по-прежнему не хранятся
    (feature/story маппятся в `suiteName`/`caseName`), а ссылки `@TmsLink`/`@Issue` доступны
    в карточке запуска (`links`).
 
@@ -96,7 +97,7 @@ Allure Report строит отчёт вокруг статусов, катег�
 | Summary (total/passed/failed/broken/skipped) | Сводка статусов | Плитки и донат отчёта | Есть |
 | Categories (Product defects / Test defects) | Разделение «дефект продукта» и «дефект теста» | `failed` / `broken` + `failureReason` | Частично |
 | Suites / Packages | Разрез по наборам и пакетам | `suiteName`, префикс `path` | Есть набор, нет пакетов |
-| Behaviors (epic → feature → story) | Иерархия требований | `tags` + `suiteName` | Нет иерархии |
+| Behaviors (epic → feature → story) | Иерархия требований | `epic`, `suiteName` + `caseName` | `epic` хранится, есть фильтр отчёта; иерархии нет |
 | Severity | Критичность теста | Нет поля; можно тег `severity:*` | Нет |
 | Status dynamics | Статусы по сборкам | Статусы по отчётам фазы | Частично (только полосы) |
 | Duration trend | Время по сборкам | Время по отчётам | Нет |

@@ -10,6 +10,7 @@ export interface MergeCandidate {
   message: string | null
   suiteName: string | null
   caseName: string | null
+  epic: string | null
   owner: string | null
   tags: Prisma.JsonValue
 }
@@ -151,6 +152,7 @@ export class AllureRepository {
           status: true,
           suiteName: true,
           caseName: true,
+          epic: true,
           owner: true,
           tags: true,
           detail: { select: { message: true } },

@@ -66,7 +66,7 @@ export class ResultsRepository {
     const circuit = environment?.trim().toLowerCase()
     return this.prisma.$queryRaw<RunSummary[]>`
       SELECT "id", "workspaceId", "projectName", "path", "suiteName", "caseName", "status",
-             "owner", "circuit", "failureReason", "failureComment",
+             "epic", "owner", "circuit", "failureReason", "failureComment",
              "startDate", "endDate", "tags", "externalId", "launchId", "createdAt", "updatedAt"
       FROM "TestResult"
       WHERE "workspaceId" = ${workspaceId}

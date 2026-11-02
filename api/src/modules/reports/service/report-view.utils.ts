@@ -41,6 +41,7 @@ export function toRow(
     name: run?.caseName || test?.defaultCaseName || run?.path || 'Unknown test',
     suiteName: run?.suiteName ?? test?.defaultSuiteName ?? null,
     caseName: run?.caseName ?? test?.defaultCaseName ?? null,
+    epic: run?.epic ?? null,
     owner: run?.owner ?? test?.defaultOwner ?? null,
     circuit: run?.circuit ?? null,
     message: messageOf(run),

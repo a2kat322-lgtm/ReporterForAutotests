@@ -210,6 +210,7 @@ curl -X POST http://localhost:3001/api/phases/1/reports \
 | `path` | string | `resultPath` / `path` |
 | `name` | string | `caseName` → `defaultCaseName` → `path` |
 | `suiteName`, `caseName` | string \| null | из запуска, иначе из каталога |
+| `epic` | string \| null | Allure `labels.epic` выбранного запуска |
 | `owner` | string \| null | из запуска, иначе `defaultOwner` |
 | `circuit` | string \| null | окружение запуска |
 | `message` | string \| null | сообщение об ошибке |
@@ -374,6 +375,7 @@ curl -X POST http://localhost:3001/api/results \
   --data-urlencode "startDate=2026-10-17T09:00:00Z" \
   --data-urlencode "endDate=2026-10-17T09:00:08Z" \
   --data-urlencode "owner=alex.kim" \
+  --data-urlencode "epic=Checkout" \
   --data-urlencode "circuit=stage" \
   --data-urlencode "tags=checkout,smoke"
 ```
@@ -450,8 +452,8 @@ curl -X POST "http://localhost:3001/api/allure/import?workspaceId=1&environment=
   (`source = 'allure'`), иначе запуски были бы не видны в отчётах;
 - `path` собирается как `testClass#testMethod` из labels (как у JUnit-расширения), иначе берётся
   `fullName`;
-- `suiteName` ← label `feature`, `caseName` ← label `story` (или `name`), `owner` ← label `owner`,
-  теги ← labels `tag`;
+- `suiteName` ← label `feature`, `caseName` ← label `story` (или `name`), `epic` ← label `epic`,
+  `owner` ← label `owner`, теги ← labels `tag`;
 - лимит архива — 512 МиБ (`ALLURE_IMPORT_MAX_BYTES`), rate limit 2/10 сек и 30/мин;
 - файлы вложений пишутся в `ATTACHMENTS_DIR` (по умолчанию `api/storage/attachments`) под именем
   `sha256`, поэтому одинаковые скриншоты не дублируются;

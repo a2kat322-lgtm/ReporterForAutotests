@@ -76,6 +76,7 @@ export class ResultsService {
       suiteName: truncate(firstString(body?.suiteName), 200),
       caseName: truncate(firstString(body?.caseName), 300),
       status: status as TestStatus,
+      epic: truncate(firstString(body?.epic), 200),
       owner: truncate(firstString(body?.owner), 120),
       circuit: truncate(firstString(body?.circuit)?.toLowerCase() ?? null, 120),
       message: firstString(body?.message),
