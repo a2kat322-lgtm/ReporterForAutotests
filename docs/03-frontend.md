@@ -18,12 +18,15 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 Роутер — регулярное выражение в `App.jsx`:
 
 ```js
+/^\/runs\/([^/]+)\/?$/
 /^\/phase\/(\d+)(?:\/analytics|\/report\/(\d+)(?:\/analytics)?)?\/?$/
 ```
 
 | URL | `route.page` | Компонент | Данные |
 | --- | --- | --- | --- |
 | `/` (любой другой путь) | `phases` | `PhasesPage` | `GET /phases?workspaceId=` |
+| `/runs` | `runs` | `RunsHistoryPage` (ленивый чанк) | `GET /launches?workspaceId=` |
+| `/runs/:launchId` | `launch` | `LaunchReportPage` (ленивый чанк) | `GET /launches/:launchId` |
 | `/phase/:phaseId` | `reports` | `ReportsPage` | `GET /phases/:id`, `GET /phases/:id/reports`, `GET /phases/:id/reports/results-summary` |
 | `/phase/:phaseId/analytics` | `phaseAnalytics` | `PhaseAnalytics` (ленивый чанк) | `GET /phases/:id/analytics`, `GET /phases/:id/reports` |
 | `/phase/:phaseId/report/:reportId` | `report` | `ReportPage` | `GET /reports/:id`, `GET /reports/:id/results` |
@@ -34,8 +37,10 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 - `navigate(route)` собирает путь через `getPath()` и вызывает `history.pushState`; состояние
   React обновляется сразу, без перезагрузки.
 - При `popstate` маршрут пересчитывается из `location.pathname`.
-- ID в URL — числовые (`\d+`), потому что в БД ключи BigInt.
-- Если фаза не найдена, показывается предупреждение с кнопкой «Назад к фазам».
+- ID фазы и отчёта в URL — числовые (`\d+`), потому что в БД ключи BigInt. `launchId` — строка
+  (UUID или номер CI-сборки), поэтому путь `/runs/:launchId` принимает любые символы, кроме `/`.
+- Если фаза не найдена, показывается предупреждение с кнопкой «Назад к фазам»; если не найден
+  прогон — предупреждение с кнопкой «К истории запусков».
 - Параметр `route.phase` / `route.report` передаётся объектом для мгновенного отображения заголовков
   без ожидания API.
 
@@ -59,7 +64,8 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 `Dashboard` использует два эффекта:
 
 1. **Список workspace** — при монтировании, смене `workspaceId` и по `workspacesToken`.
-2. **Данные маршрута** — при изменении `page/phaseId/reportId/workspaceId` и по `loadToken`.
+2. **Данные маршрута** — при изменении `page/phaseId/reportId/launchId/workspaceId` и по
+   `loadToken`.
 
 При смене маршрута `data` сбрасывается в `null` (показывается индикатор загрузки), а при ручном
 обновлении старые данные остаются видимыми до прихода новых. Ошибка загрузки показывается
@@ -70,6 +76,8 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 | Страница | Запросы (параллельно) |
 | --- | --- |
 | `phases` | `GET /phases[?workspaceId=]` |
+| `runs` | `GET /launches[?workspaceId=]` |
+| `launch` | `GET /launches/:launchId` |
 | `reports` | `GET /phases/:id`, `GET /phases/:id/reports`, `GET /phases/:id/reports/results-summary` |
 | `phaseAnalytics` | `GET /phases/:id/analytics`, `GET /phases/:id/reports` |
 | `report`, `analytics` | `GET /reports/:id` (включает `phase`), `GET /reports/:id/results` |
@@ -119,7 +127,10 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
 
 ### `ReportPage` — результаты отчёта
 
-- `buildReportView(results, filters)`:
+Донат, фильтры и таблица наборов вынесены в общий `ResultsExplorer`, который используется и на
+странице прогона:
+
+- `buildReportView(results, filters)` (в `src/utils/reportView.js`):
   - фильтры по статусу, `epic`, владельцу и тегам (мультивыбор в тулбаре);
   - `epic` приходит из Allure `labels.epic` и доступен в фильтре рядом со статусом;
   - подсчёт статусов `passed/failed/broken/skipped/no_run`;
@@ -135,8 +146,29 @@ TypeScript: только `.jsx`/`.js`. Роутинг, тема и загруз�
     текстом, а не мёртвой ссылкой);
   - раскрытие строки — `RunDetails` (путь, circuit, ответственность, окно, теги, сообщение,
     обратная связь) или текст «нет запусков» для `no_run`.
-- Кнопки: «Импорт allure-results» (модалка `AllureUploadModal` → `POST /allure/import`),
-  «Открыть аналитику», «Обновить результаты».
+- Кнопки: «Импорт allure-results» (модалка `AllureUploadModal` → `POST /allure/import`; в форме
+  задаются окружение и источник прогона), «Открыть аналитику», «Обновить результаты».
+
+### `RunsHistoryPage` — история запусков
+
+Список загруженных архивов `allure-results` рабочего пространства (`GET /launches`).
+
+- колонки: файл архива (или первые 8 символов `launchId`), окружение, источник прогона
+  (`CI/CD`, `Локальный`, `Неизвестно`), `launchId`, предупреждения импорта; начало прогона,
+  длительность; бейджи `passed/failed/broken/skipped` и общее число запусков; время загрузки и
+  счётчики `imported/enriched/duplicates`;
+- фильтры на клиенте: поиск по имени файла, `launchId` и проекту, фильтр по окружению и
+  мультивыбор по источнику (`ci`/`local`/`unknown`, по умолчанию показаны все);
+- клик по строке (или стрелка) открывает `/runs/:launchId`.
+
+### `LaunchReportPage` — отчёт прогона
+
+`GET /launches/:launchId` возвращает `{ launch, results }`: строки — ровно запуски этого архива,
+без слияния с каталогом и без строк `no_run`. Поэтому удалённые или скрытые в каталоге тесты в
+отчёте прогона всё равно видны. Заголовок показывает файл, окружение, проект, `launchId`,
+длительность, процент прохождения и счётчики импорта; предупреждения импорта выводятся `Alert`-ом.
+Ниже — общий `ResultsExplorer` (донат, фильтры, наборы, «Детали» → `ResultDetailsDrawer`). Если
+архив состоял только из дублей, показывается пояснение, что новых запусков нет.
 
 ### `ReportDashboard` — аналитика отчёта
 
@@ -169,9 +201,10 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 
 | Компонент | Назначение | Ключевые детали |
 | --- | --- | --- |
-| `Shell.jsx` | каркас приложения | `Layout` + `Sider` + `Header`; бренд-логотип по теме, workspace dropdown (выбор/создание/удаление), переключатель темы, заглушки навигации |
+| `Shell.jsx` | каркас приложения | `Layout` + `Sider` + `Header`; бренд-логотип по теме, workspace dropdown (выбор/создание/удаление), переключатель темы, навигация «Тестовые фазы» / «История запусков», заглушки остальных разделов |
 | `PageHeading.jsx` | заголовок страницы | `eyebrow`, `title`, `description`, слот `action` |
 | `StatusTag.jsx` | статус теста | `passed/failed/broken/skipped/no_run` → цвет и иконка |
+| `ResultsExplorer.jsx` | результаты отчёта/прогона | общий блок: `ResultsChart`, четыре фильтра, счётчик «Показано …», `SuiteTable`; фильтры локальны для страницы |
 | `ReportTables.jsx` | таблицы отчёта | `SuiteTable`, `CaseTable`, бейджи статусов набора, fallback `getDurationMs` |
 | `RunDetails.jsx` | детали запуска | `Descriptions`; `FailureFeedbackFields` — `Select` причин + комментарий с сохранением по `onChange`/`onBlur` |
 | `ResultsChart.jsx` | донат результатов | чистая SVG, `stroke-dasharray` на `pathLength="100"`, без библиотеки графиков |
@@ -203,6 +236,8 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 | --- | --- |
 | `getData(route)` | набор запросов по странице (см. выше) |
 | `getWorkspaces()` | `GET /workspaces` |
+| `getLaunches(workspaceId)` | `GET /launches[?workspaceId=]` |
+| `getLaunch(launchId)` | `GET /launches/:launchId` |
 | `createWorkspace(values)` | `POST /workspaces` |
 | `deleteWorkspace(id)` | `DELETE /workspaces/:id` |
 | `createPhase(values)` | `POST /phases` |
@@ -217,6 +252,7 @@ Run-агрегаты (`runCount`, `latestStatus`, `staleGreen`, `flaky`, `recent
 | `updateAutomatedTestsVisibility(paths, visible, workspaceId)` | `POST /tests/visibility` |
 | `deleteAutomatedTest(id)` | `DELETE /tests/:id` |
 | `harvestAutomatedTests(start, end, environment, workspaceId)` | `POST /tests/harvest?...` |
+| `importAllureResults({ file, environment, workspaceId, projectName, launchId, fileName, origin })` | `POST /allure/import?…` (сырой ZIP) |
 | `importLegacyData(data)` | `POST /import` (с `X-Import-Confirmation: yes`) |
 
 ## Импорт каталога из JSON

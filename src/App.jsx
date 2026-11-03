@@ -12,6 +12,15 @@ import './styles.css'
 function getRoute() {
   const { pathname } = window.location
   if (pathname === '/help' || pathname === '/help/') return { page: 'help' }
+  if (pathname === '/runs' || pathname === '/runs/') return { page: 'runs' }
+  const launchMatch = pathname.match(/^\/runs\/([^/]+)\/?$/)
+  if (launchMatch) {
+    // A malformed escape sequence must not white-screen the app; the raw
+    // segment then simply resolves to a 404 from the API.
+    let launchId = launchMatch[1]
+    try { launchId = decodeURIComponent(launchId) } catch { /* keep the raw segment */ }
+    return { page: 'launch', launchId }
+  }
   const match = pathname.match(/^\/phase\/(\d+)(?:\/analytics|\/report\/(\d+)(?:\/analytics)?)?\/?$/)
   if (!match) return { page: 'phases' }
   const isAnalytics = pathname.includes('/analytics')
@@ -22,6 +31,8 @@ function getRoute() {
 
 function getPath(route) {
   if (route.page === 'help') return '/help'
+  if (route.page === 'runs') return '/runs'
+  if (route.page === 'launch') return `/runs/${encodeURIComponent(route.launchId)}`
   if (route.page === 'phaseAnalytics') return `/phase/${encodeURIComponent(route.phaseId || route.phase.id)}/analytics`
   if (route.page === 'reports') return `/phase/${encodeURIComponent(route.phaseId || route.phase.id)}`
   if (route.page === 'report' || route.page === 'analytics') return `/phase/${encodeURIComponent(route.phaseId || route.phase.id)}/report/${encodeURIComponent(route.reportId || route.report.id)}${route.page === 'analytics' ? '/analytics' : ''}`

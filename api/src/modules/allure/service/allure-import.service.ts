@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Prisma } from '@prisma/client'
+import { Prisma, RunOrigin } from '@prisma/client'
 import { randomUUID } from 'node:crypto'
 import { basename } from 'node:path'
+import { LaunchesRepository } from '../../launches/repository/launches.repository'
 import { TestsRepository } from '../../tests/repository/tests.repository'
 import { WorkspacesService } from '../../workspaces/service/workspaces.service'
 import { AllureRepository, DetailData, ImportedRun, MergeCandidate } from '../repository/allure.repository'
@@ -21,6 +22,10 @@ export interface ImportOptions {
   /** `circuit` written to every run; must match the phase environment to appear in reports. */
   environment: string
   launchId?: string
+  /** Name of the uploaded archive, shown on the «История запусков» page. */
+  fileName?: string
+  /** `ci`, `local` or `unknown` (default) — where the archive was executed. */
+  origin?: string
 }
 
 export interface ImportSummary {
@@ -77,6 +82,7 @@ export class AllureImportService {
     private readonly repository: AllureRepository,
     private readonly workspacesService: WorkspacesService,
     private readonly testsRepository: TestsRepository,
+    private readonly launchesRepository: LaunchesRepository,
   ) {
     this.maxBytes = this.config.get<number>('app.allureImportMaxBytes') as number
   }
@@ -96,6 +102,8 @@ export class AllureImportService {
     const environment = options.environment.trim().toLowerCase()
     if (!environment) throw new BadRequestException('environment must not be empty')
     if (environment.length > 120) throw new BadRequestException('environment is longer than 120 characters')
+
+    const origin = parseOrigin(options.origin)
 
     const workspace = options.workspaceId != null
       ? await this.workspacesService.findById(options.workspaceId)
@@ -172,6 +180,35 @@ export class AllureImportService {
       workspace.id,
       'allure',
     )
+
+    // The history row is bookkeeping that runs after the runs are stored. A
+    // failure here must not turn a successful import into an error response.
+    const startedAt = new Date(Math.min(...startTimes))
+    const finishedAt = new Date(Math.max(...archive.results.map((result) => result.endDate.getTime())))
+    try {
+      await this.launchesRepository.recordImport({
+        id: launchId,
+        workspaceId: workspace.id,
+        environment,
+        origin,
+        projectName: workspace.name,
+        fileName: options.fileName ? basename(options.fileName).slice(0, 255) : null,
+        imported: count,
+        enriched,
+        duplicates: rows.length - count,
+        totalResults: archive.results.length,
+        attachments: attachmentCount,
+        catalogCreated: catalogCreated.created,
+        warnings: warnings.slice(0, 100),
+        startedAt,
+        finishedAt,
+      })
+    } catch (error) {
+      this.logger.error(
+        `Launch ${launchId} was imported but not recorded in the launch history: ${(error as Error).message}`,
+      )
+    }
+
     if (warnings.length) {
       this.logger.warn(`Import ${launchId} finished with ${warnings.length} warning(s): ${warnings[0]}`)
     }
@@ -364,6 +401,18 @@ function countStepAttachments(steps: StoredStep[]): number {
   let total = 0
   for (const step of steps) total += step.attachments.length + countStepAttachments(step.steps)
   return total
+}
+
+const RUN_ORIGINS = new Set<string>(Object.values(RunOrigin))
+
+/** Missing/blank origin keeps `unknown` for clients that do not send the new parameter. */
+function parseOrigin(value?: string): RunOrigin {
+  if (!value?.trim()) return RunOrigin.unknown
+  const normalized = value.trim().toLowerCase()
+  if (!RUN_ORIGINS.has(normalized)) {
+    throw new BadRequestException(`origin must be one of ${[...RUN_ORIGINS].join(', ')}`)
+  }
+  return normalized as RunOrigin
 }
 
 function tryReadZip(buffer: Buffer) {

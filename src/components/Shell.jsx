@@ -6,7 +6,7 @@ import { createWorkspace, deleteWorkspace } from '../services/dataService'
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
 
-const pageTitles = { phases: 'Тестовые фазы', help: 'Как подключить отчёт' }
+const pageTitles = { phases: 'Тестовые фазы', runs: 'История запусков', help: 'Как подключить отчёт' }
 
 export default function Shell({ children, route, navigate, colorMode, onToggleTheme, workspaces, workspaceId, onSelectWorkspace, onReloadWorkspaces }) {
   const { message, modal } = App.useApp()
@@ -106,7 +106,7 @@ export default function Shell({ children, route, navigate, colorMode, onToggleTh
         <nav className="nav-list" aria-label="Навигация по рабочему пространству" title={sidebarCollapsed ? 'Рабочее пространство' : undefined}>
           <button className={route.page === 'phases' ? 'nav-item active' : 'nav-item'} onClick={() => navigate({ page: 'phases' })} title={sidebarCollapsed ? 'Тестовые фазы' : undefined}><FolderOpenOutlined /> <span className="nav-label">Тестовые фазы</span></button>
           <button className="nav-item muted" disabled aria-disabled="true" title={sidebarCollapsed ? 'Тестовые наборы — Скоро' : undefined}><CodeOutlined /> <span className="nav-label">Тестовые наборы</span> <span className="soon">Скоро</span></button>
-          <button className="nav-item muted" disabled aria-disabled="true" title={sidebarCollapsed ? 'История запусков — Скоро' : undefined}><ClockCircleOutlined /> <span className="nav-label">История запусков</span> <span className="soon">Скоро</span></button>
+          <button className={route.page === 'runs' || route.page === 'launch' ? 'nav-item active' : 'nav-item'} onClick={() => navigate({ page: 'runs' })} title={sidebarCollapsed ? 'История запусков' : undefined}><ClockCircleOutlined /> <span className="nav-label">История запусков</span></button>
         </nav>
         <div className="sidebar-bottom"><button className="nav-item muted" disabled aria-disabled="true" title={sidebarCollapsed ? 'Настройки — Скоро' : undefined}><SettingOutlined /> <span className="nav-label">Настройки</span> <span className="soon">Скоро</span></button></div>
         <Tooltip title={sidebarCollapsed ? 'Развернуть боковую панель' : 'Свернуть боковую панель'} placement="right">
@@ -123,7 +123,7 @@ export default function Shell({ children, route, navigate, colorMode, onToggleTh
             </Tooltip>
             <span className="breadcrumb-muted">Рабочее пространство</span>
             <RightOutlined />
-            <span>{pageTitles[route.page] ?? route.phase?.name ?? route.report?.name}</span>
+            <span>{pageTitles[route.page] ?? route.launch?.fileName ?? route.phase?.name ?? route.report?.name ?? (route.page === 'launch' ? 'Прогон' : null)}</span>
           </div>
           <Space>
             <Tooltip title={colorMode === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}><Switch checked={colorMode === 'light'} onChange={onToggleTheme} checkedChildren={<BulbOutlined />} unCheckedChildren={<MoonOutlined />} aria-label="Переключить тему" /></Tooltip>

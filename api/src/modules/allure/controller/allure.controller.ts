@@ -52,6 +52,8 @@ export class AllureController {
       projectName: projectName ?? undefined,
       environment,
       launchId: firstQuery(query.launchId) ?? undefined,
+      fileName: firstQuery(query.fileName) ?? undefined,
+      origin: firstQuery(query.origin) ?? undefined,
     })
   }
 }

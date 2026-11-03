@@ -22,6 +22,14 @@ export async function getData(route = { page: 'phases' }) {
     const phases = await request(`/phases${params}`)
     return { phases, reports: [], results: [] }
   }
+  if (route.page === 'runs') {
+    const launches = await getLaunches(workspaceId)
+    return { phases: [], reports: [], results: [], launches }
+  }
+  if (route.page === 'launch') {
+    const launch = await getLaunch(route.launchId)
+    return { phases: [], reports: [], results: launch.results, launch: launch.launch }
+  }
   const phaseId = route.phaseId || route.phase?.id
   if (route.page === 'phaseAnalytics') {
     const [reportList, analytics] = await Promise.all([
@@ -57,6 +65,17 @@ export async function getData(route = { page: 'phases' }) {
 
 export async function getWorkspaces() {
   return request('/workspaces')
+}
+
+/** Uploaded allure-results archives of a workspace, newest first. */
+export function getLaunches(workspaceId) {
+  const params = workspaceId != null ? `?workspaceId=${encodeURIComponent(workspaceId)}` : ''
+  return request(`/launches${params}`)
+}
+
+/** One launch with the runs shown on its report page. */
+export function getLaunch(launchId) {
+  return request(`/launches/${encodeURIComponent(launchId)}`)
 }
 
 export function getPhaseAnalytics(phaseId) {
@@ -132,11 +151,13 @@ export async function importLegacyData(data) {
  * `environment` becomes the run circuit and must match the phase environment,
  * otherwise the imported runs will not appear in that phase's reports.
  */
-export async function importAllureResults({ file, environment, workspaceId, projectName, launchId }) {
+export async function importAllureResults({ file, environment, workspaceId, projectName, launchId, fileName, origin }) {
   const params = new URLSearchParams({ environment })
   if (workspaceId != null) params.set('workspaceId', workspaceId)
   if (projectName) params.set('projectName', projectName)
   if (launchId) params.set('launchId', launchId)
+  if (fileName) params.set('fileName', fileName)
+  if (origin) params.set('origin', origin)
 
   let response
   try {

@@ -10,9 +10,11 @@ erDiagram
     Workspace ||--o{ Phase : "workspaceId"
     Workspace ||--o{ AutomatedTest : "workspaceId"
     Workspace ||--o{ TestResult : "workspaceId"
+    Workspace ||--o{ AllureLaunch : "workspaceId"
     Phase ||--o{ Report : "phaseId"
     AutomatedTest ||--o{ AutomatedTestEnvironment : "automatedTestId"
     AutomatedTest ||..o{ TestResult : "path = resultPath (логическая связь, без FK)"
+    AllureLaunch ||..o{ TestResult : "launchId (логическая связь, без FK)"
 ```
 
 Связи:
@@ -24,6 +26,8 @@ erDiagram
 - `TestResult` **не связан** ни с `Report`, ни с `AutomatedTest`: отчёт выбирает запуски по окну
   дат, а каталог сопоставляется по строковому `path = resultPath`. Это позволяет хранить запуски
   тестов, ещё не добавленных в каталог.
+- `AllureLaunch` связан с запусками логически по строковому `launchId`; отдельного FK нет, потому
+  что строка истории — это метаданные импорта, а запуски могут попасть в неё только при импорте.
 
 ## Таблицы
 
@@ -175,6 +179,34 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 хранятся**: в JSONB лежат метаданные с ключом `sha256`, сами байты — в `ATTACHMENTS_DIR`
 (по умолчанию `api/storage/attachments`, каталог нужно бэкапить отдельно от БД).
 
+### `AllureLaunch`
+
+История загруженных архивов `allure-results`; одна строка — один прогон CI (`launchId`).
+
+| Колонка | Тип | Ограничения |
+| --- | --- | --- |
+| `id` | `VARCHAR(128)` | PK; Allure `launchId`, он же в `TestResult.launchId` |
+| `workspaceId` | `BIGINT` | NOT NULL, FK → `Workspace.id`, `ON DELETE CASCADE` |
+| `environment` | `VARCHAR(120)` | NOT NULL; канонический `circuit` архива |
+| `origin` | `RunOrigin` | NOT NULL, default `unknown`; `ci`, `local` или `unknown` (не передан клиентом) |
+| `projectName` | `VARCHAR(200)` | NOT NULL; имя workspace на момент импорта |
+| `fileName` | `VARCHAR(255)` | NULL; имя последнего загруженного ZIP |
+| `archives` | `INTEGER` | NOT NULL, default `1`; сколько архивов объединено в прогон |
+| `imported` / `enriched` / `duplicates` | `INTEGER` | NOT NULL, default `0`; итог импорта |
+| `totalResults` | `INTEGER` | NOT NULL, default `0`; результатов в архивах |
+| `attachments` / `catalogCreated` | `INTEGER` | NOT NULL, default `0` |
+| `warnings` | `JSONB` | NOT NULL, default `'[]'`; не более 100 записей |
+| `startedAt` / `finishedAt` | `TIMESTAMPTZ(3)` | NULL; окно запусков из архива |
+| `createdAt` / `updatedAt` | `TIMESTAMPTZ(3)` | NOT NULL |
+
+Индекс `AllureLaunch_workspaceId_createdAt_idx` обслуживает историю рабочего пространства.
+Статусы (`passed/failed/broken/skipped`) в строке не хранятся: `GET /launches` считает их
+группировкой по `TestResult.launchId`, поэтому отчёт прогона всегда отражает фактическое состояние
+запусков. При нескольких архивах с одним `launchId` счётчики складываются, окно расширяется,
+`fileName` остаётся от последнего архива. Если архив целиком состоял из дублей, строка всё равно
+создаётся — иначе отправка исчезла бы из истории. `origin` задаётся при первом импорте; повторный
+импорт с тем же `launchId` не перезаписывает уже известный источник, но может заполнить `unknown`.
+
 Индекс GiST объявлен **только в baseline-миграции** (`20261018000000_baseline`), его нет в
 `schema.prisma`: Prisma не умеет описывать индексы по выражениям. Без него окно отчёта падает в
 последовательное сканирование (на 1,5 млн строк замер дал 194 мс против 4,3 мс с индексом),
@@ -199,6 +231,9 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
    намеренно, чтобы принимать запуски до регистрации теста.
 5. **Нет идемпотентности запусков**: `POST /results` всегда создаёт новую строку; одинаковые
    `path + startDate` допускаются (в отличие от legacy-импорта, который их пропускает).
+6. **История импорта не теряется.** `AllureLaunch` создаётся после каждого успешного импорта,
+   включая архивы без новых запусков; повторный импорт с тем же `launchId` дополняет ту же строку,
+   а не создаёт вторую.
 
 ## Алгоритм сопоставления отчёта и запусков
 
@@ -273,7 +308,10 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 `message`, `steps`, `attachments`, `parameters`, `links`, `statusDetails` в `TestResultDetail`
 (данные переносятся, колонки удаляются) и замена индекса `(workspaceId, circuit)` на
 `(workspaceId, circuit, startDate)`; `20261102130000_test_result_epic` — колонка `TestResult.epic`
-для фильтра отчёта по Epic.
+для фильтра отчёта по Epic; `20261102235500_allure_launch_history` — таблица `AllureLaunch` для
+страницы «История запусков» с бэкфиллом уже импортированных `launchId` из `TestResult`;
+`20261103003100_allure_launch_origin` — enum `RunOrigin` и колонка `AllureLaunch.origin`
+(`ci`/`local`/`unknown`) для разделения CI/CD и локальных прогонов.
 
 ### Порядок миграций
 

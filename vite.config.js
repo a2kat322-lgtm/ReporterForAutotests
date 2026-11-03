@@ -3,6 +3,21 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    watch: {
+      // Editors write through temporary sibling directories (for example
+      // `.Shell.jsx.1234.tmpdir/`). Watching those short-lived paths makes
+      // chokidar throw EBUSY when the editor removes them under the watcher.
+      ignored: [
+        '**/*.tmpdir',
+        '**/.*.tmpdir',
+        '**/*.tmpdir/**',
+        '**/.*.tmpdir/**',
+        // Local build/verification scratch space (also ignored by .gitignore).
+        '**/.tmp-build/**',
+      ],
+    },
+  },
   resolve: {
     // Keep a single React runtime for the app and all UI dependencies to avoid
     // invalid-hook errors in Vite dev mode.

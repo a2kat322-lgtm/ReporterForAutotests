@@ -97,6 +97,18 @@ same action: «Импорт allure-results», and a «Детали» button next
 screenshots. Contract details — [`docs/05-api.md`](docs/05-api.md) and
 [`docs/07-ingestion-and-import.md`](docs/07-ingestion-and-import.md).
 
+## Launch history
+
+The «История запусков» page in the sidebar lists every uploaded archive of the selected workspace —
+including archives that contained only duplicates — with its file name, environment, run window,
+status counts and import counters. The source of a launch (`ci`, `local` or `unknown`) is shown next
+to the environment and can be filtered. CI uploads pass `origin=ci`; the web upload form asks for the
+source (`local` by default); clients that send nothing stay `unknown`. Opening a row shows the report
+of that exact CI run (the runs are not merged with the catalog, so hidden catalog tests stay visible).
+The data comes from the `AllureLaunch` table and `GET /api/launches` / `GET /api/launches/:launchId`.
+When CI reuses one `launchId` for several archives, the history entry accumulates their counters and
+shows the runs of the whole launch.
+
 ## Legacy localStorage import
 
 Legacy data can be imported only when the API process explicitly has `ENABLE_LEGACY_IMPORT=true`. Send the old `{ phases, reports, results }` object to `POST /api/import` with `X-Import-Confirmation: yes`. The import runs in one transaction, maps old phase IDs to database-generated numeric IDs, validates relationships, and uses upserts to avoid duplicates. Existing browser localStorage is not deleted automatically. Keep this endpoint disabled outside a trusted migration window; the API currently has no authentication and must not be exposed publicly.
@@ -112,6 +124,8 @@ Legacy data can be imported only when the API process explicitly has `ENABLE_LEG
 - `POST /api/results`
 - `GET /api/results/:resultId/details`
 - `POST /api/allure/import`
+- `GET /api/launches`
+- `GET /api/launches/:launchId`
 - `GET /api/attachments/:key`
 - `POST /api/import` (disabled by default)
 

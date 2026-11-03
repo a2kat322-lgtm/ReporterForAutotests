@@ -1,6 +1,6 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Alert, App, Button, Card, Tabs, Table, Typography } from 'antd'
-import { ArrowLeftOutlined, CopyOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CopyOutlined, DownOutlined, UpOutlined } from '@ant-design/icons'
 import PageHeading from '../components/PageHeading'
 import {
   JUNIT4_RESULT_WRITER,
@@ -137,8 +137,9 @@ const TESTNG_XML = String.raw`<listeners>
     <listener class-name="com.example.reporting.testng.AllureResultsUploader"/>
 </listeners>`
 
-const CHECK_CURL = String.raw`cd target/allure-results && zip -r ../allure-results.zip . && cd ../..
-curl -X POST "http://localhost:3001/api/allure/import?environment=dso&projectName=cwi" \
+const CHECK_CURL = String.raw`# в CI используйте origin=ci
+cd target/allure-results && zip -r ../allure-results.zip . && cd ../..
+curl -X POST "http://localhost:3001/api/allure/import?environment=dso&projectName=cwi&origin=local&fileName=allure-results.zip" \
   -H "Content-Type: application/zip" \
   --data-binary @target/allure-results.zip`
 
@@ -147,6 +148,7 @@ const CI_SETTINGS = `<systemPropertyVariables>
     <reporter.environment>dso</reporter.environment>
     <reporter.project>cwi</reporter.project>
     <reporter.launch>\${env.BUILD_NUMBER}</reporter.launch>
+    <reporter.origin>ci</reporter.origin>
 </systemPropertyVariables>`
 
 const JUNIT5_BUNDLE = [
@@ -179,6 +181,7 @@ const properties = [
   { key: 'reporter.project', value: 'cwi', meaning: 'Имя проекта (workspace), в который пишутся запуски.' },
   { key: 'reporter.environment', value: 'DSO', meaning: 'Окружение: circuit формы и environment импорта; должно совпадать с окружением фазы.' },
   { key: 'reporter.launch', value: 'случайный UUID на JVM', meaning: 'Идентификатор прогона; в CI передавайте номер сборки, чтобы один прогон имел один launchId.' },
+  { key: 'reporter.origin', value: 'ci / local (по env CI)', meaning: 'Источник прогона для «Истории запусков»; в CI задайте ci явно, локально можно не задавать.' },
   { key: 'allure.results.directory', value: 'target/allure-results', meaning: 'Каталог результатов Allure, если он нестандартный (например, build/allure-results).' },
 ]
 
@@ -217,8 +220,14 @@ function bundleText(entries) {
   return entries.map((entry) => `===== ${entry.file} =====\n${entry.code.trim()}\n`).join('\n')
 }
 
+const COLLAPSE_LINE_THRESHOLD = 12
+
 function CodeBlock({ title, code }) {
   const { message } = App.useApp()
+  const [expanded, setExpanded] = useState(false)
+  const lineCount = code.split('\n').length
+  const collapsible = lineCount > COLLAPSE_LINE_THRESHOLD
+
   const handleCopy = useCallback(async () => {
     const copied = await copyText(code)
     if (copied) message.success('Код скопирован')
@@ -233,7 +242,26 @@ function CodeBlock({ title, code }) {
           Скопировать
         </Button>
       </div>
-      <pre><code>{code}</code></pre>
+      <div className="code-block-body">
+        <pre className={collapsible ? (expanded ? 'code-block-pre-expanded' : 'code-block-pre-collapsed') : undefined}>
+          <code>{code}</code>
+        </pre>
+        {collapsible && !expanded ? <div className="code-block-fade" aria-hidden="true" /> : null}
+      </div>
+      {collapsible ? (
+        <div className="code-block-footer">
+          <Text type="secondary" className="code-block-lines">{lineCount} строк</Text>
+          <Button
+            type="text"
+            size="small"
+            icon={expanded ? <UpOutlined /> : <DownOutlined />}
+            onClick={() => setExpanded((value) => !value)}
+            aria-expanded={expanded}
+          >
+            {expanded ? 'Свернуть' : 'Развернуть'}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -328,7 +356,7 @@ export default function HelpPage({ navigate }) {
         type="info"
         showIcon
         message="Код для JUnit 5, JUnit 4 и TestNG можно скопировать целиком"
-        description="В каждой вкладке — зависимости, все классы и регистрация. Значения по умолчанию: http://localhost:3001, проект cwi, окружение DSO."
+        description="В каждой вкладке — зависимости, все классы и регистрация. Значения по умолчанию: http://localhost:3001, проект cwi, окружение DSO; источник прогона задаётся свойством reporter.origin (в CI — ci)."
       />
 
       <Card className="help-card">
@@ -353,6 +381,11 @@ export default function HelpPage({ navigate }) {
           Импорт архива сам регистрирует тест в каталоге. Если проект отправляет только статусы,
           путь нужно добавить в каталог кнопкой «Собрать из запусков» на странице фазы — иначе
           запуск не попадёт в отчёт.
+        </Paragraph>
+        <Paragraph type="secondary" className="help-note">
+          Источник прогона: архивы из CI отправляйте с <Text code>origin=ci</Text>, локальные — с{' '}
+          <Text code>origin=local</Text>. В «Истории запусков» источник отображается и фильтруется;
+          при загрузке архива через веб-интерфейс его можно выбрать в форме.
         </Paragraph>
       </Card>
 
@@ -418,7 +451,8 @@ export default function HelpPage({ navigate }) {
         </Paragraph>
         <CodeBlock title="bash — проверка архива вручную" code={CHECK_CURL} />
         <Paragraph type="secondary" className="help-note">
-          Запуски не видны в отчёте фазы — почти всегда не совпадает{' '}
+          Каждый загруженный архив появляется в «Истории запусков» и открывается как отчёт своего
+          прогона. Запуски не видны в отчёте фазы — почти всегда не совпадает{' '}
           <Text code>environment</Text> (должен совпадать с окружением фазы) или путь не в каталоге.
           Остальные ошибки — 429 (чаще 2 импортов в 10 секунд), 400 на zip и лимит 512 МиБ.
         </Paragraph>

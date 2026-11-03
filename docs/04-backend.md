@@ -49,7 +49,8 @@ API — приложение NestJS 10 на TypeScript, работающее с 
 - `ConfigModule` (глобальный);
 - `ThrottlerModule` с двумя окнами: `short` — 10 запросов/сек, `long` — 300/мин;
 - `PrismaModule` (глобальный, экспортирует `PrismaService`);
-- `PhasesModule`, `ReportsModule`, `ResultsModule`, `TestsModule`, `WorkspacesModule`, `ImportModule`;
+- `PhasesModule`, `ReportsModule`, `ResultsModule`, `TestsModule`, `WorkspacesModule`, `ImportModule`,
+  `AllureModule`, `LaunchesModule`;
 - глобальный guard `ThrottlerGuard`.
 
 ## Модули
@@ -62,6 +63,8 @@ API — приложение NestJS 10 на TypeScript, работающее с 
 | `results` | `ResultsController` | `ResultsService`, `ResultsRepository` | `ResultsService`, `ResultsRepository` | `WorkspacesModule` |
 | `tests` | `TestsController` | `TestsService`, `TestsRepository` | `TestsService`, `TestsRepository` | `ResultsModule` |
 | `analytics` | `PhaseAnalyticsController` | `PhaseAnalyticsService` | — | `PhasesModule`, `ReportsModule`, `ResultsModule`, `TestsModule` |
+| `allure` | `AllureController`, `AttachmentController` | `AllureImportService`, `AttachmentStorageService`, `AllureRepository` | — | `WorkspacesModule`, `TestsModule`, `LaunchesModule` |
+| `launches` | `LaunchesController` | `LaunchesService`, `LaunchesRepository` | `LaunchesRepository` | `ResultsModule` |
 | `import` | `ImportController` | `ImportService`, `ImportRepository` | — | — |
 
 `PrismaModule` помечен `@Global()`, поэтому репозитории получают `PrismaService` без явного импорта.
@@ -198,6 +201,20 @@ ORDER BY "startDate" DESC
    последний запуск.
 4. Для каждой видимой записи каталога строит `ReportResultRow` (`toRow`): значения запуска имеют
    приоритет над значениями каталога; `durationMs = max(0, end - start)`; нет запуска → `no_run`.
+
+### История запусков
+
+`LaunchesService.findAll` читает `AllureLaunch` (новые сверху) и одним `groupBy(['launchId', 'status'])`
+считает статусы всех прогонов страницы — без запроса на каждую строку. `findOne` отдаёт строку
+истории и запуски этого `launchId`, отсортированные по набору и кейсу; сообщения об ошибках
+догружаются только для `failed`/`broken` через `ResultsRepository.findMessagesByIds`. Запуски **не**
+сливаются с каталогом: страница прогона показывает ровно содержимое архива, включая скрытые в
+каталоге тесты.
+
+`AllureImportService.importArchive` после записи запусков вызывает `LaunchesRepository.recordImport`.
+Счётчики повторных архивов с тем же `launchId` складываются, окно `startedAt/finishedAt`
+расширяется, `warnings` объединяются (не более 100). Ошибка записи истории логируется, но не
+превращает уже успешный импорт в ошибку HTTP.
 
 ### Каталог и окружения
 

@@ -30,17 +30,20 @@
 | Файл | Строк | Роль | Экспорты / ключевые сущности |
 | --- | ---: | --- | --- |
 | `main.jsx` | 5 | точка входа React | монтирует `<App />` в `#root`, `StrictMode` |
-| `App.jsx` | 76 | провайдеры, тема, роутинг | `default App`; внутренние `getRoute`, `getPath`, `getInitialTheme`, `getInitialWorkspaceId` |
-| `constants.js` | 6 | константы UI | `envColors`, `environmentOptions` |
+| `App.jsx` | 91 | провайдеры, тема, роутинг | `default App`; внутренние `getRoute`, `getPath`, `getInitialTheme`, `getInitialWorkspaceId` |
+| `constants.js` | 18 | константы UI | `envColors`, `environmentOptions`, `runOriginMeta`, `runOriginOptions` |
 | `styles.css` | 209 | темы и стили | CSS-переменные `:root`, `[data-theme="light"]`, стили таблиц, аналитики, матриц |
-| `services/dataService.js` | 126 | HTTP-клиент | `getData`, `getPhaseAnalytics`, `getWorkspaces`, `createWorkspace`, `deleteWorkspace`, `createPhase`, `deletePhase`, `createReport`, `deleteReport`, `updateResultFeedback`, `getAutomatedTests`, `createAutomatedTest`, `createAutomatedTestsBulk`, `updateAutomatedTestsVisibility`, `deleteAutomatedTest`, `harvestAutomatedTests`, `importLegacyData` |
+| `services/dataService.js` | 185 | HTTP-клиент | `getData`, `getPhaseAnalytics`, `getWorkspaces`, `getLaunches`, `getLaunch`, `createWorkspace`, `deleteWorkspace`, `createPhase`, `deletePhase`, `createReport`, `deleteReport`, `updateResultFeedback`, `getAutomatedTests`, `createAutomatedTest`, `createAutomatedTestsBulk`, `updateAutomatedTestsVisibility`, `deleteAutomatedTest`, `harvestAutomatedTests`, `importAllureResults`, `importLegacyData` |
 | `utils/format.js` | 16 | форматирование | `formatDate`, `formatDuration` |
 | `utils/errorSignature.js` | 27 | нормализация ошибок | `normalizeErrorMessage` (id, line numbers, URL, числа) |
+| `utils/reportView.js` | 39 | сводка результатов | `buildReportView` (фильтры, статусы, группировка по наборам) |
 | `utils/testFileParser.js` | 79 | парсер JSON-каталога | `parseTestsFile`; внутренние `cleanString`, `cleanTags`, `normalizeEntry` |
-| `pages/Dashboard.jsx` | 73 | загрузка данных и выбор страницы | `default Dashboard`; ленивый `PhaseAnalytics` |
+| `pages/Dashboard.jsx` | 83 | загрузка данных и выбор страницы | `default Dashboard`; ленивые `PhaseAnalytics`, `ReportDashboard`, `HelpPage`, `RunsHistoryPage`, `LaunchReportPage` |
 | `pages/PhasesPage.jsx` | 139 | список фаз | `default PhasesPage` |
 | `pages/ReportsPage.jsx` | 117 | отчёты фазы | `default ReportsPage`; внутри `create`, `remove`, колонки |
-| `pages/ReportPage.jsx` | 133 | результаты отчёта | `default ReportPage`; внутри `buildReportView`, фильтры статус/владелец/тег |
+| `pages/ReportPage.jsx` | 48 | результаты отчёта | `default ReportPage`; `ResultsExplorer`, импорт архива, drawer деталей |
+| `pages/RunsHistoryPage.jsx` | 186 | история запусков | `default RunsHistoryPage`; `LaunchStatusBadges`, фильтры поиска/окружения/источника, таблица прогонов |
+| `pages/LaunchReportPage.jsx` | 85 | отчёт одного прогона | `default LaunchReportPage`; шапка прогона, источник, предупреждения импорта, `ResultsExplorer` |
 | `pages/ReportDashboard.jsx` | 3 | barrel ленивого маршрута | реэкспорт из `pages/report-dashboard/` |
 | `pages/report-dashboard/` | 21 файл, ~670 | аналитика отчёта | `ReportDashboard.jsx` (композиция страницы), `metrics.js` (`buildReportMetrics`), `constants.js`, `utils.js`; `components/*` — секции (`OwnerSection`, `AnalysisSection`, `SlowTests`) и таблицы/графики |
 | `pages/PhaseAnalytics.jsx` | 3 | barrel ленивого маршрута | реэкспорт из `pages/phase-analytics/` |
@@ -53,6 +56,7 @@
 | `components/ReportTables.jsx` | 177 | таблицы наборов/кейсов | `SuiteTable`, `CaseTable`; внутри `getCaseColumns` |
 | `components/RunDetails.jsx` | 59 | детали запуска, обратная связь | `default RunDetails`, `FailureFeedbackFields`, `failureReasons` |
 | `components/ResultsChart.jsx` | 46 | SVG-донат результатов | `default ResultsChart` |
+| `components/ResultsExplorer.jsx` | 95 | результаты отчёта/прогона | `default ResultsExplorer`; `ResultsChart` + фильтры + `SuiteTable` |
 | `components/ReportsSummaryChart.jsx` | 77 | сводка по отчётам фазы | `default ReportsSummaryChart`; накопительный результат, стековые полосы |
 | `components/CatalogTableParts.jsx` | 109 | колонки каталога | `toDtoPayload`, `getCaseColumns`, `getSuiteColumns`, `caseEmptyText`, `catalogEmptyText` |
 | `components/catalog/` | 2 файла, ~64 | таблица каталога | `CatalogTable.jsx` (раскрывающиеся наборы), `catalogUtils.js` (`groupCatalog`, `compareCatalogNames`) |
@@ -71,7 +75,9 @@ main.jsx → App.jsx → Dashboard.jsx
                          │                   ├─ HarvestModal
                          │                   └─ CatalogTableParts + catalog/CatalogTable
                          │                   └─ ReportsSummaryChart
-                         ├─ ReportPage → ResultsChart, ReportTables → RunDetails
+                         ├─ ReportPage → ResultsExplorer → ResultsChart, ReportTables → RunDetails
+                         ├─ RunsHistoryPage (lazy) → таблица прогонов
+                         ├─ LaunchReportPage (lazy) → ResultsExplorer
                          ├─ ReportDashboard (lazy) → report-dashboard/{metrics, components}
                          └─ PhaseAnalytics (lazy) → phase-analytics/components
 ```
@@ -113,6 +119,7 @@ pass rate и покрытие, длительности, нормализова�
 | `phases` | 5: `phases.module.ts`, `controller`, `service`, `repository`, `dto/create-phase.dto.ts` | `findAll(workspaceId)`, `findById`, `create`, `ensureExists`, `delete` |
 | `reports` | 8: `reports.module.ts`, `controller/phase-reports`, `controller/reports`, `service/reports`, `service/report-view.utils`, `repository/reports`, `dto/create-report`, `dto/update-result-feedback` | `findByPhaseId`, `findResultsByPhaseId`, `createForPhase`, `findResults`, `updateResultFeedback`, `delete`; `toRow` собирает run-агрегаты (флаки, stale green, ретраи) |
 | `results` | 5: `results.module.ts`, `controller`, `service`, `repository`, `dto/run-payload.ts`, `dto/run-summary.ts` | `normalize`, `ingestRun`; `create`, `findById`, `updateFeedback`, `findRunsCoveringWindow`, `countRunsCoveringWindow`, `findMessagesByIds`, `findFailureMessages`, `findDistinctPaths`, `findLatestRunPerPath`, `circuitFilter`; типы `RunPayload`, `NormalizedRun`, `RunSummary`, `ReportResultRow` |
+| `launches` | 5: `launches.module.ts`, `controller/launches`, `service/launches`, `repository/launches`, `dto/launch.dto.ts` | `findAll(workspaceId)`, `findOne(launchId)`; `findAll`, `findById`, `statusCounts`, `findRuns`, `recordImport`; типы `LaunchSummary`, `LaunchDetail`, `LaunchRunRow`, `LaunchImportRecord`, enum `RunOrigin` |
 | `tests` | 7: `tests.module.ts`, `controller`, `service`, `repository`, `dto/create-automated-test`, `dto/bulk-automated-tests`, `dto/update-visibility` | `findForEnvironment`, `create`, `createBulk`, `updateVisibility`, `harvestFromResults`, `delete`; `harvestBatch`, `findByResultPath`, `update`, `addEnvironment` (не используется) |
 | `analytics` | 15: `analytics.module.ts`, `controller/phase-analytics`, `dto/analytics.types.ts`, `service/phase-analytics.service.ts` (оркестратор), `service/lib/*` (11 файлов) | `getPhaseAnalytics`; билдеры `buildEntries`, `fillStatus`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildLifecycle`, `buildFailureAging`, `buildMatrix`, `buildHygiene`; утилиты `normalizeMessage`, `percentile`, `ratio`, `isFailure` |
 | `import` | 4: `import.module.ts`, `controller`, `service`, `repository` | `importLegacy`, `executeImport`; интерфейсы `LegacyPhase`, `LegacyReport`, `LegacyResult`, `LegacyImportPayload` |
@@ -145,6 +152,8 @@ pass rate и покрытие, длительности, нормализова�
 | `POST /results` | `ResultsController::ingest` | `ResultsService.ingestRun` |
 | `GET /results/:resultId/details` | `ResultsController::findDetails` | `ResultsService.findDetails` |
 | `POST /allure/import` | `AllureController::importArchive` | `AllureImportService.importArchive` |
+| `GET /launches` | `LaunchesController::findAll` | `LaunchesService.findAll` |
+| `GET /launches/:launchId` | `LaunchesController::findOne` | `LaunchesService.findOne` |
 | `GET /attachments/:key` | `AttachmentController::find` | `AttachmentStorageService.resolve` |
 | `GET /tests` | `TestsController::findAll` | `TestsService.findForEnvironment` |
 | `POST /tests` | `TestsController::create` | `TestsService.create` |
@@ -173,6 +182,8 @@ AllureImportService → WorkspacesService (findById / findOrCreateByName)
                     → TestsRepository (harvestBatch — авто-регистрация каталога)
                     → AttachmentStorageService (save)
                     → AllureRepository (createMany)
+                    → LaunchesRepository (recordImport — строка истории прогона)
+LaunchesService   → ResultsRepository (findMessagesByIds)
 TestsService     → ResultsRepository (findDistinctPaths, findLatestRunPerPath)
 AnalyticsService → PhasesService (findById)
                  → ReportsRepository (findByPhaseId)

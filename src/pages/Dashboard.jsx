@@ -11,6 +11,8 @@ import ReportsPage from './ReportsPage'
 const PhaseAnalytics = lazy(() => import('./PhaseAnalytics'))
 const ReportDashboard = lazy(() => import('./ReportDashboard'))
 const HelpPage = lazy(() => import('./HelpPage'))
+const RunsHistoryPage = lazy(() => import('./RunsHistoryPage'))
+const LaunchReportPage = lazy(() => import('./LaunchReportPage'))
 
 const { Text } = Typography
 
@@ -22,7 +24,7 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
   const [loadToken, setLoadToken] = useState(0)
   // Bump to reload the workspace list after create/delete.
   const [workspacesToken, setWorkspacesToken] = useState(0)
-  const { page, phaseId, reportId } = route
+  const { page, phaseId, reportId, launchId } = route
 
   // Load the workspace list once, and whenever the selection changes (so a
   // freshly created workspace from an ingress run appears after refresh).
@@ -41,15 +43,15 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
   useEffect(() => {
     setError(null)
     setData(null)
-  }, [page, phaseId, reportId, workspaceId])
+  }, [page, phaseId, reportId, launchId, workspaceId])
 
   useEffect(() => {
     let cancelled = false
-    getData({ page, phaseId, reportId, workspaceId })
+    getData({ page, phaseId, reportId, launchId, workspaceId })
       .then((loaded) => { if (!cancelled) setData(loaded) })
       .catch((loadError) => { if (!cancelled) setError(loadError.message || 'Не удалось загрузить данные тестирования. Попробуйте ещё раз.') })
     return () => { cancelled = true }
-  }, [page, phaseId, reportId, workspaceId, loadToken])
+  }, [page, phaseId, reportId, launchId, workspaceId, loadToken])
 
   const reload = useCallback(() => setLoadToken((token) => token + 1), [])
 
@@ -64,6 +66,9 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
     else if (page === 'reports' && phase) content = <ReportsPage data={data} phase={phase} navigate={navigate} reload={reload} workspaceId={workspaceId} />
     else if (page === 'report' && phase && report) content = <ReportPage data={data} phase={phase} report={report} navigate={navigate} reload={reload} />
     else if (page === 'analytics' && phase && report) content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка аналитики отчёта…</Text></div>}><ReportDashboard data={data} phase={phase} report={report} navigate={navigate} /></Suspense>
+    else if (page === 'runs') content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка истории запусков…</Text></div>}><RunsHistoryPage data={data} navigate={navigate} reload={reload} /></Suspense>
+    else if (page === 'launch' && data.launch) content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка прогона…</Text></div>}><LaunchReportPage launch={data.launch} results={data.results} navigate={navigate} reload={reload} /></Suspense>
+    else if (page === 'launch') content = <Alert type="warning" showIcon message="Прогон не найден" description="Возможно, он был удалён вместе с рабочим пространством." action={<Button onClick={() => navigate({ page: 'runs' })}>К истории запусков</Button>} />
     else if (page === 'help') content = <Suspense fallback={<div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка инструкции…</Text></div>}><HelpPage navigate={navigate} /></Suspense>
     else if (page !== 'phases' && !phase) content = <Alert type="warning" showIcon message="Фаза не найдена" description="Возможно, запрошенная фаза была удалена." action={<Button onClick={() => navigate({ page: 'phases' })}>Назад к фазам</Button>} />
     else content = <PhasesPage data={data} navigate={navigate} reload={reload} workspaceId={workspaceId} />
@@ -71,8 +76,8 @@ export default function Dashboard({ route, navigate, colorMode, onToggleTheme, w
     content = <div className="loading-state"><ReloadOutlined spin /><Text type="secondary">Загрузка рабочего пространства…</Text></div>
   }
 
-  const shellRoute = { ...route, phase: phase ?? route.phase, report: report ?? route.report }
+  const shellRoute = { ...route, phase: phase ?? route.phase, report: report ?? route.report, launch: data?.launch ?? route.launch }
   // Remounting the boundary per route clears a previous error on navigation.
-  const boundaryKey = `${page}-${phaseId ?? ''}-${reportId ?? ''}`
+  const boundaryKey = `${page}-${phaseId ?? ''}-${reportId ?? ''}-${launchId ?? ''}`
   return <Shell route={shellRoute} navigate={navigate} colorMode={colorMode} onToggleTheme={onToggleTheme} workspaces={workspaces} workspaceId={workspaceId} onSelectWorkspace={onSelectWorkspace} onReloadWorkspaces={reloadWorkspaces}><ErrorBoundary key={boundaryKey} onReset={reload}>{content}</ErrorBoundary></Shell>
 }

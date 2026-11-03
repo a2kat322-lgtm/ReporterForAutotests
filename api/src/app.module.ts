@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core'
 import { AllureModule } from './modules/allure/allure.module'
 import { AnalyticsModule } from './modules/analytics/analytics.module'
 import { ImportModule } from './modules/import/import.module'
+import { LaunchesModule } from './modules/launches/launches.module'
 import { PhasesModule } from './modules/phases/phases.module'
 import { ReportsModule } from './modules/reports/reports.module'
 import { ResultsModule } from './modules/results/results.module'
@@ -29,6 +30,7 @@ import { appConfig } from './config/app.config'
     TestsModule,
     WorkspacesModule,
     ImportModule,
+    LaunchesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

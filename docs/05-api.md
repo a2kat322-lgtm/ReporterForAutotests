@@ -41,6 +41,8 @@
 | `POST` | `/results` | принять запуск от автоматизации | `201` |
 | `GET` | `/results/:resultId/details` | шаги, вложения, параметры запуска | `200` |
 | `POST` | `/allure/import` | импорт zip-архива `allure-results` | `201` |
+| `GET` | `/launches` | история загруженных архивов (опц. `?workspaceId=`) | `200` |
+| `GET` | `/launches/:launchId` | прогон и его запуски | `200` |
 | `GET` | `/attachments/:key` | файл вложения из архива | `200` |
 | `GET` | `/tests` | каталог тестов | `200` |
 | `POST` | `/tests` | создать/обновить тест каталога | `201` |
@@ -414,6 +416,8 @@ ZIP (`Content-Type: application/zip`), multipart не нужен.
 | `workspaceId` | одно из двух | проект по ID |
 | `projectName` | одно из двух | проект по имени (создаётся при отсутствии) |
 | `launchId` | нет | идентификатор прогона; по умолчанию случайный UUID |
+| `fileName` | нет | имя архива для страницы «История запусков» |
+| `origin` | нет | где выполнялся прогон: `ci`, `local` или `unknown` (по умолчанию); невалидное значение → `400` |
 
 ```bash
 curl -X POST "http://localhost:3001/api/allure/import?workspaceId=1&environment=dso" \
@@ -458,12 +462,97 @@ curl -X POST "http://localhost:3001/api/allure/import?workspaceId=1&environment=
 - файлы вложений пишутся в `ATTACHMENTS_DIR` (по умолчанию `api/storage/attachments`) под именем
   `sha256`, поэтому одинаковые скриншоты не дублируются;
 - если в архиве нет какого-то файла вложения, запуск всё равно импортируется, а в `warnings`
-  появляется запись; битый JSON-файл результата пропускается с предупреждением.
+  появляется запись; битый JSON-файл результата пропускается с предупреждением;
+- после успешного импорта создаётся (или дополняется) строка `AllureLaunch` — она и есть запись
+  на странице «История запусков». Даже архив, целиком состоящий из дублей, попадает в историю;
+- `origin` записывается в `AllureLaunch.origin` и показывается в истории; клиенты CI передают
+  `origin=ci`, загрузка из веб-интерфейса позволяет выбрать источник (по умолчанию `local`), без
+  параметра остаётся `unknown`.
 
 ### `GET /attachments/:key`
 
 Отдаёт файл вложения по ключу из `steps[].attachments[].key` / `attachments[].key`.
 Ключ — `sha256` с расширением; ответ кешируется на год (`Cache-Control: immutable`).
+
+---
+
+## Launches (история запусков)
+
+`AllureLaunch` — одна строка на прогон CI, ключ — `launchId`. Если CI переиспользует один
+`launchId` для нескольких архивов, счётчики и окно запуска объединяются, а `fileName` хранит имя
+последнего архива. Статусы считаются на чтении по строкам `TestResult` с этим `launchId`.
+
+### `GET /launches`
+
+Query `workspaceId` необязателен (без него — все workspace). Сортировка — `createdAt` по убыванию.
+
+```json
+[
+  {
+    "id": "2eecd83c-c592-466a-a2b9-4422325d7e15",
+    "workspaceId": 2,
+    "environment": "dso",
+    "origin": "ci",
+    "projectName": "cwi",
+    "fileName": "allure-results.zip",
+    "archives": 1,
+    "imported": 42,
+    "enriched": 0,
+    "duplicates": 0,
+    "totalResults": 42,
+    "attachments": 17,
+    "catalogCreated": 5,
+    "warnings": [],
+    "startedAt": "2026-11-02T20:55:11.142Z",
+    "finishedAt": "2026-11-02T20:58:19.442Z",
+    "durationMs": 188300,
+    "createdAt": "2026-11-02T20:58:11.569Z",
+    "updatedAt": "2026-11-02T20:58:11.569Z",
+    "counts": { "passed": 30, "failed": 10, "broken": 1, "skipped": 1 },
+    "total": 42
+  }
+]
+```
+
+`counts` и `total` отражают фактические запуски в БД, а `imported`/`enriched`/`duplicates` —
+результат импорта и могут отличаться (например, при повторной загрузке: `imported = 0`,
+`duplicates = N`).
+
+### `GET /launches/:launchId`
+
+Прогон и его запуски для страницы отчёта:
+
+```json
+{
+  "launch": { "id": "…", "fileName": "allure-results.zip", "counts": { "…": 0 }, "total": 42, "…": "…" },
+  "results": [
+    {
+      "rowKey": 6333,
+      "resultId": 6333,
+      "path": "com.example.AdminTest#tk1",
+      "name": "ТК_1. STORY1",
+      "suiteName": "ADMINKA",
+      "caseName": "ТК_1. STORY1",
+      "epic": "ТК",
+      "owner": "qa",
+      "circuit": "dso",
+      "message": "Ожидался код 200",
+      "failureReason": null,
+      "failureComment": null,
+      "status": "failed",
+      "startDate": "2026-11-02T20:55:11.142Z",
+      "endDate": "2026-11-02T20:55:11.198Z",
+      "durationMs": 56,
+      "tags": ["smoke"],
+      "inCatalog": true
+    }
+  ]
+}
+```
+
+Строки — это ровно запуски архива: они не сливаются с каталогом, строк `no_run` нет, скрытые в
+каталоге тесты остаются видимыми (`inCatalog` всегда `true`, потому что импорт регистрирует пути).
+Сообщение об ошибке читается только для `failed`/`broken`. Неизвестный `launchId` → `404`.
 
 ---
 

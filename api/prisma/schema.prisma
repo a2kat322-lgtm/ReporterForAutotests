@@ -15,6 +15,14 @@ enum TestStatus {
   skipped
 }
 
+// Where a launch was executed. `unknown` is used for clients that do not send
+// the `origin` parameter and for launches imported before the field existed.
+enum RunOrigin {
+  ci
+  local
+  unknown
+}
+
 // A workspace isolates phases, reports, catalog entries and runs for one
 // project. Its name is the `projectName` the automation system posts.
 model Workspace {
@@ -26,6 +34,7 @@ model Workspace {
   phases    Phase[]
   tests     AutomatedTest[]
   runs      TestResult[]
+  launches  AllureLaunch[]
 
   @@index([createdAt])
 }
@@ -155,4 +164,40 @@ model TestResultDetail {
   statusDetails Json?       @db.JsonB
 
   result TestResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+}
+
+/// One uploaded `allure-results` archive, as shown on the «История запусков»
+/// page. `id` is the Allure `launchId` written to every run of the launch, so
+/// opening a history row shows exactly the runs of that archive. CI may split
+/// one launch into several ZIPs; the counters then accumulate per upload.
+model AllureLaunch {
+  /// Allure `launchId`; also `TestResult.launchId` of every run in this launch.
+  id             String    @id @db.VarChar(128)
+  workspaceId    BigInt
+  /// Canonical run circuit; the history filters by it like a phase environment.
+  environment    String    @db.VarChar(120)
+  /// Where the archive was executed: CI/CD, a developer machine, or not reported.
+  origin         RunOrigin @default(unknown)
+  /// Workspace name at import time (the `projectName` the upload was made for).
+  projectName    String    @db.VarChar(200)
+  /// Name of the last uploaded ZIP, for the history table.
+  fileName       String?   @db.VarChar(255)
+  /// Number of archives attached to this launch.
+  archives       Int       @default(1)
+  imported       Int       @default(0)
+  enriched       Int       @default(0)
+  duplicates     Int       @default(0)
+  totalResults   Int       @default(0)
+  attachments    Int       @default(0)
+  catalogCreated Int       @default(0)
+  /// Import warnings, capped at 100 entries per launch.
+  warnings       Json      @default("[]") @db.JsonB
+  /// Earliest run start and latest run end across the launch's archives.
+  startedAt      DateTime? @db.Timestamptz(3)
+  finishedAt     DateTime? @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
 }

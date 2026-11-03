@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Alert, App, Input, Modal, Typography, Upload } from 'antd'
+import { Alert, App, Input, Modal, Select, Typography, Upload } from 'antd'
 import { InboxOutlined } from '@ant-design/icons'
 import { importAllureResults } from '../services/dataService'
+import { runOriginOptions } from '../constants'
 
 const { Text } = Typography
 
@@ -12,6 +13,7 @@ const { Text } = Typography
 export default function AllureUploadModal({ open, workspaceId, environment, onClose, onImported }) {
   const [file, setFile] = useState(null)
   const [environmentValue, setEnvironmentValue] = useState('')
+  const [originValue, setOriginValue] = useState('local')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const { message } = App.useApp()
@@ -20,6 +22,7 @@ export default function AllureUploadModal({ open, workspaceId, environment, onCl
     if (!open) return
     setFile(null)
     setEnvironmentValue(environment || '')
+    setOriginValue('local')
     setBusy(false)
     setError(null)
   }, [open, environment])
@@ -41,6 +44,8 @@ export default function AllureUploadModal({ open, workspaceId, environment, onCl
         file,
         environment: environmentValue.trim(),
         workspaceId,
+        fileName: file.name,
+        origin: originValue,
       })
       const parts = [`Импортировано ${result.imported}`]
       if (result.enriched) parts.push(`дополнено уже отправленных: ${result.enriched}`)
@@ -83,7 +88,7 @@ export default function AllureUploadModal({ open, workspaceId, environment, onCl
       >
         <p className="ant-upload-drag-icon"><InboxOutlined /></p>
         <p className="ant-upload-text">Перетащите zip-архив или нажмите, чтобы выбрать</p>
-        <p className="ant-upload-hint">Архив папки allure-results: один архив — один прогон CI</p>
+        <p className="ant-upload-hint">Архив папки allure-results: один архив — один прогон</p>
       </Upload.Dragger>
 
       <div className="allure-upload-field">
@@ -93,6 +98,19 @@ export default function AllureUploadModal({ open, workspaceId, environment, onCl
           onChange={(event) => setEnvironmentValue(event.target.value)}
           placeholder="например, dso"
         />
+      </div>
+
+      <div className="allure-upload-field">
+        <Text type="secondary">Источник прогона</Text>
+        <Select
+          value={originValue}
+          onChange={setOriginValue}
+          options={runOriginOptions}
+          style={{ width: '100%' }}
+        />
+        <Text type="secondary" className="allure-upload-hint">
+          Отображается в истории запусков и не влияет на попадание в отчёт.
+        </Text>
       </div>
 
       <Alert

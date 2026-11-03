@@ -53,6 +53,7 @@ Java-пакеты в примерах: только один общий (`com.ex
 | `reporter.project` | `cwi` | `projectName` / workspace; то же значение, что в существующем `ResultWriter` |
 | `reporter.environment` | `DSO` | окружение: уходит в `circuit` формы и в `environment` импорта; сравнивается с `Phase.environment` без учёта регистра |
 | `reporter.launch` | случайный UUID на JVM | `launchId` прогона: передавайте номер CI-сборки, чтобы один прогон группировался в один `launchId` |
+| `reporter.origin` | `ci` при `CI`, иначе `local` | источник прогона в «Истории запусков» (`ci`/`local`); в CI задайте `ci` явно |
 | `reporter.timezone` | `Europe/Moscow` | только для форматирования дат в форме (с offset, см. ниже) |
 
 Значения по умолчанию вписаны в `ReporterClient`, поэтому «зелёная стрелка» работает без настройки.
@@ -122,6 +123,8 @@ public final class ReporterClient {
     private static final String API_URL = trimSlash(System.getProperty("reporter.api", "http://localhost:3001"));
     private static final String PROJECT_NAME = System.getProperty("reporter.project", "cwi");
     private static final String ENVIRONMENT = System.getProperty("reporter.environment", "DSO");
+    /** ci или local: источник прогона на странице «История запусков». */
+    private static final String ORIGIN = resolveOrigin();
     private static final String LAUNCH_ID =
             limit(System.getProperty("reporter.launch", UUID.randomUUID().toString()), 128);
     private static final ZoneId ZONE = ZoneId.of(System.getProperty("reporter.timezone", "Europe/Moscow"));
@@ -196,7 +199,8 @@ public final class ReporterClient {
                 String url = API_URL + "/api/allure/import"
                         + "?environment=" + encode(ENVIRONMENT)
                         + "&projectName=" + encode(PROJECT_NAME)
-                        + "&launchId=" + encode(LAUNCH_ID);
+                        + "&launchId=" + encode(LAUNCH_ID)
+                        + "&origin=" + encode(ORIGIN);
 
                 Request request = new Request.Builder()
                         .url(url)
@@ -267,6 +271,15 @@ public final class ReporterClient {
         }
         Path gradle = Paths.get("build", "allure-results");
         return Files.isDirectory(gradle) ? gradle : maven;
+    }
+
+    /** -Dreporter.origin переопределяет автодетект; иначе CI-окружение даёт ci, машина разработчика — local. */
+    private static String resolveOrigin() {
+        String configured = System.getProperty("reporter.origin");
+        if (configured != null && !configured.isBlank()) {
+            return configured.trim().toLowerCase();
+        }
+        return System.getenv("CI") != null ? "ci" : "local";
     }
 
     private static String format(Instant instant) {
@@ -1083,6 +1096,7 @@ Maven Surefire:
             <reporter.environment>${reporter.environment}</reporter.environment>
             <reporter.project>${reporter.project}</reporter.project>
             <reporter.launch>${env.BUILD_NUMBER}</reporter.launch>
+            <reporter.origin>ci</reporter.origin>
         </systemPropertyVariables>
     </configuration>
 </plugin>
@@ -1096,6 +1110,7 @@ test {
     systemProperty 'reporter.environment', 'dso'
     systemProperty 'reporter.project', 'cwi'
     systemProperty 'reporter.launch', System.getenv('BUILD_NUMBER') ?: System.currentTimeMillis()
+    systemProperty 'reporter.origin', 'ci'
     // каталог Allure, если он нестандартный:
     systemProperty 'allure.results.directory', "$buildDir/allure-results"
 }
@@ -1104,6 +1119,11 @@ test {
 Запуск из IDEA («зелёная стрелка») работает без настройки: значения по умолчанию указывают на
 `http://localhost:3001`, проект `cwi`, окружение `DSO`. Для другого сервера — VM options в
 конфигурации запуска.
+
+Чтобы история запусков отличала CI/CD от локальных прогонов, передавайте при загрузке архива
+`origin=ci` (в Maven/Gradle это можно добавить к URL рядом с `launchId`). При загрузке архива из
+веб-интерфейса источник выбирается в форме (по умолчанию `local`), а клиенты без параметра
+остаются `origin=unknown`.
 
 ## 9. Проверка и диагностика
 

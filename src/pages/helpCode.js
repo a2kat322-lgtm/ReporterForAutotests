@@ -40,6 +40,8 @@ public final class ReporterClient {
     private static final String API_URL = trimSlash(System.getProperty("reporter.api", "http://localhost:3001"));
     private static final String PROJECT_NAME = System.getProperty("reporter.project", "cwi");
     private static final String ENVIRONMENT = System.getProperty("reporter.environment", "DSO");
+    /** ci или local: источник прогона на странице «История запусков». */
+    private static final String ORIGIN = resolveOrigin();
     private static final String LAUNCH_ID =
             limit(System.getProperty("reporter.launch", UUID.randomUUID().toString()), 128);
     private static final ZoneId ZONE = ZoneId.of(System.getProperty("reporter.timezone", "Europe/Moscow"));
@@ -114,7 +116,8 @@ public final class ReporterClient {
                 String url = API_URL + "/api/allure/import"
                         + "?environment=" + encode(ENVIRONMENT)
                         + "&projectName=" + encode(PROJECT_NAME)
-                        + "&launchId=" + encode(LAUNCH_ID);
+                        + "&launchId=" + encode(LAUNCH_ID)
+                        + "&origin=" + encode(ORIGIN);
 
                 Request request = new Request.Builder()
                         .url(url)
@@ -185,6 +188,15 @@ public final class ReporterClient {
         }
         Path gradle = Paths.get("build", "allure-results");
         return Files.isDirectory(gradle) ? gradle : maven;
+    }
+
+    /** -Dreporter.origin переопределяет автодетект; иначе CI-окружение даёт ci, машина разработчика — local. */
+    private static String resolveOrigin() {
+        String configured = System.getProperty("reporter.origin");
+        if (configured != null && !configured.isBlank()) {
+            return configured.trim().toLowerCase();
+        }
+        return System.getenv("CI") != null ? "ci" : "local";
     }
 
     private static String format(Instant instant) {

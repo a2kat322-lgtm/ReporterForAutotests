@@ -10,7 +10,7 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 
 .failure-reason-select .ant-select-selection-placeholder{color:var(--text-dim)!important;opacity:.65}
 
-/* Light theme controls on report pages and expanded test feedback rows. */
+/* Light theme controls on report/history pages and expanded test feedback rows. */
 :root[data-theme="light"] .report-toolbar .ant-input-affix-wrapper,
 :root[data-theme="light"] .report-toolbar .ant-input,
 :root[data-theme="light"] .ant-table-wrapper .ant-input-affix-wrapper,
@@ -73,6 +73,7 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 :root[data-theme="light"] .ant-table-wrapper .ant-table-tbody > tr > td {
   border-color: #e5e7eb !important;
 }
+:root[data-theme="light"] .table-card{background:#fff!important;border-color:#e5e7eb!important}
 
 /* Phase and report table icons follow the light palette. */
 :root[data-theme="light"] .phase-icon {
@@ -93,8 +94,9 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 :root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-placeholder,
 :root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-arrow,
 :root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-clear{color:#555866!important}
-:root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-item{background:#f1eafe!important;border:1px solid #e1d4fa!important;color:#5b21b6!important}
+:root[data-theme="light"] .report-toolbar .report-filter-select.ant-select-multiple .ant-select-selection-item{background:#f1eafe!important;border:1px solid #e1d4fa!important;color:#5b21b6!important}
 :root[data-theme="light"] .report-toolbar .report-filter-select .ant-select-selection-item-remove{color:#737684!important}
+:root[data-theme="light"] .report-toolbar .ant-input-clear-icon{color:#737684!important}
 :root[data-theme="light"] .report-toolbar .report-filter-select.ant-select-focused .ant-select-selector{border-color:#8b5cf6!important;box-shadow:0 0 0 2px rgba(139,92,246,.12)!important}
 
 /* Workspace dropdown menu item: name + delete action. */
@@ -245,6 +247,7 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 .attachment-missing{font-size:11.5px}
 .result-trace{margin:0;padding:14px 16px;border-radius:10px;background:var(--surface-raised);border:1px solid var(--border);color:var(--text-muted);font-size:11.5px;line-height:1.55;white-space:pre-wrap;overflow:auto;max-height:420px}
 .allure-upload-field{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.allure-upload-hint{font-size:11px;line-height:1.45}
 .allure-upload-note{margin-top:14px}
 .detail-links{display:flex;flex-wrap:wrap;gap:8px}
 .detail-link{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:12px;text-decoration:none;max-width:100%;overflow-wrap:anywhere}
@@ -273,10 +276,28 @@ body{background:var(--page-bg);color:var(--text)}.app-shell{background:var(--pag
 .code-block-head .ant-btn:hover{color:var(--text)}
 .code-block pre{margin:0;padding:14px 16px;overflow:auto;font-family:'DM Mono',ui-monospace,monospace;font-size:12px;line-height:1.65;color:var(--text);tab-size:4}
 .code-block code{font-family:inherit}
+.code-block-body{position:relative}
+.code-block pre.code-block-pre-collapsed{max-height:232px;overflow:hidden}
+.code-block pre.code-block-pre-expanded{max-height:70vh;overflow:auto}
+.code-block-fade{position:absolute;left:0;right:0;bottom:0;height:58px;background:linear-gradient(180deg,transparent 0%,var(--surface-raised) 100%);pointer-events:none}
+.code-block-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:38px;padding:2px 6px 2px 16px;border-top:1px solid var(--border)}
+.code-block-footer .ant-btn{color:var(--text-muted);font-size:11.5px}
+.code-block-footer .ant-btn:hover{color:var(--text)}
+.code-block-lines{font-family:'DM Mono',ui-monospace,monospace;font-size:10.5px}
 .help-bundle-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:2px 0 14px}
 .help-bundle-actions .ant-typography{margin:0;max-width:640px}
 .help-details{margin:4px 0 16px;border:1px dashed var(--border);border-radius:10px;padding:0 16px}
 .help-details summary{cursor:pointer;padding:12px 0;font-size:12.5px;color:var(--text-muted);outline:none}
 .help-details summary:hover{color:var(--text)}
 @media(max-width:900px){.help-two-channels{grid-template-columns:1fr}}
+
+/* История запусков: a table row describes one uploaded allure-results archive. */
+.launch-cell{display:flex;align-items:center;gap:12px;min-width:0}
+.launch-cell-copy{min-width:0}
+.launch-cell-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+.launch-cell-meta .phase-id{margin-top:0}
+.launch-results{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.launch-total{font-size:12px;color:var(--text-muted);white-space:nowrap}
+.launch-import-summary{margin-top:8px}
+.launch-warning{margin-bottom:12px}
 
