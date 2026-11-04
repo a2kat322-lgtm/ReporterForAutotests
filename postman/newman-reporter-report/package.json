@@ -1,0 +1,14 @@
+{
+  "name": "newman-reporter-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Newman reporter that sends Postman collection results to Reporter for autotests",
+  "main": "index.js",
+  "keywords": ["newman", "reporter", "postman"],
+  "dependencies": {
+    "adm-zip": "^0.6.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

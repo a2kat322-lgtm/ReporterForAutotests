@@ -123,7 +123,7 @@ pass rate и покрытие, длительности, нормализова�
 | `tests` | 7: `tests.module.ts`, `controller`, `service`, `repository`, `dto/create-automated-test`, `dto/bulk-automated-tests`, `dto/update-visibility` | `findForEnvironment`, `create`, `createBulk`, `updateVisibility`, `harvestFromResults`, `delete`; `harvestBatch`, `findByResultPath`, `update`, `addEnvironment` (не используется) |
 | `analytics` | 15: `analytics.module.ts`, `controller/phase-analytics`, `dto/analytics.types.ts`, `service/phase-analytics.service.ts` (оркестратор), `service/lib/*` (11 файлов) | `getPhaseAnalytics`; билдеры `buildEntries`, `fillStatus`, `buildReportRows`, `buildKpi`, `buildOwners`, `buildSuites`, `buildFailures`, `buildLifecycle`, `buildFailureAging`, `buildMatrix`, `buildHygiene`; утилиты `normalizeMessage`, `percentile`, `ratio`, `isFailure` |
 | `import` | 4: `import.module.ts`, `controller`, `service`, `repository` | `importLegacy`, `executeImport`; интерфейсы `LegacyPhase`, `LegacyReport`, `LegacyResult`, `LegacyImportPayload` |
-| `allure` | 8: `allure.module.ts`, `controller/allure`, `controller/attachment`, `service/allure-import.service.ts`, `service/allure-parser.ts`, `service/zip-reader.ts`, `service/attachment-storage.service.ts`, `repository/allure.repository.ts` | `importArchive`, `pickCandidate` (слияние с запуском формы), `toEnrichment`, `storeSteps`, `storeAttachments`, `findFile`; `parseAllureArchive`, `readZip`; `save`, `resolve`, `contentType`; `findUnlinkedRuns`, `enrich` |
+| `allure` | 8: `allure.module.ts`, `controller/allure`, `controller/attachment`, `service/allure-import.service.ts`, `service/allure-parser.ts`, `service/zip-reader.ts`, `service/attachment-storage.service.ts`, `repository/allure.repository.ts` | `importArchive`, `pickCandidate` (слияние с запуском формы), `toEnrichment`, `storeSteps`, `storeAttachments`, `findFile`; `parseAllureArchive`, `readZip`; `save`, `resolve`, `contentType`, `removeExpired` (`@Cron`); `findUnlinkedRuns`, `enrich` |
 
 `analytics/service/lib/` разбит по доменам: `entries.ts`, `report-rows.ts`, `kpi.ts`, `owners.ts`,
 `suites.ts`, `failures.ts`, `lifecycle.ts`, `failure-aging.ts`, `matrix.ts`, `hygiene.ts` и общие
@@ -189,6 +189,7 @@ AnalyticsService → PhasesService (findById)
                  → ReportsRepository (findByPhaseId)
                  → TestsRepository (findForEnvironment)
                  → ResultsRepository (findRunsCoveringWindow, countRunsCoveringWindow, findFailureMessages)
+ScheduleModule   → AttachmentStorageService (removeExpired — @Cron, раз в час; и при старте)
 ```
 
 Все репозитории используют глобальный `PrismaService`.
@@ -234,12 +235,31 @@ AnalyticsService → PhasesService (findById)
 | `@nestjs/common`, `core`, `platform-express` | каркас API |
 | `@nestjs/config` | `appConfig`, `ConfigModule` |
 | `@nestjs/throttler` | глобальный guard и `@Throttle` |
+| `@nestjs/schedule` | ежечасная уборка вложений (`@Cron` в `AttachmentStorageService`) |
 | `@prisma/client`, `prisma` | доступ к БД и миграции |
 | `class-validator`, `class-transformer` | DTO и трансформация query/body |
 | `reflect-metadata`, `rxjs` | обязательные зависимости Nest |
 | `jest`, `ts-jest`, `@nestjs/testing` | заявлены в `api/package.json`, тестов и конфигов нет |
 
 ---
+
+## Postman-клиент
+
+Каталог `postman/` появился после снятия снимка выше и в сводку не входит: это отдельный
+Node.js-клиент, а не часть React/NestJS-приложения.
+
+| Файл | Роль | Экспорты / ключевые сущности |
+| --- | --- | --- |
+| `postman/newman-reporter-report/index.js` | Newman-репортер: форма + архив | `module.exports = Reporter`; `locationOf`, `statusOf`, `buildAllureResult`, `post`, `uploadArchive` |
+| `postman/newman-reporter-report/package.json` | локальный npm-пакет `newman-reporter-report` | подключается в `newman -r report` |
+| `postman/run.js` | запуск коллекции без публикации пакета | `main`, `parseArgs`; ждёт `report-done` |
+| `postman/instrument.js` | автоинструментирование существующей коллекции | `instrumentScript`, `convertTests`, `instrumentRequest`; маркеры `reporter:*` |
+| `postman/collection-runner/` | готовая коллекция для импорта в Postman UI | `Reporter-for-autotests.postman_collection.json`, `build.js`, `README.md` |
+| `postman/postman-ui-snippet.js` | сниппет для Collection Runner | `check()` + `pm.sendRequest` (только форма) |
+| `postman/smoke.js` | смоук-тест клиента | мок-API, 3 запроса, проверка формы и архива |
+| `postman/package.json` | зависимости клиента | `newman`, `adm-zip`, `newman-reporter-report` (file:) |
+
+Подробности — [13-postman-integration.md](13-postman-integration.md).
 
 ## Состояние репозитория
 
@@ -274,3 +294,5 @@ AnalyticsService → PhasesService (findById)
 - [06-data-model.md](06-data-model.md) — схема и миграции
 - [10-deployment.md](10-deployment.md) — развёртывание на сервере
 - [11-analytics.md](11-analytics.md) — аналитика: текущее состояние и каталог метрик
+- [12-client-integration.md](12-client-integration.md) — JUnit 4/5 и TestNG
+- [13-postman-integration.md](13-postman-integration.md) — Postman и Newman

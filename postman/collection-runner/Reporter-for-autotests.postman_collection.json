@@ -1,0 +1,326 @@
+{
+  "info": {
+    "_postman_id": "3f0b7c1e-9a2d-4c5b-8e6f-1a2b3c4d5e6f",
+    "name": "Reporter Demo API",
+    "description": "Демонстрационная коллекция для Reporter for autotests.\n\nКаждый запрос содержит в Tests: helper (check), сами проверки и блок отправки через pm.sendRequest. Настройте переменные коллекции reporter* и запустите через Collection Runner. Подробности — в README рядом.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://postman-echo.com",
+      "type": "string"
+    },
+    {
+      "key": "reporterUrl",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "reporterProject",
+      "value": "cwi",
+      "type": "string"
+    },
+    {
+      "key": "reporterEnvironment",
+      "value": "dso",
+      "type": "string"
+    },
+    {
+      "key": "reporterCollection",
+      "value": "Reporter Demo API",
+      "type": "string"
+    },
+    {
+      "key": "reporterOwner",
+      "value": "qa",
+      "type": "string"
+    },
+    {
+      "key": "reporterTags",
+      "value": "postman,ui",
+      "type": "string"
+    },
+    {
+      "key": "reporterOrigin",
+      "value": "local",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Smoke",
+      "description": "Два проходящих запроса: показывают passed в отчёте.",
+      "item": [
+        {
+          "name": "GET echo",
+          "description": "Проверяет GET и отправляет строку в Reporter for autotests.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Reporter for autotests: helper и отправка строки отчёта.",
+                  "// Проверки пишите через check(), блоки не удаляйте.",
+                  "const reporterChecks = []",
+                  "let reporterTotal = 0",
+                  "",
+                  "function check(name, fn) {",
+                  "  reporterTotal += 1",
+                  "  pm.test(name, function () {",
+                  "    try {",
+                  "      fn()",
+                  "    } catch (error) {",
+                  "      reporterChecks.push(name + ': ' + error.message)",
+                  "      throw error",
+                  "    }",
+                  "  })",
+                  "}",
+                  "",
+                  "// ---- проверки ----",
+                  "check('status 200', function () { pm.response.to.have.status(200) })",
+                  "check('query echoed', function () { pm.expect(pm.response.json().args.name).to.eql('reporter') })",
+                  "",
+                  "const reporterVariable = function (name, fallback) {",
+                  "  return pm.variables.get(name) || fallback",
+                  "}",
+                  "const reporterCode = pm.response && pm.response.code",
+                  "const reporterEnd = Date.now()",
+                  "const reporterStatus = !reporterCode",
+                  "  ? 'broken'",
+                  "  : reporterChecks.length || (reporterTotal === 0 && reporterCode >= 400)",
+                  "    ? 'failed'",
+                  "    : 'passed'",
+                  "const reporterEndpoint = reporterVariable('reporterUrl', 'http://localhost:3001').replace(/\\/$/, '')",
+                  "",
+                  "pm.sendRequest(",
+                  "  {",
+                  "    url: reporterEndpoint + '/api/results',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: {",
+                  "      mode: 'raw',",
+                  "      raw: JSON.stringify({",
+                  "        projectName: reporterVariable('reporterProject', 'default'),",
+                  "        path: reporterVariable('reporterCollection', 'Postman') + '#' + pm.info.requestName,",
+                  "        caseName: pm.info.requestName,",
+                  "        status: reporterStatus,",
+                  "        circuit: reporterVariable('reporterEnvironment', 'local'),",
+                  "        owner: reporterVariable('reporterOwner', '') || undefined,",
+                  "        message: !reporterCode",
+                  "          ? 'request failed: no response'",
+                  "          : reporterChecks.join('; ') || ' ',",
+                  "        startDate: new Date(reporterEnd - ((pm.response && pm.response.responseTime) || 0)).toISOString(),",
+                  "        endDate: new Date(reporterEnd).toISOString(),",
+                  "        tag: reporterVariable('reporterTags', '')",
+                  "          .split(',')",
+                  "          .map(function (tag) { return tag.trim() })",
+                  "          .filter(Boolean),",
+                  "      }),",
+                  "    },",
+                  "  },",
+                  "  function (error) {",
+                  "    if (error) console.error('[reporter] ' + error.message)",
+                  "  },",
+                  ")"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/get?name=reporter"
+          },
+          "response": []
+        },
+        {
+          "name": "POST echo",
+          "description": "Проверяет POST с JSON-телом и отправляет строку в Reporter for autotests.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Reporter for autotests: helper и отправка строки отчёта.",
+                  "// Проверки пишите через check(), блоки не удаляйте.",
+                  "const reporterChecks = []",
+                  "let reporterTotal = 0",
+                  "",
+                  "function check(name, fn) {",
+                  "  reporterTotal += 1",
+                  "  pm.test(name, function () {",
+                  "    try {",
+                  "      fn()",
+                  "    } catch (error) {",
+                  "      reporterChecks.push(name + ': ' + error.message)",
+                  "      throw error",
+                  "    }",
+                  "  })",
+                  "}",
+                  "",
+                  "// ---- проверки ----",
+                  "check('status 200', function () { pm.response.to.have.status(200) })",
+                  "check('body echoed', function () { pm.expect(pm.response.json().json.hello).to.eql('reporter') })",
+                  "",
+                  "const reporterVariable = function (name, fallback) {",
+                  "  return pm.variables.get(name) || fallback",
+                  "}",
+                  "const reporterCode = pm.response && pm.response.code",
+                  "const reporterEnd = Date.now()",
+                  "const reporterStatus = !reporterCode",
+                  "  ? 'broken'",
+                  "  : reporterChecks.length || (reporterTotal === 0 && reporterCode >= 400)",
+                  "    ? 'failed'",
+                  "    : 'passed'",
+                  "const reporterEndpoint = reporterVariable('reporterUrl', 'http://localhost:3001').replace(/\\/$/, '')",
+                  "",
+                  "pm.sendRequest(",
+                  "  {",
+                  "    url: reporterEndpoint + '/api/results',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: {",
+                  "      mode: 'raw',",
+                  "      raw: JSON.stringify({",
+                  "        projectName: reporterVariable('reporterProject', 'default'),",
+                  "        path: reporterVariable('reporterCollection', 'Postman') + '#' + pm.info.requestName,",
+                  "        caseName: pm.info.requestName,",
+                  "        status: reporterStatus,",
+                  "        circuit: reporterVariable('reporterEnvironment', 'local'),",
+                  "        owner: reporterVariable('reporterOwner', '') || undefined,",
+                  "        message: !reporterCode",
+                  "          ? 'request failed: no response'",
+                  "          : reporterChecks.join('; ') || ' ',",
+                  "        startDate: new Date(reporterEnd - ((pm.response && pm.response.responseTime) || 0)).toISOString(),",
+                  "        endDate: new Date(reporterEnd).toISOString(),",
+                  "        tag: reporterVariable('reporterTags', '')",
+                  "          .split(',')",
+                  "          .map(function (tag) { return tag.trim() })",
+                  "          .filter(Boolean),",
+                  "      }),",
+                  "    },",
+                  "  },",
+                  "  function (error) {",
+                  "    if (error) console.error('[reporter] ' + error.message)",
+                  "  },",
+                  ")"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"hello\":\"reporter\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/post"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Demo failure (намеренно)",
+      "description": "Проверка ожидает 200 на /status/404 — в отчёте появится failed. Снимите галочку с папки, если она не нужна.",
+      "item": [
+        {
+          "name": "GET expected 200",
+          "description": "Намеренно падающая проверка: показывает статус failed и сообщение в отчёте. Можно не запускать эту папку.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Reporter for autotests: helper и отправка строки отчёта.",
+                  "// Проверки пишите через check(), блоки не удаляйте.",
+                  "const reporterChecks = []",
+                  "let reporterTotal = 0",
+                  "",
+                  "function check(name, fn) {",
+                  "  reporterTotal += 1",
+                  "  pm.test(name, function () {",
+                  "    try {",
+                  "      fn()",
+                  "    } catch (error) {",
+                  "      reporterChecks.push(name + ': ' + error.message)",
+                  "      throw error",
+                  "    }",
+                  "  })",
+                  "}",
+                  "",
+                  "// ---- проверки ----",
+                  "check('status 200', function () { pm.response.to.have.status(200) })",
+                  "",
+                  "const reporterVariable = function (name, fallback) {",
+                  "  return pm.variables.get(name) || fallback",
+                  "}",
+                  "const reporterCode = pm.response && pm.response.code",
+                  "const reporterEnd = Date.now()",
+                  "const reporterStatus = !reporterCode",
+                  "  ? 'broken'",
+                  "  : reporterChecks.length || (reporterTotal === 0 && reporterCode >= 400)",
+                  "    ? 'failed'",
+                  "    : 'passed'",
+                  "const reporterEndpoint = reporterVariable('reporterUrl', 'http://localhost:3001').replace(/\\/$/, '')",
+                  "",
+                  "pm.sendRequest(",
+                  "  {",
+                  "    url: reporterEndpoint + '/api/results',",
+                  "    method: 'POST',",
+                  "    header: { 'Content-Type': 'application/json' },",
+                  "    body: {",
+                  "      mode: 'raw',",
+                  "      raw: JSON.stringify({",
+                  "        projectName: reporterVariable('reporterProject', 'default'),",
+                  "        path: reporterVariable('reporterCollection', 'Postman') + '#' + pm.info.requestName,",
+                  "        caseName: pm.info.requestName,",
+                  "        status: reporterStatus,",
+                  "        circuit: reporterVariable('reporterEnvironment', 'local'),",
+                  "        owner: reporterVariable('reporterOwner', '') || undefined,",
+                  "        message: !reporterCode",
+                  "          ? 'request failed: no response'",
+                  "          : reporterChecks.join('; ') || ' ',",
+                  "        startDate: new Date(reporterEnd - ((pm.response && pm.response.responseTime) || 0)).toISOString(),",
+                  "        endDate: new Date(reporterEnd).toISOString(),",
+                  "        tag: reporterVariable('reporterTags', '')",
+                  "          .split(',')",
+                  "          .map(function (tag) { return tag.trim() })",
+                  "          .filter(Boolean),",
+                  "      }),",
+                  "    },",
+                  "  },",
+                  "  function (error) {",
+                  "    if (error) console.error('[reporter] ' + error.message)",
+                  "  },",
+                  ")"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/status/404"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

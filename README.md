@@ -97,6 +97,20 @@ same action: «Импорт allure-results», and a «Детали» button next
 screenshots. Contract details — [`docs/05-api.md`](docs/05-api.md) and
 [`docs/07-ingestion-and-import.md`](docs/07-ingestion-and-import.md).
 
+## Postman collections
+
+`postman/` contains a Newman reporter for Postman collections: it posts one run per request
+(`POST /api/results`) and uploads the generated `allure-results` archive once per run
+(`POST /api/allure/import`), so collections use the same two channels as the JUnit/TestNG client.
+Install dependencies with `npm --prefix postman install`, set the `REPORTER_*` variables and run
+`node postman/run.js collection.json` (or `newman run … -r cli,report`). The Postman Collection
+Runner variant is in `postman/postman-ui-snippet.js`; it sends form rows only, and a ready-to-import
+collection lives in [`postman/collection-runner/`](postman/collection-runner/). Existing collections
+can be instrumented automatically with `node postman/instrument.js collection.json` instead of
+pasting the reporting script into every request. Details —
+[`docs/13-postman-integration.md`](docs/13-postman-integration.md). `npm --prefix postman run smoke`
+checks the client against a mock API without a database.
+
 ## Launch history
 
 The «История запусков» page in the sidebar lists every uploaded archive of the selected workspace —

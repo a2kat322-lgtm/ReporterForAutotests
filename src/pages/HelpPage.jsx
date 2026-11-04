@@ -12,6 +12,12 @@ import {
   TESTNG_RESULT_WRITER,
   TESTNG_UPLOADER,
 } from './helpCode'
+import POSTMAN_PACKAGE from '../../postman/package.json?raw'
+import POSTMAN_REPORTER_PACKAGE from '../../postman/newman-reporter-report/package.json?raw'
+import POSTMAN_REPORTER from '../../postman/newman-reporter-report/index.js?raw'
+import POSTMAN_RUN from '../../postman/run.js?raw'
+import POSTMAN_INSTRUMENT_TOOL from '../../postman/instrument.js?raw'
+import POSTMAN_UI_SNIPPET from '../../postman/postman-ui-snippet.js?raw'
 
 const { Paragraph, Text, Title } = Typography
 
@@ -174,6 +180,74 @@ const TESTNG_BUNDLE = [
   { file: 'src/test/java/com/example/reporting/testng/ResultWriter.java', code: TESTNG_RESULT_WRITER },
   { file: 'src/test/java/com/example/reporting/testng/AllureResultsUploader.java', code: TESTNG_UPLOADER },
   { file: 'src/test/resources/META-INF/services/org.testng.ITestNGListener', code: TESTNG_SERVICE },
+]
+
+const POSTMAN_BUNDLE = [
+  { file: 'postman/package.json', code: POSTMAN_PACKAGE },
+  { file: 'postman/newman-reporter-report/package.json', code: POSTMAN_REPORTER_PACKAGE },
+  { file: 'postman/newman-reporter-report/index.js', code: POSTMAN_REPORTER },
+  { file: 'postman/run.js', code: POSTMAN_RUN },
+  { file: 'postman/instrument.js', code: POSTMAN_INSTRUMENT_TOOL },
+  { file: 'postman/postman-ui-snippet.js', code: POSTMAN_UI_SNIPPET },
+]
+
+const POSTMAN_INSTRUMENT = String.raw`cd postman
+node instrument.js ..\collection.json
+# результат: ..\collection.reporter.postman_collection.json`
+
+const POSTMAN_INSTALL = String.raw`cd postman
+npm install
+
+$env:REPORTER_API = 'http://localhost:3001'
+$env:REPORTER_PROJECT = 'cwi'
+$env:REPORTER_ENVIRONMENT = 'dso'
+$env:REPORTER_LAUNCH = $env:BUILD_NUMBER
+$env:REPORTER_ORIGIN = 'ci'
+
+node run.js ..\collection.json
+# либо штатным Newman (репортер установлен локально):
+# npx newman run ..\collection.json -r cli,report`
+
+const POSTMAN_UI_RUN = String.raw`// Collection → Variables:
+// reporterUrl         http://localhost:3001
+// reporterProject     cwi
+// reporterEnvironment dso
+// reporterCollection  Shop API
+// reporterOwner       alex.kim
+// reporterTags        smoke,postman
+// reporterOrigin      local
+
+// В начало post-response скрипта запроса:
+const reporterChecks = []
+
+function check(name, fn) {
+  pm.test(name, function () {
+    try {
+      fn()
+    } catch (error) {
+      reporterChecks.push({ name: name, message: error.message })
+      throw error
+    }
+  })
+}
+
+// Проверки — через check(), а не pm.test():
+check('status 200', function () {
+  pm.response.to.have.status(200)
+})
+
+// В конец скрипта вставьте блок «КОНЕЦ» из postman/postman-ui-snippet.js.`
+
+const postmanProperties = [
+  { key: 'REPORTER_API', value: 'http://localhost:3001', meaning: 'Адрес API без /api на конце.' },
+  { key: 'REPORTER_PROJECT', value: 'default', meaning: 'Имя проекта (workspace), в который пишутся запуски.' },
+  { key: 'REPORTER_ENVIRONMENT', value: 'local', meaning: 'Окружение: circuit формы и environment импорта; должно совпадать с окружением фазы.' },
+  { key: 'REPORTER_LAUNCH', value: 'случайный UUID на прогон', meaning: 'Идентификатор прогона; в CI передавайте номер сборки, чтобы один прогон имел один launchId.' },
+  { key: 'REPORTER_ORIGIN', value: 'ci / local (по env CI)', meaning: 'Источник прогона для «Истории запусков»; в CI задайте ci явно.' },
+  { key: 'REPORTER_TAGS', value: '—', meaning: 'Теги через запятую: попадают в строку и в фильтры отчёта.' },
+  { key: 'REPORTER_OWNER / REPORTER_EPIC', value: '—', meaning: 'Владелец и эпик (подпись и фильтр на странице отчёта).' },
+  { key: 'REPORTER_UPLOAD', value: 'true', meaning: 'false — отправить только форму, без архива allure-results.' },
+  { key: 'REPORTER_ARCHIVE_NAME', value: 'postman-results.zip', meaning: 'Имя архива в «Истории запусков».' },
 ]
 
 const properties = [
@@ -341,13 +415,83 @@ function TestNgExtra() {
   )
 }
 
+function PostmanExtra() {
+  return (
+    <>
+      <Title level={5} style={{ marginTop: 24 }}>Установка и прогон</Title>
+      <CodeBlock title="powershell — postman/run.js" code={POSTMAN_INSTALL} />
+
+      <Title level={5} style={{ marginTop: 24 }}>Настройки (переменные окружения)</Title>
+      <Table
+        rowKey="key"
+        columns={propertyColumns}
+        dataSource={postmanProperties}
+        pagination={false}
+        size="small"
+      />
+
+      <Paragraph type="secondary" className="help-note">
+        Готовая коллекция для импорта в Postman UI:{' '}
+        <Text code>postman/collection-runner/Reporter-for-autotests.postman_collection.json</Text>.
+        Скрипты уже вставлены в каждый запрос; после первого прогона выполните Harvest, иначе
+        строки не появятся в отчёте фазы.
+      </Paragraph>
+
+      <details className="help-details">
+        <summary>Не вставлять код в каждый запрос</summary>
+        <Paragraph type="secondary">
+          Экспортируйте коллекцию и выполните команду ниже: инструмент добавит блоки в каждый
+          запрос и перепишет <Text code>pm.test(...)</Text> на <Text code>check(...)</Text>, чтобы
+          падения попадали в отчёт. Либо запускайте через Newman — там код в тестах не нужен
+          вообще.
+        </Paragraph>
+        <CodeBlock title="powershell — автоинструментирование" code={POSTMAN_INSTRUMENT} />
+      </details>
+
+      <details className="help-details">
+        <summary>Postman UI (Collection Runner) — упрощённый вариант</summary>
+        <Paragraph type="secondary">
+          В приложение Postman нельзя установить Newman-репортер, поэтому для ручных прогонов есть
+          сниппет: он отправляет строку формы после каждого запроса. Путь строится как{' '}
+          <Text code>Коллекция#Запрос</Text> (папки из песочницы недоступны), архив не отправляется,
+          а проверки нужно писать через <Text code>check()</Text> — обычные{' '}
+          <Text code>pm.test()</Text> в отчёт не попадут. Для CI и полного паритета с JUnit/TestNG
+          используйте Newman.
+        </Paragraph>
+        <CodeBlock title="postman-ui-snippet.js — начало post-response скрипта" code={POSTMAN_UI_RUN} />
+      </details>
+
+      <details className="help-details">
+        <summary>Почему архив allure-results пишет сам клиент</summary>
+        <Paragraph type="secondary">
+          <Text code>newman-reporter-allure</Text> строит <Text code>fullName</Text> как{' '}
+          <Text code>&lt;project&gt;:Коллекция/Папка#Запрос</Text>, а сервер берёт его как{' '}
+          <Text code>path</Text>. Путь формы такого префикса не имеет, поэтому архив создал бы вторую
+          строку вместо <Text code>enriched</Text>. Клиент пишет минимальный{' '}
+          <Text code>*-result.json</Text> с <Text code>labels.testClass</Text> /{' '}
+          <Text code>testMethod</Text>, и оба канала используют один и тот же путь.
+        </Paragraph>
+      </details>
+
+      <details className="help-details">
+        <summary>Проверка клиента без API и БД</summary>
+        <Paragraph type="secondary">
+          Смоук поднимает мок-API, прогоняет три запроса (passed / failed / broken) и проверяет
+          строки формы, архив и query-параметры импорта:
+        </Paragraph>
+        <CodeBlock title="powershell — смоук-тест" code="npm --prefix postman run smoke" />
+      </details>
+    </>
+  )
+}
+
 export default function HelpPage({ navigate }) {
   return (
     <>
       <PageHeading
         eyebrow="ДОКУМЕНТАЦИЯ"
         title="Как подключить отчёт"
-        description="Отправка результатов из тестового проекта: JUnit 5, JUnit 4 и TestNG. Всё, что нужно, — на этой странице: скопируйте код кнопкой и разложите файлы по указанным путям."
+        description="Отправка результатов из тестового проекта: JUnit 5, JUnit 4, TestNG и Postman. Всё, что нужно, — на этой странице: скопируйте код кнопкой и разложите файлы по указанным путям."
         action={<Button icon={<ArrowLeftOutlined />} onClick={() => navigate({ page: 'phases' })}>К фазам</Button>}
       />
 
@@ -355,8 +499,8 @@ export default function HelpPage({ navigate }) {
         className="help-alert"
         type="info"
         showIcon
-        message="Код для JUnit 5, JUnit 4 и TestNG можно скопировать целиком"
-        description="В каждой вкладке — зависимости, все классы и регистрация. Значения по умолчанию: http://localhost:3001, проект cwi, окружение DSO; источник прогона задаётся свойством reporter.origin (в CI — ci)."
+        message="Код для JUnit 5, JUnit 4, TestNG и Postman можно скопировать целиком"
+        description="В каждой вкладке — зависимости, все классы/файлы и регистрация. Java: http://localhost:3001, проект cwi, окружение DSO; источник — reporter.origin (в CI ci). Postman: переменные REPORTER_* (по умолчанию проект default, окружение local)."
       />
 
       <Card className="help-card">
@@ -429,6 +573,18 @@ export default function HelpPage({ navigate }) {
                 />
               ),
             },
+            {
+              key: 'postman',
+              label: 'Postman',
+              children: (
+                <IntegrationTab
+                  title="Postman"
+                  description="Newman-репортер отправляет строку на каждый запрос и архив allure-results в конце прогона. Для Collection Runner — сниппет с check()."
+                  entries={POSTMAN_BUNDLE}
+                  extra={<PostmanExtra />}
+                />
+              ),
+            },
           ]}
         />
       </Card>
@@ -440,6 +596,10 @@ export default function HelpPage({ navigate }) {
           <Text code>systemPropertyVariables</Text> Surefire или <Text code>systemProperty</Text> Gradle:
         </Paragraph>
         <CodeBlock title="pom.xml — surefire systemPropertyVariables" code={CI_SETTINGS} />
+        <Paragraph type="secondary" className="help-note">
+          Для Postman те же настройки задаются переменными окружения <Text code>REPORTER_*</Text> —
+          таблица во вкладке Postman.
+        </Paragraph>
       </Card>
 
       <Card className="help-card" title="Проверка подключения">

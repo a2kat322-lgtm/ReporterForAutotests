@@ -66,6 +66,8 @@ npm run dev         # Vite,     http://localhost:5173
 | `npm run api:install` | `npm --prefix api install` |
 | `npm run api:dev` | Nest в watch-режиме |
 | `npm run api:build` | сборка API в `api/dist/` |
+| `npm run postman:install` | `npm --prefix postman install` — клиент Postman/Newman |
+| `npm run postman:smoke` | смоук-тест клиента на мок-API (без БД) |
 | `npm run db:up` / `db:down` | PostgreSQL в Docker |
 
 ### API (`api/package.json`)
@@ -107,7 +109,8 @@ npm run dev         # Vite,     http://localhost:5173
 - Юнит/e2e-тестов нет: `api/package.json` содержит скрипты `test`/`test:e2e`, но ни тестов, ни
   `api/test/jest-e2e.json` нет.
 - Минимальный набор проверок: `npm run lint`, `prisma:validate`, `api:build`, `build`,
-  `send-test-runs.ps1 -DryRun` и ручной сценарий из раздела «Проверка перед коммитом».
+  `npm run postman:smoke` (если менялся `postman/`), `send-test-runs.ps1 -DryRun` и ручной сценарий
+  из раздела «Проверка перед коммитом».
 
 ## Git и состояние репозитория
 
@@ -269,6 +272,7 @@ npm run lint
 npm --prefix api run prisma:validate
 npm run api:build
 npm run build
+npm run postman:smoke
 pwsh -File scripts/send-test-runs.ps1 -DryRun
 ```
 

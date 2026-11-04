@@ -1179,3 +1179,7 @@ curl -X POST "http://localhost:3001/api/allure/import?environment=dso&projectNam
 - [ ] ручная проверка `curl` из п. 9.1 проходит;
 - [ ] для проекта только с формой — путь добавлен в каталог (Harvest или `POST /api/tests`);
 - [ ] в CI задан `reporter.launch` (номер сборки), чтобы прогон группировался в один `launchId`.
+
+Клиент для Postman-коллекций (Newman) описан в
+[13-postman-integration.md](13-postman-integration.md): те же два канала, путь
+`Коллекция/Папка#Запрос` и настройки в переменных `REPORTER_*`.

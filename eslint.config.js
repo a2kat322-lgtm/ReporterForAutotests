@@ -38,4 +38,12 @@ export default [
     files: ['scripts/**/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    files: ['postman/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'commonjs',
+      globals: { ...globals.node },
+    },
+  },
 ]

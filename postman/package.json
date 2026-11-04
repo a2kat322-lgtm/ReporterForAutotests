@@ -1,0 +1,20 @@
+{
+  "name": "reporter-for-autotests-postman",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Newman runner that reports Postman collection results to Reporter for autotests",
+  "scripts": {
+    "smoke": "node smoke.js && node instrument-smoke.js",
+    "smoke:instrument": "node instrument-smoke.js",
+    "instrument": "node instrument.js"
+  },
+  "dependencies": {
+    "acorn": "^8.19.0",
+    "adm-zip": "^0.6.1",
+    "newman": "^6.2.3",
+    "newman-reporter-report": "file:newman-reporter-report"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -11,6 +11,8 @@
     "api:install": "npm --prefix api install",
     "api:dev": "npm --prefix api run start:dev",
     "api:build": "npm --prefix api run build",
+    "postman:install": "npm --prefix postman install",
+    "postman:smoke": "npm --prefix postman run smoke",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down"
   },

@@ -1,5 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 
+// Postman sources in postman/ are imported by HelpPage with Vite's `?raw`
+// (single source of truth), so this generator only handles the Java client.
 const md = readFileSync('docs/12-client-integration.md', 'utf8')
 
 const blocks = []
