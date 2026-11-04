@@ -1,10 +1,16 @@
 /*
  * Deletes attachment files older than the retention period (default 48 h).
  *
- * Storage is content-addressed and append-only: nothing in the API deletes
- * files, so without this job the directory grows forever. The server has very
- * little disk, so the rule is a hard TTL: a file is removed by its age alone,
- * whether or not a run still references it.
+ * The API does this itself: `AttachmentStorageService` runs the same sweep every
+ * hour and once at startup (`@nestjs/schedule`), so on a normal deployment this
+ * script is only needed for a dry run, for a one-off cleanup with a shorter TTL,
+ * or when `ATTACHMENT_GC_ENABLED=false` hands retention to an external cron.
+ *
+ * Storage is content-addressed and append-only: the API never deletes a file
+ * when a run is removed (a workspace cascade drops rows only, and a failed
+ * import can leave files behind), so without a sweep the directory grows
+ * forever. The server has very little disk, so the rule is a hard TTL: a file is
+ * removed by its age alone, whether or not a run still references it.
  *
  * Consequences to keep in mind:
  *   - runs older than the retention period keep their rows but lose the
@@ -25,14 +31,16 @@ const fs = require('node:fs')
 const {
   isManagedKey,
   listStoredFiles,
+  resolveRetentionHours,
   resolveStorageDir,
   formatBytes,
 } = require('./lib/attachments.cjs')
 
-/** Retention in hours: CLI flag wins, then `ATTACHMENT_TTL_HOURS`, then 48. */
-const DEFAULT_TTL_HOURS = Number(process.env.ATTACHMENT_TTL_HOURS) > 0
-  ? Number(process.env.ATTACHMENT_TTL_HOURS)
-  : 48
+/**
+ * Retention in hours: CLI flag wins, then `ATTACHMENT_TTL_HOURS` (process env or
+ * `api/.env`, the same value the API's own sweep uses), then 48.
+ */
+const DEFAULT_TTL_HOURS = resolveRetentionHours()
 
 function parseArgs(argv) {
   const options = { dryRun: false, ttlHours: DEFAULT_TTL_HOURS, help: false }
@@ -98,7 +106,7 @@ function main() {
 
   if (unmanaged.length) {
     console.log('\nФайлы не в формате ключа (не наши, не удаляются):')
-    for (const file of unmanaged.slice(0, 10)) console.log(`  ${file.name}`)
+    for (const file of unmanaged.slice(0, 10)) console.log(`  ${file.relPath}`)
     if (unmanaged.length > 10) console.log(`  … ещё ${unmanaged.length - 10}`)
   }
 
@@ -111,7 +119,7 @@ function main() {
     console.log(`\nDry run: было бы удалено ${expired.length} файлов (${formatBytes(expired.reduce((sum, file) => sum + file.size, 0))}).`)
     for (const file of expired.slice(0, 20)) {
       const ageHours = ((Date.now() - file.mtimeMs) / 3600_000).toFixed(1)
-      console.log(`  ${file.name} (${formatBytes(file.size)}, ${ageHours} ч)`)
+      console.log(`  ${file.relPath} (${formatBytes(file.size)}, ${ageHours} ч)`)
     }
     if (expired.length > 20) console.log(`  … ещё ${expired.length - 20}`)
     return
@@ -125,7 +133,7 @@ function main() {
       deleted += 1
       freed += file.size
     } catch (error) {
-      console.error(`Не удалось удалить ${file.name}: ${error.message}`)
+      console.error(`Не удалось удалить ${file.relPath}: ${error.message}`)
     }
   }
   console.log(`\nУдалено: ${deleted} из ${expired.length}, освобождено ${formatBytes(freed)}.`)

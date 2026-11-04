@@ -10,17 +10,29 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 const API_DIR = path.join(__dirname, '..', '..')
+const ENV_PATH = path.join(API_DIR, '.env')
 
-/** `.env` in `api/` is the same file the API reads; the process env wins. */
-function loadDatabaseUrl() {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL
-  const envPath = path.join(API_DIR, '.env')
-  if (!fs.existsSync(envPath)) return undefined
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const match = /^\s*DATABASE_URL\s*=\s*(.*)\s*$/.exec(line)
-    if (match) return match[1].replace(/^["']|["']$/g, '')
+/**
+ * One variable, with the same precedence the API has: the process environment
+ * wins, then `.env` in `api/`. Reading `.env` matters for `ATTACHMENTS_DIR` and
+ * `ATTACHMENT_TTL_HOURS`: a value set there is what the API uses, so a script
+ * that ignored it would clean a different directory (or a different age) than
+ * the one the API writes to.
+ */
+function loadEnvValue(name) {
+  const fromProcess = process.env[name]
+  if (fromProcess) return fromProcess
+  if (!fs.existsSync(ENV_PATH)) return undefined
+  const pattern = new RegExp(`^\\s*${name}\\s*=\\s*(.*?)\\s*$`)
+  for (const line of fs.readFileSync(ENV_PATH, 'utf8').split(/\r?\n/)) {
+    const match = pattern.exec(line)
+    if (match) return match[1].replace(/^["']|["']$/g, '') || undefined
   }
   return undefined
+}
+
+function loadDatabaseUrl() {
+  return loadEnvValue('DATABASE_URL')
 }
 
 /**
@@ -29,8 +41,14 @@ function loadDatabaseUrl() {
  * same whether they run from the repo root or through `npm --prefix api`.
  */
 function resolveStorageDir() {
-  const configured = process.env.ATTACHMENTS_DIR || 'storage/attachments'
+  const configured = loadEnvValue('ATTACHMENTS_DIR') || 'storage/attachments'
   return path.isAbsolute(configured) ? configured : path.resolve(API_DIR, configured)
+}
+
+/** Retention in hours, as the API reads it: the same variable, the same default. */
+function resolveRetentionHours() {
+  const configured = Number(loadEnvValue('ATTACHMENT_TTL_HOURS'))
+  return Number.isFinite(configured) && configured > 0 ? configured : 48
 }
 
 function createPrismaClient() {
@@ -82,17 +100,50 @@ function isManagedKey(name) {
   return /^[a-f0-9]{64}(\.[a-z0-9]{1,10})?$/.test(name)
 }
 
-/** Files in the storage directory with their size and modification time. */
+/** Matches the service: keys are flat today, but a sharded layout must still be walked. */
+const MAX_DEPTH = 4
+
+/**
+ * Files in the storage directory with their size and modification time.
+ *
+ * `name` is the file name (the content-addressed key), `relPath` is the path
+ * inside the storage root — the two differ once the directory is sharded into
+ * subfolders. Symlinks are ignored, so the walk never leaves the storage root.
+ */
 function listStoredFiles(directory) {
-  if (!fs.existsSync(directory)) return []
-  return fs
-    .readdirSync(directory, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => {
-      const fullPath = path.join(directory, entry.name)
+  return walkStorage(directory, directory, 0)
+}
+
+function walkStorage(root, directory, depth) {
+  let entries
+  try {
+    entries = fs.readdirSync(directory, { withFileTypes: true })
+  } catch {
+    return []
+  }
+
+  const files = []
+  for (const entry of entries) {
+    const fullPath = path.join(directory, entry.name)
+    if (entry.isDirectory()) {
+      if (depth < MAX_DEPTH) files.push(...walkStorage(root, fullPath, depth + 1))
+      continue
+    }
+    if (!entry.isFile()) continue
+    try {
       const stat = fs.statSync(fullPath)
-      return { name: entry.name, path: fullPath, size: stat.size, mtimeMs: stat.mtimeMs }
-    })
+      files.push({
+        name: entry.name,
+        relPath: path.relative(root, fullPath).split(path.sep).join('/'),
+        path: fullPath,
+        size: stat.size,
+        mtimeMs: stat.mtimeMs,
+      })
+    } catch {
+      // Vanished between readdir and stat, or a broken link — skip it.
+    }
+  }
+  return files
 }
 
 function formatBytes(bytes) {
@@ -109,6 +160,8 @@ module.exports = {
   isManagedKey,
   listStoredFiles,
   loadDatabaseUrl,
+  loadEnvValue,
+  resolveRetentionHours,
   resolveStorageDir,
   formatBytes,
 }

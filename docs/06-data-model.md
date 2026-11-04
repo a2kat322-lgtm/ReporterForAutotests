@@ -177,7 +177,9 @@ PK — составной `(automatedTestId, environment)`; индекс `Automa
 `steps`, `attachments`, `parameters`, `links`, `statusDetails` заполняются только импортом
 `allure-results`; у запусков, отправленных формой, их нет. Файлы вложений в PostgreSQL **не
 хранятся**: в JSONB лежат метаданные с ключом `sha256`, сами байты — в `ATTACHMENTS_DIR`
-(по умолчанию `api/storage/attachments`, каталог нужно бэкапить отдельно от БД).
+(по умолчанию `api/storage/attachments`, каталог нужно бэкапить отдельно от БД). Байты живут по
+жёсткому TTL (`ATTACHMENT_TTL_HOURS`, 48 ч): API удаляет их по возрасту, поэтому метаданные старых
+запусков переживают свои файлы.
 
 ### `AllureLaunch`
 

@@ -193,6 +193,7 @@ sequenceDiagram
 | Валидация DTO | глобальный `ValidationPipe` (`whitelist`, `transform`, `forbidNonWhitelisted`) | неизвестные поля → `400` |
 | Ручная валидация | `POST /api/results` без DTO | контракт внешний, лишние поля игнорируются |
 | Ограничение частоты | `ThrottlerModule` + `ThrottlerGuard` глобально | переопределения на `results`, `harvest`, `import` |
+| Плановые задачи | `ScheduleModule` (глобально) | `AttachmentStorageService.removeExpired` — раз в час и при старте |
 | Ошибки | `NotFoundException` / `BadRequestException` Nest | Prisma `P2025` → `404`, `P2002` — обрабатывается точечно |
 | Транзакции | `prisma.$transaction` в `harvestBatch`, `create` (каталог), `executeImport` | атомарность пакетных операций |
 | CORS | `app.enableCors({ origin: CORS_ORIGIN })` | по умолчанию `http://localhost:5173` |

@@ -275,6 +275,8 @@ ATTACHMENTS_DIR=/srv/reporter/storage/attachments
 | `ENABLE_LEGACY_IMPORT` | `false` | legacy-импорт не нужен в проде |
 | `TRUST_PROXY` | `true` | реальный IP клиента из `X-Forwarded-For` для throttle |
 | `ATTACHMENTS_DIR` | `/srv/reporter/storage/attachments` | скриншоты и логи из `allure-results`; каталог бэкапится отдельно от БД |
+| `ATTACHMENT_TTL_HOURS` | `48` | срок хранения файлов вложений; уборка — внутри API раз в час |
+| `ATTACHMENT_GC_ENABLED` | `true` | `false` — если уборку делает внешний cron, а не сам API |
 | `ALLURE_IMPORT_MAX_BYTES` | `536870912` | предел одного архива (512 МиБ); согласуйте с `client_max_body_size` |
 
 ```bash
@@ -639,10 +641,22 @@ sudo chmod 644 /etc/cron.d/reporter-backup
 
 ### Очистка вложений (жёсткий TTL)
 
-Файлы вложений API сам никогда не удаляет: удаление workspace уносит строки каскадом, а байты на
+Файлы вложений API не удаляет по ссылкам: удаление workspace уносит строки каскадом, а байты на
 диске остаются; упавший импорт тоже может оставить файлы. На сервере с ограниченным диском нужен
 жёсткий срок хранения: **файл удаляется по возрасту, независимо от того, ссылается ли на него
 БД** (по умолчанию 48 ч).
+
+Уборка встроена в API: `AttachmentStorageService` проходит каталог при старте и далее раз в час
+(`@nestjs/schedule`, `0 * * * *`), поэтому отдельный cron не нужен. Настраивается двумя
+переменными:
+
+| Переменная | По умолчанию | Зачем |
+| --- | --- | --- |
+| `ATTACHMENT_TTL_HOURS` | `48` | возраст файла, после которого он удаляется; значение ≤ 0 игнорируется, чтобы случайный ноль не стёр каталог |
+| `ATTACHMENT_GC_ENABLED` | `true` | `false` выключает встроенную уборку — когда её делает внешний cron |
+
+Скрипт остаётся для ops-задач: отчёт без удаления, разовая уборка с другим TTL, ручной прогон при
+`ATTACHMENT_GC_ENABLED=false`.
 
 ```bash
 cd /srv/reporter/api
@@ -651,10 +665,14 @@ npm run attachments:gc           # удалить всё старше 48 ч
 npm run attachments:gc -- --ttl-hours=6
 ```
 
-Cron — **раз в час** (при суточном запуске файлы живут до 48 ч + 24 ч):
+Скрипт берёт `ATTACHMENTS_DIR` и `ATTACHMENT_TTL_HOURS` из окружения и из `api/.env` — те же
+значения, что видит API, а не жёстко зашитый путь.
+
+Внешний cron нужен только при `ATTACHMENT_GC_ENABLED=false`; запускайте **раз в час** (при суточном
+запуске файлы живут до 48 ч + 24 ч):
 
 ```cron
-*/60 * * * * reporter cd /srv/reporter/api && /usr/bin/npm run attachments:gc >> /var/log/reporter/gc.log 2>&1
+0 * * * * reporter cd /srv/reporter/api && /usr/bin/npm run attachments:gc >> /var/log/reporter/gc.log 2>&1
 ```
 
 Что важно понимать:

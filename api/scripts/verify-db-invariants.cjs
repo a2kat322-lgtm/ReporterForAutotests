@@ -16,6 +16,7 @@ const {
   isManagedKey,
   listStoredFiles,
   loadDatabaseUrl,
+  resolveRetentionHours,
   resolveStorageDir,
 } = require('./lib/attachments.cjs')
 
@@ -124,7 +125,7 @@ async function checkDatabase() {
     // Files are not part of the schema, so this is a warning, not a failure.
     // Only runs inside the retention window are checked: with the hard TTL,
     // references of older runs are expected to point at deleted files.
-    const retentionHours = Number(process.env.ATTACHMENT_TTL_HOURS) || 48
+    const retentionHours = resolveRetentionHours()
     const since = new Date(Date.now() - retentionHours * 3600_000)
     const referenced = await collectReferencedKeys(prisma, since)
     if (referenced.size) {

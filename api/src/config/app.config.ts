@@ -15,6 +15,17 @@ export const appConfig = registerAs('app', () => ({
   // Files are content-addressed (sha256), so re-imports reuse existing bytes.
   // Keep this directory outside the repository in production and back it up.
   attachmentsDir: resolve(process.env.ATTACHMENTS_DIR || 'storage/attachments'),
+  // Retention for those files, in hours. The API sweeps the directory hourly
+  // (and once at startup) and deletes anything older, referenced or not, so an
+  // accident with this value is not recoverable: a zero is ignored on purpose
+  // and keeps the 48 h default. The CLI script and `db:verify` read the same
+  // variable, so all three agree on what "expired" means.
+  attachmentsTtlHours: Number(process.env.ATTACHMENT_TTL_HOURS) > 0
+    ? Number(process.env.ATTACHMENT_TTL_HOURS)
+    : 48,
+  // Set to `false` when an external cron already runs `attachments:gc`: two
+  // sweepers are harmless (the deletes are idempotent) but the logs double up.
+  attachmentsGcEnabled: process.env.ATTACHMENT_GC_ENABLED !== 'false',
   // Upper bound for one uploaded archive; the express raw parser allows the
   // same value, the service re-checks it before parsing.
   allureImportMaxBytes: Number(process.env.ALLURE_IMPORT_MAX_BYTES) || 512 * 1024 * 1024,
